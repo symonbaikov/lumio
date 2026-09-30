@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { GoalItemStatus } from '@/entities/goal-item.entity';
 import { GoalItemsService } from '@/modules/goals/goal-items.service';
 
@@ -27,9 +28,16 @@ function createService(options: {
   } as never;
 
   const exchangeRatesService = { getRate: jest.fn(async () => options.rate ?? 1) } as never;
+  const auditService = { createEvent: jest.fn(async () => ({})) };
 
   return {
-    service: new GoalItemsService(itemRepository, goalRepository, exchangeRatesService),
+    service: new GoalItemsService(
+      itemRepository,
+      goalRepository,
+      exchangeRatesService,
+      auditService as never,
+    ),
+    auditService,
     itemRepository: itemRepository as unknown as {
       create: jest.Mock;
       save: jest.Mock;
@@ -151,7 +159,7 @@ describe('GoalItemsService', () => {
       items: [line({ actualAmount: '620000' })],
     });
 
-    await service.update(GOAL_ID, 'item-1', WORKSPACE_ID, { actualAmount: null });
+    await service.update(GOAL_ID, 'item-1', WORKSPACE_ID, 'user-1', { actualAmount: null });
 
     expect(itemRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ actualAmount: null }),
@@ -164,7 +172,7 @@ describe('GoalItemsService', () => {
       items: [line()],
     });
 
-    await service.update(GOAL_ID, 'item-1', WORKSPACE_ID, { estimatedAmount: 700000 });
+    await service.update(GOAL_ID, 'item-1', WORKSPACE_ID, 'user-1', { estimatedAmount: 700000 });
 
     expect(itemRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Deposit', dueMonth: '2026-06', estimatedAmount: 700000 }),
@@ -175,7 +183,7 @@ describe('GoalItemsService', () => {
     const { service } = createService({ goal, items: [] });
 
     await expect(
-      service.update(GOAL_ID, 'item-1', WORKSPACE_ID, { name: 'x' }),
+      service.update(GOAL_ID, 'item-1', WORKSPACE_ID, 'user-1', { name: 'x' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -193,5 +201,62 @@ describe('GoalItemsService', () => {
     const { service } = createService({ goal, items: [] });
 
     await expect(service.estimatedTotal(GOAL_ID, WORKSPACE_ID, 'KZT')).resolves.toBe(0);
+  });
+
+  describe('audit trail', () => {
+    const expectGoalEvent = (auditService: { createEvent: jest.Mock }, itemId: string) =>
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: WORKSPACE_ID,
+          actorId: 'user-1',
+          entityType: EntityType.GOAL,
+          entityId: GOAL_ID,
+          action: AuditAction.UPDATE,
+          meta: expect.objectContaining({ item: { id: itemId, name: 'Deposit' } }),
+        }),
+      );
+
+    it('records an added cost line against its goal', async () => {
+      const { service, itemRepository, auditService } = createService({ goal: { ...goal, name: 'Lisbon' } });
+      itemRepository.save.mockImplementation(async (data: Record<string, unknown>) => ({
+        ...data,
+        id: 'item-new',
+      }));
+
+      await service.create(GOAL_ID, WORKSPACE_ID, 'user-1', {
+        name: 'Deposit',
+        estimatedAmount: 500000,
+      });
+
+      expectGoalEvent(auditService, 'item-new');
+    });
+
+    it('records an edited cost line against its goal', async () => {
+      const { service, auditService } = createService({ goal, items: [line()] });
+
+      await service.update(GOAL_ID, 'item-1', WORKSPACE_ID, 'user-1', { estimatedAmount: 700000 });
+
+      expectGoalEvent(auditService, 'item-1');
+      expect(auditService.createEvent.mock.calls[0][0].diff).toEqual({
+        before: expect.objectContaining({ estimatedAmount: 500000 }),
+        after: expect.objectContaining({ estimatedAmount: 700000 }),
+      });
+    });
+
+    it('records a removed cost line against its goal', async () => {
+      const { service, auditService } = createService({ goal, items: [line()] });
+
+      await service.remove(GOAL_ID, 'item-1', WORKSPACE_ID, 'user-1');
+
+      expectGoalEvent(auditService, 'item-1');
+    });
+
+    it('does not fail the change when the audit write fails', async () => {
+      const { service, itemRepository, auditService } = createService({ goal, items: [line()] });
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.remove(GOAL_ID, 'item-1', WORKSPACE_ID, 'user-1')).resolves.toBeDefined();
+      expect(itemRepository.remove).toHaveBeenCalled();
+    });
   });
 });

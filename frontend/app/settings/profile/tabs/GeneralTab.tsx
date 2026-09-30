@@ -10,6 +10,7 @@ import { Palette, UserCircle } from '@/app/components/icons';
 import { Alert } from '@/app/components/ui/alert';
 import { useLocale } from '@/app/i18n';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
+import { formatTimeZoneLabel } from '@/app/lib/timezone';
 import {
   AppearanceSection,
   ThemeSection,
@@ -86,26 +87,42 @@ export function GeneralTab({ section, user, setUser }: SettingsTabProps): React.
     setDensity,
     reduceMotion,
     setReduceMotion,
+    showDailyQuote,
+    setShowDailyQuote,
   } = useAppearance(user, setUser, {
     successFallback: t.appearanceCard.title.value,
     errorFallback: t.profileCard.errorFallback.value,
   });
 
+  // Назвать 418 зон — это два формата Intl на каждую, ~0,4 с в главном потоке
+  // на холодном ICU. Пока ящик закрыт, список не виден никому, поэтому он
+  // строится на первом открытии; дальше отвечает кэш в formatTimeZoneLabel.
   const timeZoneSelectOptions = useMemo<TimeZoneOption[]>(() => {
+    if (!isTimeZoneModalOpen) {
+      return [];
+    }
     const autoLabel = t.profileCard.timeZones.auto.value;
     const utcLabel = t.profileCard.timeZones.utc.value;
     return [
       { value: '', label: autoLabel },
-      ...timeZoneOptions.map(zone => ({ value: zone, label: zone === 'UTC' ? utcLabel : zone })),
+      ...timeZoneOptions.map(zone => ({
+        value: zone,
+        label: zone === 'UTC' ? utcLabel : formatTimeZoneLabel(zone, locale),
+      })),
     ];
-  }, [t, timeZoneOptions]);
+  }, [isTimeZoneModalOpen, t, timeZoneOptions, locale]);
 
+  // Считается из самой зоны, а не поиском по списку: иначе надпись на кнопке
+  // зависела бы от того, открыт ящик или нет.
   const selectedTimeZoneOption = useMemo<TimeZoneOption>(() => {
-    const matched = timeZoneSelectOptions.find(option => option.value === profileTimeZone);
-    if (matched) return matched;
-    if (profileTimeZone) return { value: profileTimeZone, label: profileTimeZone };
-    return timeZoneSelectOptions[0] || { value: '', label: t.profileCard.timeZones.auto.value };
-  }, [profileTimeZone, t, timeZoneSelectOptions]);
+    if (!profileTimeZone) {
+      return { value: '', label: t.profileCard.timeZones.auto.value };
+    }
+    if (profileTimeZone === 'UTC') {
+      return { value: 'UTC', label: t.profileCard.timeZones.utc.value };
+    }
+    return { value: profileTimeZone, label: formatTimeZoneLabel(profileTimeZone, locale) };
+  }, [profileTimeZone, t, locale]);
 
   const filteredTimeZoneSelectOptions = useMemo(() => {
     const query = timeZoneSearch.trim().toLowerCase();
@@ -224,6 +241,8 @@ export function GeneralTab({ section, user, setUser }: SettingsTabProps): React.
           setDensity={setDensity}
           reduceMotion={reduceMotion}
           setReduceMotion={setReduceMotion}
+          showDailyQuote={showDailyQuote}
+          setShowDailyQuote={setShowDailyQuote}
         />
       </SettingsAccordion>
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { Cpu } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import { usePluginState } from '../hooks/usePluginState';
 import { McpServerDrawer } from './McpServerDrawer';
@@ -10,6 +11,7 @@ import { useApiKeys } from './useApiKeys';
 export function McpServerTopBarButton() {
   const { isEnabled } = usePluginState();
   const { isActive } = useApiKeys();
+  const t = useIntlayer('mcpServerDrawer');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleOpen = useCallback(() => setDrawerOpen(true), []);
@@ -22,7 +24,7 @@ export function McpServerTopBarButton() {
       <button
         type="button"
         className="lumio-topbar__icon-btn"
-        title="MCP Server"
+        title={t.title.value}
         onClick={handleOpen}
         style={{ position: 'relative' }}
       >

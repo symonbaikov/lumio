@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 
 export interface SplitPartInput {
@@ -28,6 +29,11 @@ function errorMessage(error: unknown, fallback: string): string {
 
 export function useTransactionSplit(onDone: () => void | Promise<void>): UseTransactionSplitResult {
   const [saving, setSaving] = useState(false);
+  const t = useIntlayer('transactionsDrawer');
+  const successText = t.splitToasts.success.value;
+  const failedText = t.splitToasts.failed.value;
+  const undoneText = t.splitToasts.undone.value;
+  const undoFailedText = t.splitToasts.undoFailed.value;
 
   // Promise chains rather than try/finally: React Compiler skips hooks that
   // contain a `finally` clause.
@@ -37,15 +43,15 @@ export function useTransactionSplit(onDone: () => void | Promise<void>): UseTran
       await apiClient
         .post(`/transactions/${transactionId}/split`, { parts })
         .then(async () => {
-          toast.success('Transaction split');
+          toast.success(successText);
           await onDone();
         })
         .catch((error: unknown) => {
-          toast.error(errorMessage(error, 'Failed to split transaction'));
+          toast.error(errorMessage(error, failedText));
         });
       setSaving(false);
     },
-    [onDone],
+    [onDone, successText, failedText],
   );
 
   const unsplit = useCallback(
@@ -54,15 +60,15 @@ export function useTransactionSplit(onDone: () => void | Promise<void>): UseTran
       await apiClient
         .post(`/transactions/${transactionId}/unsplit`)
         .then(async () => {
-          toast.success('Split undone');
+          toast.success(undoneText);
           await onDone();
         })
         .catch((error: unknown) => {
-          toast.error(errorMessage(error, 'Failed to undo split'));
+          toast.error(errorMessage(error, undoFailedText));
         });
       setSaving(false);
     },
-    [onDone],
+    [onDone, undoneText, undoFailedText],
   );
 
   return { split, unsplit, saving };

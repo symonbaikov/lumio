@@ -34,6 +34,7 @@ describe('InsightsController', () => {
       category: 'ops',
       limit: 10,
       offset: 5,
+      locale: undefined,
     });
     expect(insightsService.getSummary).toHaveBeenCalledWith('u1', workspaceId);
     expect(insightsService.refresh).toHaveBeenCalledWith('u1', workspaceId, { locale: undefined });

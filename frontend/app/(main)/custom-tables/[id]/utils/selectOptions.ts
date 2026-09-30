@@ -1,4 +1,4 @@
-import type { CustomTableColumnConfig, SelectOptionDef } from './stylingUtils';
+import type { CustomTableColumnConfig, SelectOptionDef } from './types';
 
 /**
  * Опции select хранятся как строки (старые таблицы, импорт) или объекты с

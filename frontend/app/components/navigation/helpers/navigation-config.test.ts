@@ -102,6 +102,13 @@ describe('buildUserMenuNavItems', () => {
 
     expect(items.find(item => item.path === '/admin')?.permission).toBe('audit_log.view');
   });
+
+  it('keeps integrations and plugins away from the viewer role', () => {
+    const items = buildUserMenuNavItems(userMenuNav);
+
+    expect(items.find(item => item.path === '/integrations')?.permission).toBe('telegram.connect');
+    expect(items.find(item => item.path === '/plugins')?.permission).toBe('telegram.connect');
+  });
 });
 
 describe('isNavItemActive', () => {

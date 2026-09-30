@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { Check, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import type { TimeZoneOption } from '@/app/settings/profile/profileHelpers';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -30,13 +31,14 @@ export function TimeZoneDrawer({
   onSelect,
   labels,
 }: Props): React.JSX.Element {
+  const t = useIntlayer('timeZoneDrawer');
   return (
     <DrawerShell
       isOpen={isOpen}
       onClose={onClose}
       title={labels.title}
       position="right"
-      width="lg"
+      width="sm"
       showCloseButton={false}
     >
       <Box sx={{ display: 'flex', height: '100%', flexDirection: 'column' }}>
@@ -126,7 +128,7 @@ export function TimeZoneDrawer({
                   py: 1.5,
                 }}
               >
-                No time zones found
+                {t.noResults.value}
               </Typography>
             )}
           </Box>

@@ -13,9 +13,9 @@ import {
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { useIntlayer } from '@/app/i18n';
 import {
-  INTEGRATION_CATALOG,
   type IntegrationCategoryKey,
   type IntegrationEntry,
+  useIntegrationCatalog,
 } from './integration-catalog';
 
 interface IntegrationsListDrawerProps {
@@ -30,7 +30,6 @@ const CATEGORY_ORDER: IntegrationCategoryKey[] = [
   'application',
   'storage',
   'email',
-  'spreadsheets',
   'messaging',
 ];
 
@@ -38,11 +37,10 @@ function useCategoryLabels(): Record<IntegrationCategoryKey, React.ReactNode> {
   const t = useIntlayer('integrationsPage');
 
   return {
-    ai: 'AI',
-    application: 'Application',
+    ai: t.categories.ai,
+    application: t.categories.application,
     storage: t.categories.storage,
     email: t.categories.email,
-    spreadsheets: t.categories.spreadsheets,
     messaging: t.categories.messaging,
   };
 }
@@ -62,6 +60,8 @@ function CategoryGroup({
   statuses: Record<string, boolean>;
   onSelect: (key: string) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('integrationsPage');
+
   return (
     <Box>
       <PanelSectionLabel>{label}</PanelSectionLabel>
@@ -75,7 +75,7 @@ function CategoryGroup({
             entry.statusPath ? (
               <PanelStatusDot
                 connected={Boolean(statuses[entry.key])}
-                label={statuses[entry.key] ? 'Connected' : 'Set up'}
+                label={statuses[entry.key] ? t.sections.connected.value : t.setUp.value}
               />
             ) : null
           }
@@ -98,19 +98,18 @@ export function IntegrationsListDrawer({
 }: IntegrationsListDrawerProps): React.JSX.Element {
   const t = useIntlayer('integrationsPage');
   const categoryLabels = useCategoryLabels();
+  const catalog = useIntegrationCatalog();
   const [search, setSearch] = useState('');
 
   const groups = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const matching = query
-      ? INTEGRATION_CATALOG.filter(entry => matchesQuery(entry, query))
-      : INTEGRATION_CATALOG;
+    const matching = query ? catalog.filter(entry => matchesQuery(entry, query)) : catalog;
 
     return CATEGORY_ORDER.map(category => ({
       category,
       entries: matching.filter(entry => entry.category === category),
     })).filter(group => group.entries.length > 0);
-  }, [search]);
+  }, [catalog, search]);
 
   return (
     <DrawerShell
@@ -145,7 +144,7 @@ export function IntegrationsListDrawer({
 
           {groups.length === 0 && (
             <Typography sx={{ py: 4, textAlign: 'center', fontSize: 14, color: 'text.secondary' }}>
-              Nothing matches "{search}".
+              {t.nothingMatches.value.replace('{query}', search)}
             </Typography>
           )}
         </Box>

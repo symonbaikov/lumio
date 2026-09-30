@@ -104,6 +104,8 @@ type Props = {
   setDensity: (value: UiDensity) => void;
   reduceMotion: boolean;
   setReduceMotion: (value: boolean) => void;
+  showDailyQuote: boolean;
+  setShowDailyQuote: (value: boolean) => void;
 };
 
 export function AppearanceSection({
@@ -112,6 +114,8 @@ export function AppearanceSection({
   setDensity,
   reduceMotion,
   setReduceMotion,
+  showDailyQuote,
+  setShowDailyQuote,
 }: Props) {
   return (
     <Stack spacing={2}>
@@ -152,6 +156,25 @@ export function AppearanceSection({
               {tx(
                 ['appearanceCard', 'reduceMotionHelp'],
                 'Turns off non-essential transitions and animations.',
+              )}
+            </Typography>
+          </Stack>
+        }
+      />
+
+      <FormControlLabel
+        control={
+          <Switch checked={showDailyQuote} onChange={(_event, value) => setShowDailyQuote(value)} />
+        }
+        label={
+          <Stack spacing={0.25}>
+            <Typography variant="body2" fontWeight={500}>
+              {tx(['appearanceCard', 'dailyQuoteLabel'], 'Daily quote')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {tx(
+                ['appearanceCard', 'dailyQuoteHelp'],
+                'A short quote above the pages, picked for your current advice. The advice itself stays on the Advice page.',
               )}
             </Typography>
           </Stack>

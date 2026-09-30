@@ -68,8 +68,8 @@ export function UnapprovedCashFilterBar({
         borderRadius: tokens.radius.lg,
       }}
     >
-      <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(7, 1fr)' }}>
-        <div style={{ position: 'relative', gridColumn: 'span 2' }}>
+      <div className="lumio-filter-grid">
+        <div className="lumio-filter-grid__search">
           <Search
             style={{
               pointerEvents: 'none',

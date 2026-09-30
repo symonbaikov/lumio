@@ -333,7 +333,7 @@ export function TransactionDetailsTab({
               }}
             >
               {transaction.category.isEnabled === false
-                ? `${getCategoryDisplayName(transaction.category, locale)} — select category`
+                ? `${getCategoryDisplayName(transaction.category, locale)} — ${t.disabledCategoryHint.value}`
                 : getCategoryDisplayName(transaction.category, locale)}
             </span>
           ) : (
@@ -389,7 +389,7 @@ export function TransactionDetailsTab({
               disabled={splitSaving}
               className="lumio-tx-detail__ignore-btn"
             >
-              {splitSaving ? 'Undoing split...' : 'Undo split'}
+              {splitSaving ? t.undoingSplit.value : t.undoSplit.value}
             </button>
           ) : (
             <button
@@ -398,7 +398,7 @@ export function TransactionDetailsTab({
               disabled={splitSaving || splitTotal <= 0}
               className="lumio-tx-detail__ignore-btn"
             >
-              Split
+              {t.split}
             </button>
           ))}
 

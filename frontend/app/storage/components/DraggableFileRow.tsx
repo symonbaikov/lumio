@@ -18,6 +18,7 @@ import {
 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Select } from '@/app/components/ui/select';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import type { CategoryOption, FileAvailability, StorageFile, TagOption } from '../storageHelpers';
 
@@ -103,6 +104,7 @@ export const DraggableFileRow = React.memo(
     handleDownload,
     confirmDelete,
   }: DraggableFileRowProps) => {
+    const t = useIntlayer('storagePage');
     const { resolvedTheme } = useTheme();
     const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
 
@@ -291,7 +293,7 @@ export const DraggableFileRow = React.memo(
             />
             {file.category?.isEnabled === false ? (
               <Typography style={{ fontSize: 12, fontWeight: 500, color: c.danger }}>
-                {file.category.name} - choose category
+                {file.category.name} - {t.categoryCell.chooseCategory}
               </Typography>
             ) : null}
           </Box>

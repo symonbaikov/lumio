@@ -3,7 +3,8 @@
 import Box from '@mui/material/Box';
 import { alpha } from '@mui/material/styles';
 import React from 'react';
-import { ChevronRight, MoreVertical, Plus } from '@/app/components/icons';
+import { ChevronRight, MoreVertical } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 
 type WorkspaceItem = { id: string; name: string; memberRole?: string };
@@ -12,6 +13,12 @@ const GRID_COLS = 'minmax(240px, 1.4fr) minmax(180px, 1fr) minmax(160px, 0.8fr) 
 
 type ListRowProps = { workspace: WorkspaceItem; isDefault: boolean; onClick: () => void };
 function WorkspaceListRow({ workspace, isDefault, onClick }: ListRowProps): React.JSX.Element {
+  const t = useIntlayer('workspacesListView');
+  const role = workspace.memberRole;
+  const roleLabel =
+    role === 'owner' || role === 'admin' || role === 'member' || role === 'viewer'
+      ? t.roles[role]
+      : role || t.list.workspaceFallback;
   return (
     <button
       type="button"
@@ -56,7 +63,7 @@ function WorkspaceListRow({ workspace, isDefault, onClick }: ListRowProps): Reac
             color: 'var(--foreground)',
           }}
         >
-          You
+          {t.list.you}
         </p>
         <p
           style={{
@@ -68,12 +75,12 @@ function WorkspaceListRow({ workspace, isDefault, onClick }: ListRowProps): Reac
             color: 'var(--muted-foreground)',
           }}
         >
-          Current member
+          {t.list.currentMember}
         </p>
       </Box>
       <Box>
         <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}>
-          {workspace.memberRole || 'Workspace'}
+          {roleLabel}
         </p>
         {isDefault && (
           <Box
@@ -91,7 +98,7 @@ function WorkspaceListRow({ workspace, isDefault, onClick }: ListRowProps): Reac
               borderRadius: `${tokens.radius.sm}px`,
             })}
           >
-            Default
+            {t.list.default}
           </Box>
         )}
       </Box>
@@ -125,6 +132,7 @@ export function WorkspaceListView({
   onWorkspaceClick,
   onCreateClick,
 }: WorkspaceListViewProps): React.JSX.Element {
+  const t = useIntlayer('workspacesListView');
   return (
     <>
       <Box
@@ -149,10 +157,10 @@ export function WorkspaceListView({
             color: 'var(--muted-foreground)',
           }}
         >
-          <span>Workspace name</span>
-          <span>Owner</span>
-          <span>Workspace type</span>
-          <span className="sr-only">Actions</span>
+          <span>{t.columns.name}</span>
+          <span>{t.columns.owner}</span>
+          <span>{t.columns.type}</span>
+          <span className="sr-only">{t.columns.actions}</span>
         </Box>
         <Box>
           {workspaces.map(workspace => (
@@ -183,7 +191,6 @@ export function WorkspaceListView({
             borderRadius: tokens.radius.md,
           }}
         >
-          <Plus size={14} />
           {createLabel}
         </button>
       </Box>

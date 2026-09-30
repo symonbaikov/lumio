@@ -27,9 +27,11 @@ export type UseAppearanceReturn = {
   setDensity: (value: UiDensity) => void;
   reduceMotion: boolean;
   setReduceMotion: (value: boolean) => void;
+  showDailyQuote: boolean;
+  setShowDailyQuote: (value: boolean) => void;
 };
 
-type AppearancePatch = { uiDensity?: UiDensity; reduceMotion?: boolean };
+type AppearancePatch = { uiDensity?: UiDensity; reduceMotion?: boolean; showDailyQuote?: boolean };
 
 export function useAppearance(
   user: User | null | undefined,
@@ -39,6 +41,7 @@ export function useAppearance(
   const [themePreference, setThemePreference] = useState<ThemePreference>('auto');
   const [density, setDensityState] = useState<UiDensity>('comfortable');
   const [reduceMotion, setReduceMotionState] = useState(false);
+  const [showDailyQuote, setShowDailyQuoteState] = useState(true);
   const [appearanceMessage, setAppearanceMessage] = useState<string | null>(null);
   const [appearanceError, setAppearanceError] = useState<string | null>(null);
   const [appearanceLoading, setAppearanceLoading] = useState(false);
@@ -50,7 +53,9 @@ export function useAppearance(
   useEffect(() => {
     setDensityState(user?.uiDensity === 'compact' ? 'compact' : 'comfortable');
     setReduceMotionState(Boolean(user?.reduceMotion));
-  }, [user?.uiDensity, user?.reduceMotion]);
+    // Absent (an older cached user) means on, like the column default.
+    setShowDailyQuoteState(user?.showDailyQuote !== false);
+  }, [user?.uiDensity, user?.reduceMotion, user?.showDailyQuote]);
 
   /** Saves one appearance flag and re-themes the app straight away. */
   const savePatch = async (patch: AppearancePatch) => {
@@ -83,6 +88,11 @@ export function useAppearance(
   const setReduceMotion = (value: boolean) => {
     setReduceMotionState(value);
     void savePatch({ reduceMotion: value });
+  };
+
+  const setShowDailyQuote = (value: boolean) => {
+    setShowDailyQuoteState(value);
+    void savePatch({ showDailyQuote: value });
   };
 
   const handleThemePreferenceChange = async (nextThemePreference: ThemePreference) => {
@@ -134,5 +144,7 @@ export function useAppearance(
     setDensity,
     reduceMotion,
     setReduceMotion,
+    showDailyQuote,
+    setShowDailyQuote,
   };
 }

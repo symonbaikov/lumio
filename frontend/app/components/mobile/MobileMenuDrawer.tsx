@@ -18,7 +18,7 @@ interface MobileMenuDrawerProps {
 export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps) {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
-  const { nav } = useIntlayer('navigation');
+  const { nav, shell, userMenu } = useIntlayer('navigation');
 
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
   const experimentalMode = useExperimentalMode();
@@ -65,24 +65,24 @@ export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps) {
       <FocusTrap open={open}>
         <aside
           className={`lumio-mobile-drawer${open ? ' lumio-mobile-drawer--open' : ''}`}
-          aria-label="Menu"
+          aria-label={shell.menu.value}
           inert={!open}
           tabIndex={-1}
         >
           <div className="lumio-mobile-drawer__header">
-            <span className="lumio-mobile-drawer__title">Menu</span>
+            <span className="lumio-mobile-drawer__title">{shell.menu}</span>
             <button
               type="button"
               className="lumio-mobile-drawer__close"
               onClick={onClose}
-              aria-label="Close menu"
+              aria-label={shell.closeMenu.value}
             >
               <X size={20} />
             </button>
           </div>
 
           <nav className="lumio-mobile-drawer__nav">
-            <div className="lumio-mobile-drawer__section-label">Workspace</div>
+            <div className="lumio-mobile-drawer__section-label">{userMenu.workspace}</div>
             {visibleNavItems.map(item => {
               const active = isNavItemActive(pathname ?? '', item.path);
               return (
@@ -104,7 +104,7 @@ export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps) {
               <span className="lumio-mobile-drawer__item-icon">
                 <Settings size={18} />
               </span>
-              <span>Settings</span>
+              <span>{userMenu.settings}</span>
             </Link>
             <button
               type="button"
@@ -121,7 +121,7 @@ export function MobileMenuDrawer({ open, onClose }: MobileMenuDrawerProps) {
               <span className="lumio-mobile-drawer__item-icon">
                 <HelpCircle size={18} />
               </span>
-              <span>Help</span>
+              <span>{shell.help}</span>
             </button>
           </div>
         </aside>

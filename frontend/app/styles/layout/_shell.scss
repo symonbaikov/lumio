@@ -148,12 +148,12 @@ $lumio-sidebar-brand-center: $lumio-focus-ring-reach +
   flex-shrink: 0;
   font-size: 10.5px;
   font-weight: 600;
-  color: $lumio-color-ink-400;
+  // Same token as the statements panel's section titles ("Work queue"), so the
+  // two sidebars' headings read as one level in both themes.
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: var(--lumio-nav-label-pad-top) 8px 4px;
-
-  @include dark { color: $lumio-color-ink-400-dk; }
 }
 
 .lumio-sidebar__nav-item {
@@ -192,8 +192,8 @@ $lumio-sidebar-brand-center: $lumio-focus-ring-reach +
   }
 
   &--active {
-    background: $lumio-color-primary-50;
-    color: $lumio-color-primary;
+    background: var(--primary-50);
+    color: var(--primary);
     font-weight: 600;
 
     @include dark {
@@ -202,7 +202,7 @@ $lumio-sidebar-brand-center: $lumio-focus-ring-reach +
     }
 
     &:hover {
-      background: $lumio-color-primary-100;
+      background: var(--primary-100);
 
       @include dark {
         background: $lumio-color-primary-200-dk;
@@ -242,18 +242,29 @@ $lumio-sidebar-brand-center: $lumio-focus-ring-reach +
   width: 100%;
   padding: 10px 14px;
   border-radius: $lumio-radius-full;
-  border: 1px solid $lumio-color-primary-100;
-  background: $lumio-color-primary-50;
-  color: $lumio-color-primary-dark;
+  border: 1px solid var(--primary-100);
+  background: var(--primary-50);
+  color: var(--primary-strong);
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 
+  @include dark {
+    border-color: $lumio-color-primary-100-dk;
+    background: $lumio-color-primary-50-dk;
+    color: $lumio-color-primary-dk;
+  }
+
   &:hover {
-    border-color: $lumio-color-primary-200;
-    background: $lumio-color-primary-100;
+    border-color: var(--primary-200);
+    background: var(--primary-100);
+
+    @include dark {
+      border-color: $lumio-color-primary-200-dk;
+      background: $lumio-color-primary-100-dk;
+    }
   }
 }
 
@@ -300,7 +311,7 @@ $lumio-sidebar-brand-center: $lumio-focus-ring-reach +
   &-fill {
     height: 100%;
     border-radius: $lumio-radius-full;
-    background: $lumio-color-primary;
+    background: var(--primary-fill);
     transition: width 0.3s;
   }
 }

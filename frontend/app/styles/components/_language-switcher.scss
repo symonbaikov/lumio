@@ -37,7 +37,7 @@
 
   &__search-input {
     width: 100%;
-    border: 1px solid $color-primary;
+    border: 1px solid var(--primary);
     background: $color-card-bg;
     padding: 0.75rem 1rem 0.75rem 2.75rem;
     font-size: 1rem;

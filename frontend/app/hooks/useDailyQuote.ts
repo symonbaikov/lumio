@@ -20,7 +20,9 @@ export function todayKey(now = new Date()): string {
   ).padStart(2, '0')}`;
 }
 
-export function useDailyQuote(): { quote: DailyQuote | null } {
+export function useDailyQuote({ enabled = true }: { enabled?: boolean } = {}): {
+  quote: DailyQuote | null;
+} {
   const workspaceId = useWorkspaceId();
   const date = todayKey();
   // The quote comes in the interface language, not the profile's.
@@ -30,7 +32,7 @@ export function useDailyQuote(): { quote: DailyQuote | null } {
     // The reader's own day: the server's clock may already be on another one.
     queryFn: ({ signal }) =>
       apiQuery<DailyQuote>({ url: '/insights/daily-quote', params: { date, locale }, signal }),
-    enabled: Boolean(workspaceId),
+    enabled: enabled && Boolean(workspaceId),
     staleTime: Number.POSITIVE_INFINITY,
   });
   return { quote: query.data ?? null };

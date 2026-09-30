@@ -355,14 +355,14 @@ export function PDFPreviewModal({
     >
       <div className="lumio-pdf-preview-modal__body">
         <div className="lumio-pdf-preview-modal__header" ref={menuRef}>
-          <h2 className="lumio-pdf-preview-modal__title">Receipt</h2>
+          <h2 className="lumio-pdf-preview-modal__title">{t.receiptTitle}</h2>
 
           <div className="lumio-pdf-preview-modal__header-actions">
             <button
               type="button"
               onClick={() => setMenuOpen(prev => !prev)}
               className="lumio-pdf-preview-modal__menu-btn"
-              aria-label="Open file menu"
+              aria-label={t.openFileMenu.value}
             >
               <MoreVertical size={24} strokeWidth={2.4} />
             </button>
@@ -370,7 +370,7 @@ export function PDFPreviewModal({
               type="button"
               onClick={onClose}
               className="lumio-pdf-preview-modal__close-btn"
-              aria-label="Close preview"
+              aria-label={t.closePreview.value}
             >
               <X size={33} strokeWidth={2.4} />
             </button>
@@ -384,7 +384,7 @@ export function PDFPreviewModal({
                 className="lumio-pdf-preview-modal__dropdown-item"
               >
                 <Download className="lumio-pdf-preview-modal__dropdown-icon" strokeWidth={2.3} />
-                <span className="lumio-pdf-preview-modal__dropdown-label">Download</span>
+                <span className="lumio-pdf-preview-modal__dropdown-label">{t.download}</span>
               </button>
             </div>
           )}

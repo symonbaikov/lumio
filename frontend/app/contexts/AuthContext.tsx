@@ -39,6 +39,8 @@ export interface User {
   firstDayOfWeek?: number | null;
   uiDensity?: 'comfortable' | 'compact';
   reduceMotion?: boolean;
+  /** Daily-quote banner above the pages; absent means on. */
+  showDailyQuote?: boolean;
   themePreference?: ThemePreference;
   /** Tile style picked on receipt maps; null follows the server default. */
   mapStylePreference?: string | null;

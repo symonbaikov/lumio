@@ -6,7 +6,7 @@ import type {
   PasteMappingSelection,
 } from './pasteTypes';
 import { optionValues } from './selectOptions';
-import type { ColumnType } from './stylingUtils';
+import type { ColumnType } from './types';
 
 // ---------------------------------------------------------------------------
 // Column inference helpers

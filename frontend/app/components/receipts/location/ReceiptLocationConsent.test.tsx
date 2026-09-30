@@ -22,8 +22,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/app/i18n', () => ({
-  useIntlayer: () =>
-    Object.fromEntries(Object.entries(mocks.text).map(([key, value]) => [key, { value }])),
+  useIntlayer: () => ({
+    // Shared UI primitives (Spinner, ModalShell) read these from the same mock.
+    loading: { value: 'Loading' },
+    closeModal: { value: 'Close modal' },
+    closeDrawer: { value: 'Close drawer' },
+    ...Object.fromEntries(Object.entries(mocks.text).map(([key, value]) => [key, { value }])),
+  }),
 }));
 
 vi.mock('@/app/lib/device-location', () => ({

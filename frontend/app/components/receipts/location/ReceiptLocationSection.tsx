@@ -5,6 +5,7 @@ import Skeleton from '@mui/material/Skeleton';
 import { useTheme } from 'next-themes';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { MapPin } from '@/app/components/icons';
 import { DetailActionButton } from '@/app/components/ui/detail-action-button';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer } from '@/app/i18n';
@@ -79,45 +80,14 @@ function LocationActions({
   );
 }
 
-function MapUnavailable({
-  message,
-  position,
-  colors,
-}: {
-  message: string;
-  position: LatLng | null;
-  colors: ThemeColors;
-}): React.JSX.Element {
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        height: '100%',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0.5,
-        bgcolor: colors.ink50,
-        px: 2,
-        textAlign: 'center',
-      }}
-    >
-      <Typography style={{ fontSize: 14, fontWeight: 500, color: colors.ink700 }}>
-        {message}
-      </Typography>
-      {position ? (
-        <Typography style={{ fontSize: 13, color: colors.ink500 }}>
-          {formatPoint(position)}
-        </Typography>
-      ) : null}
-    </Box>
-  );
-}
-
 export function ReceiptLocationSection({
   receipt,
   onReceiptChange,
-}: ReceiptLocationSectionProps): React.JSX.Element {
+  flat = false,
+}: ReceiptLocationSectionProps & {
+  /** Part of another panel: a divider above instead of a card of its own. */
+  flat?: boolean;
+}): React.JSX.Element {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const c = isDark ? tokens.dark.color : tokens.color;
@@ -182,10 +152,9 @@ export function ReceiptLocationSection({
     if (stylesQuery.isPending) {
       return <Skeleton variant="rectangular" width="100%" height="100%" />;
     }
-
+    // Unreachable in practice (mapMissing renders the one-line message instead); narrows the type.
     if (!styleId) {
-      const message = stylesQuery.isError ? t.mapUnavailable.value : t.tilesNotConfigured.value;
-      return <MapUnavailable message={message} position={position} colors={c} />;
+      return null;
     }
 
     return (
@@ -208,11 +177,57 @@ export function ReceiptLocationSection({
     );
   };
 
+  // No map to show (tiles not configured, or the style list failed): one line
+  // instead of an empty map-sized box.
+  const mapMissing = !(stylesQuery.isPending || styleId);
+  const unavailableMessage = stylesQuery.isError
+    ? t.mapUnavailable.value
+    : t.tilesNotConfigured.value;
+
+  // Inside another panel with no map to show, the whole block is one muted line:
+  // where the receipt is from, with why there is no map in the tooltip.
+  if (flat && mapMissing) {
+    const place = merchantAddress || (position ? formatPoint(position) : describeLocation());
+    return (
+      <Box
+        component="section"
+        aria-label={t.title.value}
+        title={unavailableMessage}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.75,
+          borderTop: `1px solid ${c.ink150}`,
+          pt: 1.5,
+          fontSize: 13,
+          color: c.ink500,
+        }}
+      >
+        <MapPin size={15} aria-hidden style={{ flexShrink: 0 }} />
+        <Box
+          component="span"
+          sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {place}
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box
       component="section"
       aria-labelledby="receipt-location-title"
-      sx={{ border: `1px solid ${c.ink150}`, bgcolor: 'background.paper', p: 3 }}
+      sx={
+        flat
+          ? { borderTop: `1px solid ${c.ink150}`, pt: 2.5 }
+          : {
+              border: `1px solid ${c.ink150}`,
+              borderRadius: tokens.radius.lg,
+              bgcolor: 'background.paper',
+              p: 3,
+            }
+      }
     >
       <Box
         sx={{
@@ -228,7 +243,7 @@ export function ReceiptLocationSection({
           <Typography
             id="receipt-location-title"
             component="h2"
-            style={{ fontSize: 18, fontWeight: 600, color: c.ink900 }}
+            style={{ fontSize: flat ? 14 : 18, fontWeight: 600, color: c.ink900 }}
           >
             {t.title.value}
           </Typography>
@@ -255,22 +270,32 @@ export function ReceiptLocationSection({
         </Box>
       </Box>
 
-      <Box
-        sx={{
-          position: 'relative',
-          height: MAP_HEIGHT,
-          overflow: 'hidden',
-          border: `1px solid ${c.ink150}`,
-          // Leaflet stacks its panes up to z-index 1000; keep them inside this box.
-          isolation: 'isolate',
-        }}
-      >
-        {renderMap()}
-      </Box>
+      {mapMissing ? (
+        <Typography style={{ fontSize: 13, color: c.ink500 }}>
+          <span>{unavailableMessage}</span>
+          {position ? <span> · {formatPoint(position)}</span> : null}
+        </Typography>
+      ) : (
+        <Box
+          sx={{
+            position: 'relative',
+            height: MAP_HEIGHT,
+            overflow: 'hidden',
+            border: `1px solid ${c.ink150}`,
+            borderRadius: tokens.radius.md,
+            // Leaflet stacks its panes up to z-index 1000; keep them inside this box.
+            isolation: 'isolate',
+          }}
+        >
+          {renderMap()}
+        </Box>
+      )}
 
-      <Typography style={{ marginTop: 8, fontSize: 13, color: c.ink500 }}>
-        {position ? `${formatPoint(position)} · ${t.moveHint.value}` : t.placeHint.value}
-      </Typography>
+      {mapMissing ? null : (
+        <Typography style={{ marginTop: 8, fontSize: 13, color: c.ink500 }}>
+          {position ? `${formatPoint(position)} · ${t.moveHint.value}` : t.placeHint.value}
+        </Typography>
+      )}
     </Box>
   );
 }

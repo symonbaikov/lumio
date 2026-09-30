@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,8 +11,11 @@ import * as bcrypt from 'bcrypt';
 import type { Repository } from 'typeorm';
 import { Permission } from '../../common/enums/permissions.enum';
 import { hashPassword } from '../../common/utils/password-hash.util';
+import { AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
 import { User, UserRole } from '../../entities/user.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { AuditService } from '../audit/audit.service';
+import { recordSecurityEvent } from '../auth/security-audit.util';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { CURRENT_DISCLAIMER_VERSION } from './disclaimer.constant';
 import type { ChangeEmailDto } from './dto/change-email.dto';
@@ -23,6 +27,8 @@ import { EmailChangeService } from './services/email-change.service';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -30,6 +36,7 @@ export class UsersService {
     private workspaceRepository: Repository<Workspace>,
     private readonly workspacesService: WorkspacesService,
     private readonly emailChangeService: EmailChangeService,
+    private readonly auditService: AuditService,
   ) {}
 
   private getUserFindAllOptions(workspaceId: string, limit = 20) {
@@ -181,8 +188,35 @@ export class UsersService {
       }
     }
 
+    const before = this.snapshotAdminFields(user);
     Object.assign(user, updateUserDto);
-    return this.userRepository.save(user);
+    const saved = await this.userRepository.save(user);
+
+    // Logged into the target's home workspace, like every other account event:
+    // this route carries no workspace of its own.
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user.workspaceId,
+      actorId: currentUser.id,
+      entityType: EntityType.USER,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      severity: Severity.WARN,
+      diff: { before, after: this.snapshotAdminFields(saved) },
+    });
+
+    return saved;
+  }
+
+  /** The fields UpdateUserDto can change — nothing credential-bearing. */
+  private snapshotAdminFields(user: User) {
+    return {
+      email: user.email,
+      name: user.name,
+      company: user.company,
+      role: user.role,
+      isActive: user.isActive,
+      permissions: user.permissions ?? null,
+    };
   }
 
   async remove(id: string, currentUser: User): Promise<void> {
@@ -196,8 +230,18 @@ export class UsersService {
       throw new ForbiddenException('You cannot delete your own account');
     }
 
-    await this.findOne(id);
+    const target = await this.findOne(id);
     await this.userRepository.softDelete(id);
+
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: target.workspaceId,
+      actorId: currentUser.id,
+      entityType: EntityType.USER,
+      entityId: id,
+      action: AuditAction.DELETE,
+      severity: Severity.WARN,
+      meta: { email: target.email },
+    });
   }
 
   async getProfile(userId: string): Promise<User> {
@@ -267,6 +311,16 @@ export class UsersService {
     user.passwordHash = await hashPassword(dto.newPassword);
     user.tokenVersion = (user.tokenVersion ?? 0) + 1;
     await this.userRepository.save(user);
+
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      entityType: EntityType.USER,
+      entityId: user.id,
+      action: AuditAction.UPDATE,
+      severity: Severity.WARN,
+      meta: { password: 'changed' },
+    });
   }
 
   async updateMyPreferences(userId: string, dto: UpdateMyPreferencesDto): Promise<User> {
@@ -300,6 +354,9 @@ export class UsersService {
     }
     if (dto.reduceMotion !== undefined) {
       user.reduceMotion = dto.reduceMotion;
+    }
+    if (dto.showDailyQuote !== undefined) {
+      user.showDailyQuote = dto.showDailyQuote;
     }
 
     return this.userRepository.save(user);

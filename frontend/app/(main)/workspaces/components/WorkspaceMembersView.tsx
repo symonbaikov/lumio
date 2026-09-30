@@ -6,6 +6,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Skeleton from '@mui/material/Skeleton';
+import { alpha, type SxProps, type Theme } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
@@ -17,11 +18,11 @@ import {
   MoreHorizontal,
   Search,
   Send as SendIcon,
-  Users,
 } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Select } from '@/app/components/ui/select';
 import { useAuth } from '@/app/hooks/useAuth';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { normalizeAvatarUrl } from '@/app/lib/avatar-url';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
@@ -82,56 +83,20 @@ type InvitePermissions = {
 const INVITATION_EXPIRY_DAYS = 7;
 const ALL_ROLES: WorkspaceRole[] = ['owner', 'admin', 'member', 'viewer'];
 
-const SORT_OPTIONS: Array<{ key: MemberSortBy; label: string }> = [
-  { key: 'name', label: 'Name' },
-  { key: 'role', label: 'Role' },
-  { key: 'joinedAt', label: 'Date added' },
+const SORT_OPTIONS: MemberSortBy[] = ['name', 'role', 'joinedAt'];
+
+const ROLE_FILTER_OPTIONS: MemberRoleFilter[] = ['all', 'owner', 'admin', 'viewer', 'member'];
+
+const PERMISSION_KEYS: Array<keyof InvitePermissions> = [
+  'canEditStatements',
+  'canEditCustomTables',
+  'canEditCategories',
+  'canEditDataEntry',
+  'canShareFiles',
 ];
 
-const ROLE_FILTER_OPTIONS: Array<{ key: MemberRoleFilter; label: string }> = [
-  { key: 'all', label: 'All roles' },
-  { key: 'owner', label: 'Owner' },
-  { key: 'admin', label: 'Admin' },
-  { key: 'viewer', label: 'Viewer' },
-  { key: 'member', label: 'Member' },
-];
-
-const PERMISSION_LABELS: Record<keyof InvitePermissions, string> = {
-  canEditStatements: 'Statements',
-  canEditCustomTables: 'Tables',
-  canEditCategories: 'Categories',
-  canEditDataEntry: 'Data entry',
-  canShareFiles: 'File sharing & access',
-};
-
-const ROLE_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  owner: {
-    bg: 'rgba(var(--primary-rgb,22,129,24),0.1)',
-    color: 'var(--primary)',
-    border: 'rgba(var(--primary-rgb,22,129,24),0.2)',
-  },
-  admin: {
-    bg: 'var(--color-info-soft-bg)',
-    color: 'var(--color-info-soft-text)',
-    border: 'var(--color-info-soft-border)',
-  },
-  member: { bg: 'var(--muted)', color: 'var(--foreground)', border: 'var(--border-color)' },
-  viewer: { bg: 'var(--muted)', color: 'var(--foreground)', border: 'var(--border-color)' },
-};
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
-  admin: 'Admin',
-  member: 'Member',
-  viewer: 'Viewer',
-};
-
-const ROLE_TOOLTIPS: Record<string, string> = {
-  owner: 'Full workspace control, including ownership transfer and member management.',
-  admin: 'Can invite and manage non-owner members.',
-  member: 'Can work with workspace data based on assigned permissions.',
-  viewer: 'Read-only access to workspace content.',
-};
+const isWorkspaceRole = (role: string): role is WorkspaceRole =>
+  (ALL_ROLES as string[]).includes(role);
 
 const getInitials = (value?: string) =>
   (value || '?')
@@ -149,13 +114,13 @@ const getApiMessage = (err: unknown, fallback: string) => {
   return response?.data?.message ?? fallback;
 };
 
-const formatDate = (value?: string) => {
+const formatDate = (value: string | undefined, fallback: string) => {
   if (!value) {
-    return 'N/A';
+    return fallback;
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return 'N/A';
+    return fallback;
   }
 
   return formatStoredDateWithOptions(date, {
@@ -165,43 +130,85 @@ const formatDate = (value?: string) => {
   });
 };
 
-const getRoleLabel = (role: string) => ROLE_LABELS[role] || role;
-
 const MEMBER_ROW_SKELETON_KEYS = ['row-0', 'row-1', 'row-2', 'row-3', 'row-4'];
 
+/** Divider between flat sections and rows; barely there, in either theme. */
+const HAIRLINE = (theme: Theme): string => alpha(theme.palette.text.primary, 0.06);
+
+const TRUNCATE_SX = {
+  color: 'var(--foreground)',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+} as const;
+
+// Quiet text buttons for the toolbar and inline controls; action.hover is brand
+// green in this theme, so the hover wash is a neutral tint instead.
+const TOOLBAR_BUTTON_SX = {
+  textTransform: 'none',
+  fontWeight: 500,
+  color: 'var(--muted-foreground)',
+  '&:hover': {
+    color: 'var(--foreground)',
+    bgcolor: (theme: Theme) => alpha(theme.palette.text.primary, 0.05),
+  },
+} satisfies SxProps<Theme>;
+
+// A flat row: hairline under it, a faint wash on hover. The ••• button only
+// shows on hover or keyboard focus; touch screens have no hover, so there it stays.
+const MEMBER_ROW_SX = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 1.5,
+  px: 1.5,
+  py: 1.25,
+  mx: -1.5,
+  borderRadius: tokens.radius.sm,
+  borderBottom: '1px solid',
+  borderColor: HAIRLINE,
+  transition: 'background-color 120ms ease',
+  '&:hover': { bgcolor: (theme: Theme) => alpha(theme.palette.text.primary, 0.04) },
+  '& .members-row-actions': { opacity: 0, transition: 'opacity 120ms ease' },
+  '&:hover .members-row-actions, & .members-row-actions:focus-visible, & .members-row-actions[aria-expanded="true"]':
+    { opacity: 1 },
+  '@media (hover: none)': { '& .members-row-actions': { opacity: 1 } },
+} satisfies SxProps<Theme>;
+
+/** Mirrors a loaded member row: flat, hairline underneath, 32px avatar. */
 function MemberRowSkeleton(): React.JSX.Element {
   return (
     <Box
       sx={{
         display: 'flex',
-        flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 1.5,
-        border: '1px solid var(--border)',
-        borderRadius: tokens.radius.md,
-        bgcolor: 'var(--background)',
-        px: 2,
-        py: 1.5,
+        py: 1.25,
+        borderBottom: '1px solid',
+        borderColor: HAIRLINE,
       }}
     >
       <Box sx={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 1.5 }}>
-        <Skeleton variant="circular" width={36} height={36} />
+        <Skeleton variant="circular" width={32} height={32} />
         <Box>
           <Skeleton variant="text" width={140} height={18} />
-          <Skeleton variant="text" width={180} height={14} />
+          <Skeleton variant="text" width={220} height={14} />
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Skeleton variant="rounded" width={72} height={22} />
-        <Skeleton variant="circular" width={28} height={28} />
-      </Box>
+      <Skeleton variant="rounded" width={52} height={20} />
     </Box>
   );
 }
 
 export default function WorkspaceMembersView() {
   const { user } = useAuth();
+  const t = useIntlayer('workspaceMembers');
+  const getRoleLabel = (role: string): string =>
+    isWorkspaceRole(role) ? t.roles[role].value : role;
+  const getRoleFilterLabel = (key: MemberRoleFilter): string =>
+    key === 'all' ? t.allRoles.value : t.roles[key].value;
   const [overview, setOverview] = useState<WorkspaceOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -258,7 +265,7 @@ export default function WorkspaceMembersView() {
       setOverview(response.data);
     })()
       .catch(async err => {
-        setFetchError(getApiMessage(err, 'Failed to load workspace members'));
+        setFetchError(getApiMessage(err, t.errors.loadFailed.value));
       })
       .finally(async () => {
         setLoading(false);
@@ -326,11 +333,11 @@ export default function WorkspaceMembersView() {
       });
 
       setInviteEmail('');
-      toast.success('Invitation sent');
+      toast.success(t.toasts.inviteSent.value);
       await loadOverview();
     })()
       .catch(async err => {
-        toast.error(getApiMessage(err, 'Failed to send invitation'));
+        toast.error(getApiMessage(err, t.errors.sendFailed.value));
       })
       .finally(async () => {
         setInviteLoading(false);
@@ -349,10 +356,7 @@ export default function WorkspaceMembersView() {
     }
 
     const affectsOwnerRole = member.role === 'owner' || nextRole === 'owner';
-    if (
-      affectsOwnerRole &&
-      !window.confirm('This change affects Owner role. Confirm role update before continuing.')
-    ) {
+    if (affectsOwnerRole && !window.confirm(t.confirms.ownerRole.value)) {
       return;
     }
 
@@ -362,11 +366,11 @@ export default function WorkspaceMembersView() {
       await apiClient.patch(`/workspaces/${overview.workspace.id}/members/${member.id}/role`, {
         role: nextRole,
       });
-      toast.success('Role updated');
+      toast.success(t.toasts.roleUpdated.value);
       await loadOverview();
     })()
       .catch(async err => {
-        toast.error(getApiMessage(err, 'Failed to update role'));
+        toast.error(getApiMessage(err, t.errors.updateRoleFailed.value));
       })
       .finally(async () => {
         setUpdatingRoleMemberId(null);
@@ -382,11 +386,11 @@ export default function WorkspaceMembersView() {
 
     await (async () => {
       await apiClient.delete(`/workspaces/${overview.workspace.id}/members/${memberId}`);
-      toast.success('Member removed');
+      toast.success(t.toasts.memberRemoved.value);
       await loadOverview();
     })()
       .catch(async err => {
-        toast.error(getApiMessage(err, 'Failed to remove member'));
+        toast.error(getApiMessage(err, t.errors.removeFailed.value));
       })
       .finally(async () => {
         setRemovingMemberId(null);
@@ -406,11 +410,11 @@ export default function WorkspaceMembersView() {
         role: invite.role,
         permissions: invite.role === 'member' ? invite.permissions : undefined,
       });
-      toast.success('Invitation resent');
+      toast.success(t.toasts.inviteResent.value);
       await loadOverview();
     })()
       .catch(async err => {
-        toast.error(getApiMessage(err, 'Failed to resend invitation'));
+        toast.error(getApiMessage(err, t.errors.resendFailed.value));
       })
       .finally(async () => {
         setResendingInvitationId(null);
@@ -421,7 +425,7 @@ export default function WorkspaceMembersView() {
     if (!overview?.workspace.id) {
       return;
     }
-    if (!window.confirm('Revoke this invitation?')) {
+    if (!window.confirm(t.confirms.revokeInvite.value)) {
       return;
     }
 
@@ -429,11 +433,11 @@ export default function WorkspaceMembersView() {
 
     await (async () => {
       await apiClient.delete(`/workspaces/${overview.workspace.id}/invitations/${invitationId}`);
-      toast.success('Invitation revoked');
+      toast.success(t.toasts.inviteRevoked.value);
       await loadOverview();
     })()
       .catch(async err => {
-        toast.error(getApiMessage(err, 'Failed to revoke invitation'));
+        toast.error(getApiMessage(err, t.errors.revokeFailed.value));
       })
       .finally(async () => {
         setRevokingInvitationId(null);
@@ -445,7 +449,7 @@ export default function WorkspaceMembersView() {
     action: string,
   ) => {
     if (action === 'remove') {
-      if (!window.confirm('Remove this member from workspace?')) {
+      if (!window.confirm(t.confirms.removeMember.value)) {
         return;
       }
       await handleRemoveMember(member.id);
@@ -464,12 +468,14 @@ export default function WorkspaceMembersView() {
     await (async () => {
       const link = providedLink || `${window.location.origin}/invite/${token}`;
       await navigator.clipboard.writeText(link);
-      toast.success('Link copied');
+      toast.success(t.toasts.linkCopied.value);
     })().catch(async () => {
-      toast.error('Failed to copy link');
+      toast.error(t.errors.copyFailed.value);
     });
   };
 
+  // Same shape as the loaded tab — toolbar row, flat rows, invitations below —
+  // so nothing jumps when the data arrives.
   if (loading) {
     return (
       <Box
@@ -480,40 +486,30 @@ export default function WorkspaceMembersView() {
         }}
       >
         <Box
-          sx={{ maxWidth: 1024, px: 3, py: 4, display: 'flex', flexDirection: 'column', gap: 3 }}
+          sx={{
+            maxWidth: 1120,
+            px: { xs: 2.5, sm: 4 },
+            py: 3,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2.5,
+          }}
         >
-          <Box
-            sx={{
-              border: '1px solid var(--border)',
-              borderRadius: tokens.radius.lg,
-              bgcolor: 'var(--card)',
-              p: 3,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.5,
-            }}
-          >
-            <Box>
-              <Skeleton variant="text" width={120} height={28} />
-              <Skeleton variant="text" width={100} height={18} />
-            </Box>
-            <Skeleton variant="rounded" width={140} height={32} />
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
+            <Skeleton variant="text" width={130} height={32} sx={{ mr: 'auto' }} />
+            <Skeleton variant="rounded" width={240} height={36} />
+            <Skeleton variant="text" width={90} height={24} />
+            <Skeleton variant="text" width={110} height={24} />
+            <Skeleton variant="rounded" width={136} height={32} />
           </Box>
-          <Box
-            sx={{
-              border: '1px solid var(--border)',
-              borderRadius: tokens.radius.lg,
-              bgcolor: 'var(--card)',
-              p: 3,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1.5,
-            }}
-          >
+          <Box>
             {MEMBER_ROW_SKELETON_KEYS.map(key => (
               <MemberRowSkeleton key={key} />
             ))}
+          </Box>
+          <Box sx={{ pt: 2.5, borderTop: '1px solid', borderColor: HAIRLINE }}>
+            <Skeleton variant="text" width={170} height={18} />
+            <Skeleton variant="text" width={150} height={14} />
           </Box>
         </Box>
       </Box>
@@ -529,18 +525,9 @@ export default function WorkspaceMembersView() {
           bgcolor: 'var(--background)',
         }}
       >
-        <Box sx={{ maxWidth: 1024, px: 3, py: 4 }}>
-          <Box
-            sx={{
-              border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: tokens.radius.lg,
-              bgcolor: 'var(--color-error-soft-bg)',
-              p: 3,
-              fontSize: 14,
-              color: 'var(--destructive)',
-            }}
-          >
-            {fetchError || 'Failed to load workspace members'}
+        <Box sx={{ maxWidth: 1120, px: { xs: 2.5, sm: 4 }, py: 3 }}>
+          <Box role="alert" sx={{ fontSize: 14, color: 'var(--destructive)' }}>
+            {fetchError || t.errors.loadFailed}
           </Box>
         </Box>
       </Box>
@@ -555,45 +542,122 @@ export default function WorkspaceMembersView() {
         bgcolor: 'var(--background)',
       }}
     >
-      <Box sx={{ maxWidth: 1024, px: 3, py: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* Header */}
+      <Box
+        sx={{
+          maxWidth: 1120,
+          px: { xs: 2.5, sm: 4 },
+          py: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2.5,
+        }}
+      >
+        {/* Title and every control in one toolbar row, straight on the page. */}
         <Box
           sx={{
-            border: '1px solid var(--border)',
-            borderRadius: tokens.radius.lg,
-            bgcolor: 'var(--card)',
-            p: 3,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 1.5,
           }}
         >
-          <Box
-            sx={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 1.5,
-            }}
+          <Typography
+            component="h1"
+            sx={{ fontSize: 20, fontWeight: 600, color: 'var(--foreground)', mr: 'auto' }}
           >
-            <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <Users size={20} style={{ color: 'var(--foreground)' }} />
-                <Typography variant="h5" fontWeight={600} sx={{ color: 'var(--foreground)' }}>
-                  Members
-                </Typography>
-              </Box>
-              <Typography variant="body2" sx={{ color: 'var(--muted-foreground)' }}>
-                {overview.members.length} total member{overview.members.length === 1 ? '' : 's'}
-              </Typography>
+            {t.title}{' '}
+            <Box component="span" sx={{ color: 'var(--muted-foreground)', fontWeight: 400 }}>
+              · {overview.members.length}
             </Box>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => setShowInviteForm(prev => !prev)}
-              startIcon={<MailPlus size={16} />}
-            >
-              Invite member
-            </Button>
-          </Box>
+          </Typography>
+
+          <TextField
+            aria-label={t.searchAria.value}
+            placeholder={t.searchPlaceholder.value}
+            value={searchEmail}
+            onChange={e => setSearchEmail(e.target.value)}
+            size="small"
+            variant="outlined"
+            sx={{
+              width: { xs: '100%', sm: 240 },
+              '& .MuiOutlinedInput-root': { bgcolor: 'transparent' },
+              '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border)' },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+
+          <Button
+            variant="text"
+            size="small"
+            onClick={e => setSortMenuAnchor(e.currentTarget)}
+            endIcon={<ChevronDown size={14} />}
+            sx={TOOLBAR_BUTTON_SX}
+          >
+            {t.sortButton.value.replace('{value}', t.sort[sortBy].value)}
+          </Button>
+          <Menu
+            anchorEl={sortMenuAnchor}
+            open={Boolean(sortMenuAnchor)}
+            onClose={() => setSortMenuAnchor(null)}
+            aria-label={t.sortMenuAria.value}
+          >
+            {SORT_OPTIONS.map(option => (
+              <MenuItem
+                key={option}
+                selected={option === sortBy}
+                onClick={() => {
+                  setSortBy(option);
+                  setSortMenuAnchor(null);
+                }}
+              >
+                {t.sort[option]}
+              </MenuItem>
+            ))}
+          </Menu>
+
+          <Button
+            variant="text"
+            size="small"
+            onClick={e => setRoleMenuAnchor(e.currentTarget)}
+            endIcon={<ChevronDown size={14} />}
+            sx={TOOLBAR_BUTTON_SX}
+          >
+            {t.roleButton.value.replace('{value}', getRoleFilterLabel(roleFilter))}
+          </Button>
+          <Menu
+            anchorEl={roleMenuAnchor}
+            open={Boolean(roleMenuAnchor)}
+            onClose={() => setRoleMenuAnchor(null)}
+            aria-label={t.roleMenuAria.value}
+          >
+            {ROLE_FILTER_OPTIONS.map(option => (
+              <MenuItem
+                key={option}
+                selected={option === roleFilter}
+                onClick={() => {
+                  setRoleFilter(option);
+                  setRoleMenuAnchor(null);
+                }}
+              >
+                {getRoleFilterLabel(option)}
+              </MenuItem>
+            ))}
+          </Menu>
+
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => setShowInviteForm(prev => !prev)}
+            startIcon={<MailPlus size={16} />}
+          >
+            {t.invite.button}
+          </Button>
         </Box>
 
         {/* Invite form */}
@@ -602,10 +666,11 @@ export default function WorkspaceMembersView() {
             component="form"
             onSubmit={handleInvite}
             sx={{
-              border: '1px solid var(--border)',
-              borderRadius: tokens.radius.lg,
-              bgcolor: 'var(--card)',
-              p: 3,
+              // Opens in the flow as a flat band between hairlines, not a card.
+              borderTop: '1px solid',
+              borderBottom: '1px solid',
+              borderColor: HAIRLINE,
+              py: 3,
               display: 'flex',
               flexDirection: 'column',
               gap: 2,
@@ -631,7 +696,7 @@ export default function WorkspaceMembersView() {
                   htmlFor="invite-email"
                   style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}
                 >
-                  Email
+                  {t.invite.email}
                 </label>
                 <input
                   id="invite-email"
@@ -643,7 +708,7 @@ export default function WorkspaceMembersView() {
                   style={{
                     width: '100%',
                     border: '1px solid var(--border)',
-                    background: 'var(--background)',
+                    background: 'transparent',
                     padding: '8px 12px',
                     fontSize: 14,
                     color: 'var(--foreground)',
@@ -661,7 +726,7 @@ export default function WorkspaceMembersView() {
                   htmlFor="invite-role"
                   style={{ fontSize: 14, fontWeight: 500, color: 'var(--foreground)' }}
                 >
-                  Role
+                  {t.invite.role}
                 </label>
                 <Select
                   fullWidth
@@ -670,9 +735,9 @@ export default function WorkspaceMembersView() {
                   onChange={value => setInviteRole(value as WorkspaceRole)}
                   disabled={!isOwnerOrAdmin}
                   options={[
-                    { value: 'member', label: 'Member' },
-                    { value: 'viewer', label: 'Viewer' },
-                    { value: 'admin', label: 'Admin' },
+                    { value: 'member', label: t.roles.member.value },
+                    { value: 'viewer', label: t.roles.viewer.value },
+                    { value: 'admin', label: t.roles.admin.value },
                   ]}
                 />
               </Box>
@@ -682,7 +747,7 @@ export default function WorkspaceMembersView() {
             {inviteRole === 'member' && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Typography variant="body2" fontWeight={500} sx={{ color: 'var(--foreground)' }}>
-                  Access permissions
+                  {t.invite.permissionsTitle}
                 </Typography>
                 <Box
                   sx={{
@@ -691,7 +756,7 @@ export default function WorkspaceMembersView() {
                     gap: 1,
                   }}
                 >
-                  {(Object.keys(PERMISSION_LABELS) as Array<keyof InvitePermissions>).map(key => (
+                  {PERMISSION_KEYS.map(key => (
                     <Box
                       key={key}
                       sx={{
@@ -712,7 +777,7 @@ export default function WorkspaceMembersView() {
                         }
                         disabled={!isOwnerOrAdmin}
                       />
-                      {PERMISSION_LABELS[key]}
+                      {t.permissions[key]}
                     </Box>
                   ))}
                 </Box>
@@ -730,7 +795,7 @@ export default function WorkspaceMembersView() {
                   borderRadius: tokens.radius.md,
                 }}
               >
-                Only owner or admin can invite new members.
+                {t.invite.onlyOwnerOrAdmin}
               </Box>
             )}
 
@@ -742,122 +807,27 @@ export default function WorkspaceMembersView() {
                 disabled={!isOwnerOrAdmin || inviteLoading}
                 startIcon={<SendIcon size={16} />}
               >
-                {inviteLoading ? 'Sending...' : 'Send invitation'}
+                {inviteLoading ? t.sending : t.invite.send}
               </Button>
             </Box>
           </Box>
         )}
 
-        {/* Search & Filter */}
-        <Box
-          sx={{
-            border: '1px solid var(--border)',
-            borderRadius: tokens.radius.lg,
-            bgcolor: 'var(--card)',
-            p: { xs: 2, sm: 3 },
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-          }}
-        >
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
-            <TextField
-              aria-label="Search members by email"
-              placeholder="Search by email"
-              value={searchEmail}
-              onChange={e => setSearchEmail(e.target.value)}
-              size="small"
-              variant="outlined"
-              sx={{ width: { xs: '100%', sm: 320 } }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search size={16} style={{ color: 'var(--muted-foreground)' }} />
-                  </InputAdornment>
-                ),
-              }}
-            />
-
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={e => setSortMenuAnchor(e.currentTarget)}
-              endIcon={<ChevronDown size={14} />}
-              sx={{ minWidth: 160, justifyContent: 'space-between' }}
+        {/* Members: a flat list, hairlines between rows, a faint wash under the pointer. */}
+        <Box>
+          {visibleMembers.length < overview.members.length ? (
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', mb: 1, color: 'var(--muted-foreground)' }}
             >
-              Sort: {SORT_OPTIONS.find(option => option.key === sortBy)?.label || 'Name'}
-            </Button>
-            <Menu
-              anchorEl={sortMenuAnchor}
-              open={Boolean(sortMenuAnchor)}
-              onClose={() => setSortMenuAnchor(null)}
-              aria-label="Member sorting"
-            >
-              {SORT_OPTIONS.map(option => (
-                <MenuItem
-                  key={option.key}
-                  selected={option.key === sortBy}
-                  onClick={() => {
-                    setSortBy(option.key);
-                    setSortMenuAnchor(null);
-                  }}
-                >
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Menu>
-
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={e => setRoleMenuAnchor(e.currentTarget)}
-              endIcon={<ChevronDown size={14} />}
-              sx={{ minWidth: 180, justifyContent: 'space-between' }}
-            >
-              Role:{' '}
-              {ROLE_FILTER_OPTIONS.find(option => option.key === roleFilter)?.label || 'All roles'}
-            </Button>
-            <Menu
-              anchorEl={roleMenuAnchor}
-              open={Boolean(roleMenuAnchor)}
-              onClose={() => setRoleMenuAnchor(null)}
-              aria-label="Member role filter"
-            >
-              {ROLE_FILTER_OPTIONS.map(option => (
-                <MenuItem
-                  key={option.key}
-                  selected={option.key === roleFilter}
-                  onClick={() => {
-                    setRoleFilter(option.key);
-                    setRoleMenuAnchor(null);
-                  }}
-                >
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Menu>
-          </Box>
-
-          <Typography variant="caption" sx={{ color: 'var(--muted-foreground)' }}>
-            Showing {visibleMembers.length} of {overview.members.length} members.
-          </Typography>
-        </Box>
-
-        {/* Members list */}
-        <Box
-          sx={{
-            border: '1px solid var(--border)',
-            borderRadius: tokens.radius.lg,
-            bgcolor: 'var(--card)',
-            p: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-          }}
-        >
+              {t.showing.value
+                .replace('{visible}', String(visibleMembers.length))
+                .replace('{total}', String(overview.members.length))}
+            </Typography>
+          ) : null}
           {visibleMembers.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'var(--muted-foreground)' }}>
-              No members match current filters.
+            <Typography variant="body2" sx={{ py: 2, color: 'var(--muted-foreground)' }}>
+              {t.noMatches}
             </Typography>
           ) : (
             visibleMembers.map(member => {
@@ -865,35 +835,20 @@ export default function WorkspaceMembersView() {
               const roleTargets = getAllowedRoleTargets(member);
               const canManageRole = roleTargets.length > 0;
               const roleUpdating = updatingRoleMemberId === member.id;
-              const roleStyle = ROLE_COLORS[member.role] || ROLE_COLORS.member;
 
               return (
-                <Box
-                  key={member.id}
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1.5,
-                    border: '1px solid var(--border)',
-                    borderRadius: tokens.radius.md,
-                    bgcolor: 'var(--background)',
-                    px: 2,
-                    py: 1.5,
-                  }}
-                >
-                  {/* Avatar + info */}
+                <Box key={member.id} sx={MEMBER_ROW_SX}>
                   <Box sx={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 1.5 }}>
                     <Box
                       sx={{
-                        width: 36,
-                        height: 36,
+                        width: 32,
+                        height: 32,
                         flexShrink: 0,
                         overflow: 'hidden',
                         borderRadius: tokens.radius.full,
-                        bgcolor: 'rgba(var(--primary-rgb,22,129,24),0.1)',
-                        color: 'var(--primary)',
+                        // Monochrome initials: the avatar identifies, it does not decorate.
+                        bgcolor: theme => alpha(theme.palette.text.primary, 0.08),
+                        color: 'var(--muted-foreground)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -904,7 +859,7 @@ export default function WorkspaceMembersView() {
                       {normalizeAvatarUrl(member.avatarUrl) ? (
                         <img
                           src={normalizeAvatarUrl(member.avatarUrl) as string}
-                          alt={member.name || member.email || 'Member avatar'}
+                          alt={member.name || member.email || t.avatarAlt.value}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       ) : (
@@ -912,53 +867,33 @@ export default function WorkspaceMembersView() {
                       )}
                     </Box>
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography
-                        variant="body2"
-                        fontWeight={500}
-                        sx={{
-                          color: 'var(--foreground)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
+                      <Typography variant="body2" fontWeight={500} sx={TRUNCATE_SX}>
                         {member.name || member.email}
                       </Typography>
                       <Typography
                         variant="caption"
-                        sx={{
-                          color: 'var(--muted-foreground)',
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
+                        sx={{ ...TRUNCATE_SX, display: 'block', color: 'var(--muted-foreground)' }}
                       >
-                        {member.email}
-                      </Typography>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: 'var(--muted-foreground)',
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Timezone: {member.timeZone || 'Auto'}
+                        {member.email} · {member.timeZone || t.timezoneAuto}
                       </Typography>
                     </Box>
                   </Box>
 
-                  {/* Role + actions */}
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Tooltip title={ROLE_TOOLTIPS[member.role] || 'Workspace role'} placement="top">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                    <Tooltip
+                      title={
+                        isWorkspaceRole(member.role)
+                          ? t.roleTooltips[member.role]
+                          : t.roleTooltips.fallback
+                      }
+                      placement="top"
+                    >
                       <span>
                         {canManageRole ? (
                           <>
-                            <button
-                              type="button"
+                            <Button
+                              variant="text"
+                              size="small"
                               disabled={roleUpdating}
                               onClick={e =>
                                 setRoleMenuAnchorMap(prev => ({
@@ -966,31 +901,21 @@ export default function WorkspaceMembersView() {
                                   [member.id]: e.currentTarget,
                                 }))
                               }
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                borderRadius: tokens.radius.sm,
-                                border: `1px solid ${roleStyle.border}`,
-                                background: roleStyle.bg,
-                                color: roleStyle.color,
-                                padding: '2px 10px',
-                                fontSize: 12,
-                                fontWeight: 500,
-                                cursor: 'pointer',
-                                opacity: roleUpdating ? 0.6 : 1,
-                              }}
+                              endIcon={<ChevronDown size={12} />}
+                              sx={TOOLBAR_BUTTON_SX}
                             >
-                              {roleUpdating ? 'Updating...' : getRoleLabel(member.role)}
-                              <ChevronDown size={12} />
-                            </button>
+                              {roleUpdating ? t.updating : getRoleLabel(member.role)}
+                            </Button>
                             <Menu
                               anchorEl={roleMenuAnchorMap[member.id]}
                               open={Boolean(roleMenuAnchorMap[member.id])}
                               onClose={() =>
                                 setRoleMenuAnchorMap(prev => ({ ...prev, [member.id]: null }))
                               }
-                              aria-label={`Change role for ${member.email || member.id}`}
+                              aria-label={t.changeRoleAria.value.replace(
+                                '{name}',
+                                member.email || member.id,
+                              )}
                             >
                               {roleTargets.map(role => (
                                 <MenuItem
@@ -1007,26 +932,30 @@ export default function WorkspaceMembersView() {
                             </Menu>
                           </>
                         ) : (
-                          <span
-                            style={{
+                          // A light outlined tag, not a filled badge.
+                          <Box
+                            component="span"
+                            sx={{
+                              display: 'inline-block',
+                              border: '1px solid var(--border)',
                               borderRadius: tokens.radius.sm,
-                              border: `1px solid ${roleStyle.border}`,
-                              background: roleStyle.bg,
-                              color: roleStyle.color,
-                              padding: '2px 10px',
+                              px: 1,
+                              py: '1px',
                               fontSize: 12,
                               fontWeight: 500,
+                              color: 'var(--muted-foreground)',
                             }}
                           >
                             {getRoleLabel(member.role)}
-                          </span>
+                          </Box>
                         )}
                       </span>
                     </Tooltip>
 
                     <IconButton
                       size="small"
-                      aria-label={`Actions for ${member.email || member.id}`}
+                      className="members-row-actions"
+                      aria-label={t.actionsAria.value.replace('{name}', member.email || member.id)}
                       onClick={e =>
                         setMemberMenuAnchorMap(prev => ({ ...prev, [member.id]: e.currentTarget }))
                       }
@@ -1039,7 +968,10 @@ export default function WorkspaceMembersView() {
                       onClose={() =>
                         setMemberMenuAnchorMap(prev => ({ ...prev, [member.id]: null }))
                       }
-                      aria-label={`Member actions for ${member.email || member.id}`}
+                      aria-label={t.memberActionsAria.value.replace(
+                        '{name}',
+                        member.email || member.id,
+                      )}
                     >
                       {canManageRole &&
                         roleTargets.map(role => (
@@ -1051,7 +983,7 @@ export default function WorkspaceMembersView() {
                               void handleMemberMenuAction(member, `role:${role}`);
                             }}
                           >
-                            Set as {getRoleLabel(role)}
+                            {t.setAs.value.replace('{role}', getRoleLabel(role))}
                           </MenuItem>
                         ))}
                       <MenuItem
@@ -1062,7 +994,7 @@ export default function WorkspaceMembersView() {
                         }}
                         sx={{ color: 'error.main' }}
                       >
-                        {removingMemberId === member.id ? 'Removing...' : 'Remove from workspace'}
+                        {removingMemberId === member.id ? t.removing : t.removeFromWorkspace}
                       </MenuItem>
                     </Menu>
                   </Box>
@@ -1072,111 +1004,91 @@ export default function WorkspaceMembersView() {
           )}
         </Box>
 
-        {/* Pending invitations */}
-        <Box
-          sx={{
-            border: '1px solid var(--border)',
-            borderRadius: tokens.radius.lg,
-            bgcolor: 'var(--card)',
-            p: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 1.5,
-          }}
-        >
+        {/* Pending invitations: a lower section under a thin rule, not a box. */}
+        <Box sx={{ pt: 2.5, borderTop: '1px solid', borderColor: HAIRLINE }}>
           <Typography
-            variant="caption"
+            component="h2"
             sx={{
+              fontSize: 12,
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.08em',
               color: 'var(--muted-foreground)',
             }}
           >
-            Pending invitations
+            {t.pending.title} · {overview.invitations.length}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'var(--muted-foreground)' }}>
-            Invitations expire in {INVITATION_EXPIRY_DAYS} days.
+          <Typography
+            variant="caption"
+            sx={{ display: 'block', mt: 0.5, color: 'var(--muted-foreground)', opacity: 0.8 }}
+          >
+            {t.pending.expiry.value.replace('{days}', String(INVITATION_EXPIRY_DAYS))}
           </Typography>
 
           {overview.invitations.length === 0 ? (
-            <Typography variant="body2" sx={{ color: 'var(--muted-foreground)' }}>
-              No active invitations. New invites will appear here with resend and revoke actions.
+            <Typography
+              variant="body2"
+              sx={{ mt: 1.5, color: 'var(--muted-foreground)', opacity: 0.6 }}
+            >
+              {t.pending.empty}
             </Typography>
           ) : (
-            overview.invitations.map(invite => {
-              const isResending = resendingInvitationId === invite.id;
-              const isRevoking = revokingInvitationId === invite.id;
-              const isActionBusy = isResending || isRevoking;
+            <Box sx={{ mt: 1 }}>
+              {overview.invitations.map(invite => {
+                const isResending = resendingInvitationId === invite.id;
+                const isRevoking = revokingInvitationId === invite.id;
+                const isActionBusy = isResending || isRevoking;
 
-              return (
-                <Box
-                  key={invite.id}
-                  sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 1.5,
-                    border: '1px dashed var(--border)',
-                    borderRadius: tokens.radius.md,
-                    px: 2,
-                    py: 1.5,
-                  }}
-                >
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      fontWeight={500}
-                      sx={{ color: 'var(--foreground)' }}
-                    >
-                      {invite.email}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'var(--muted-foreground)', display: 'block' }}
-                    >
-                      Role: {getRoleLabel(invite.role)}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'var(--muted-foreground)', display: 'block' }}
-                    >
-                      Invited {formatDate(invite.createdAt)} · Expires{' '}
-                      {formatDate(invite.expiresAt)}
-                    </Typography>
-                  </Box>
+                return (
+                  <Box key={invite.id} sx={MEMBER_ROW_SX}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight={500} sx={TRUNCATE_SX}>
+                        {invite.email}
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{ ...TRUNCATE_SX, display: 'block', color: 'var(--muted-foreground)' }}
+                      >
+                        {t.pending.meta.value
+                          .replace('{role}', getRoleLabel(invite.role))
+                          .replace('{invited}', formatDate(invite.createdAt, t.notAvailable.value))
+                          .replace('{expires}', formatDate(invite.expiresAt, t.notAvailable.value))}
+                      </Typography>
+                    </Box>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      disabled={!isOwnerOrAdmin || isActionBusy}
-                      onClick={() => void handleResendInvitation(invite)}
-                    >
-                      {isResending ? 'Sending...' : 'Resend'}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      color="error"
-                      disabled={!isOwnerOrAdmin || isActionBusy}
-                      onClick={() => void handleRevokeInvitation(invite.id)}
-                    >
-                      {isRevoking ? 'Revoking...' : 'Revoke'}
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="text"
-                      disabled={isActionBusy}
-                      onClick={() => void copyInviteLink(invite.token, invite.link)}
-                    >
-                      Copy link
-                    </Button>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                      <Button
+                        size="small"
+                        variant="text"
+                        disabled={!isOwnerOrAdmin || isActionBusy}
+                        onClick={() => void handleResendInvitation(invite)}
+                        sx={TOOLBAR_BUTTON_SX}
+                      >
+                        {isResending ? t.sending : t.pending.resend}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="text"
+                        color="error"
+                        disabled={!isOwnerOrAdmin || isActionBusy}
+                        onClick={() => void handleRevokeInvitation(invite.id)}
+                      >
+                        {isRevoking ? t.pending.revoking : t.pending.revoke}
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="text"
+                        disabled={isActionBusy}
+                        onClick={() => void copyInviteLink(invite.token, invite.link)}
+                        sx={TOOLBAR_BUTTON_SX}
+                      >
+                        {t.pending.copyLink}
+                      </Button>
+                    </Box>
                   </Box>
-                </Box>
-              );
-            })
+                );
+              })}
+            </Box>
           )}
         </Box>
       </Box>

@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { assertFound } from '../../common/utils/assert-found.util';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Budget } from '../../entities/budget.entity';
 import { Goal } from '../../entities/goal.entity';
 import {
@@ -11,6 +12,8 @@ import {
   NotificationType,
 } from '../../entities/notification.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
+import { AuditService } from '../audit/audit.service';
+import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { NotificationsService } from '../notifications/notifications.service';
 import { clampToWindow, computePeriodRange, overlapsWindow } from './budget-period.util';
 import type { CreateBudgetDto } from './dto/create-budget.dto';
@@ -35,6 +38,7 @@ export class BudgetsService {
     @InjectRepository(Goal)
     private readonly goalRepository: Repository<Goal>,
     private readonly notificationsService: NotificationsService,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateBudgetDto): Promise<Budget> {
@@ -77,7 +81,18 @@ export class BudgetsService {
       endsOn: dto.endsOn ?? null,
     });
 
-    return this.budgetRepository.save(budget);
+    const saved = await this.budgetRepository.save(budget);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.BUDGET,
+      entityId: saved.id,
+      action: AuditAction.CREATE,
+      diff: { before: null, after: budgetSnapshot(saved) },
+      meta: { categoryId: saved.categoryId, goalId: saved.goalId ?? null },
+    });
+    return saved;
   }
 
   async findAll(workspaceId: string): Promise<BudgetWithSpending[]> {
@@ -99,7 +114,12 @@ export class BudgetsService {
     return this.attachSpending(budget);
   }
 
-  async update(id: string, workspaceId: string, dto: UpdateBudgetDto): Promise<Budget> {
+  async update(
+    id: string,
+    workspaceId: string,
+    userId: string,
+    dto: UpdateBudgetDto,
+  ): Promise<Budget> {
     const budget = await this.budgetRepository.findOne({
       where: { id, workspaceId },
     });
@@ -109,16 +129,39 @@ export class BudgetsService {
       dto.endsOn === undefined ? budget.endsOn : dto.endsOn,
     );
     await this.assertGoalInWorkspace(dto.goalId, workspaceId);
+    const before = budgetSnapshot(budget);
     Object.assign(budget, dto);
-    return this.budgetRepository.save(budget);
+    const saved = await this.budgetRepository.save(budget);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.BUDGET,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: budgetSnapshot(saved) },
+      meta: { name: saved.name },
+    });
+    return saved;
   }
 
-  async remove(id: string, workspaceId: string): Promise<void> {
+  async remove(id: string, workspaceId: string, userId: string): Promise<void> {
     const budget = await this.budgetRepository.findOne({
       where: { id, workspaceId },
     });
     assertFound(budget, 'Budget');
+    const before = budgetSnapshot(budget);
     await this.budgetRepository.remove(budget);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.BUDGET,
+      entityId: id,
+      action: AuditAction.DELETE,
+      diff: { before, after: null },
+      meta: { categoryId: before.categoryId, goalId: before.goalId },
+    });
   }
 
   async getTopBudgets(workspaceId: string, limit = 5): Promise<BudgetWithSpending[]> {
@@ -221,6 +264,19 @@ export class BudgetsService {
     }
   }
 
+  /** The audit trail is a side record: failing to write it must not fail the budget change. */
+  private async audit(event: CreateAuditEventDto): Promise<void> {
+    try {
+      await this.auditService.createEvent(event);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to record audit event ${event.action} for budget ${event.entityId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
   /**
    * A budget may only point at a goal of its own workspace. Nothing else in
    * this module cross-checks a foreign id, and `update` assigns the DTO blindly,
@@ -279,6 +335,20 @@ export class BudgetsService {
 
     return Number.parseFloat(result?.total ?? '0');
   }
+}
+
+/** The fields a person edits, with decimals as numbers so an unchanged limit does not read as changed. */
+function budgetSnapshot(budget: Budget) {
+  return {
+    name: budget.name,
+    categoryId: budget.categoryId,
+    limitAmount: Number(budget.limitAmount),
+    currency: budget.currency,
+    periodType: budget.periodType,
+    goalId: budget.goalId ?? null,
+    startsOn: budget.startsOn ?? null,
+    endsOn: budget.endsOn ?? null,
+  };
 }
 
 /**

@@ -1,4 +1,4 @@
-import type { ColumnType, CustomTableColumnConfig } from './stylingUtils';
+import type { ColumnType, CustomTableColumnConfig } from './types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -48,7 +48,7 @@ export type PastePreviewRow = {
 export type PastePreviewData = {
   totalRows: number;
   previewRows: PastePreviewRow[];
-  dataRows: import('./stylingUtils').CustomTableRowPatch[];
+  dataRows: import('./types').CustomTableRowPatch[];
   columns: PasteColumnMapping[];
   errors: Record<PasteErrorKey, number>;
   hasErrors: boolean;

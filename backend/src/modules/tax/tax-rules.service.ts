@@ -1,22 +1,63 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { FindOptionsOrder } from 'typeorm';
 import { Repository } from 'typeorm';
 import { WorkspaceCrudBaseService } from '../../common/services/workspace-crud-base.service';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { TaxRate } from '../../entities/tax-rate.entity';
 import { TaxRule, TaxRuleDirection } from '../../entities/tax-rule.entity';
+import { AuditService } from '../audit/audit.service';
 import type { CreateTaxRuleDto } from './dto/create-tax-rule.dto';
 import type { UpdateTaxRuleDto } from './dto/update-tax-rule.dto';
 
 @Injectable()
 export class TaxRulesService extends WorkspaceCrudBaseService<TaxRule> {
+  private readonly logger = new Logger(TaxRulesService.name);
+
   constructor(
     @InjectRepository(TaxRule)
     repository: Repository<TaxRule>,
     @InjectRepository(TaxRate)
     private readonly taxRateRepository: Repository<TaxRate>,
+    private readonly auditService: AuditService,
   ) {
     super(repository, 'Tax rule');
+  }
+
+  private snapshotTaxRule(rule: TaxRule) {
+    return {
+      id: rule.id,
+      categoryId: rule.categoryId ?? null,
+      taxRateCode: rule.taxRateCode,
+      priority: rule.priority,
+      direction: rule.direction,
+      isEnabled: rule.isEnabled,
+    };
+  }
+
+  /** Audit failure is logged, never allowed to fail the change it describes. */
+  private async recordAudit(
+    workspaceId: string,
+    userId: string | undefined,
+    entityId: string,
+    action: AuditAction,
+    before: Record<string, unknown> | null,
+    after: Record<string, unknown> | null,
+  ): Promise<void> {
+    try {
+      await this.auditService.createEvent({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId ?? null,
+        entityType: EntityType.TAX_RULE,
+        entityId,
+        action,
+        diff: { before, after },
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for tax rule ${entityId}: ${message}`);
+    }
   }
 
   protected getDefaultOrder(): FindOptionsOrder<TaxRule> {
@@ -42,7 +83,7 @@ export class TaxRulesService extends WorkspaceCrudBaseService<TaxRule> {
     }
   }
 
-  async create(workspaceId: string, dto: CreateTaxRuleDto): Promise<TaxRule> {
+  async create(workspaceId: string, dto: CreateTaxRuleDto, userId?: string): Promise<TaxRule> {
     const code = dto.taxRateCode.trim();
     await this.assertCodeExists(workspaceId, code);
 
@@ -59,7 +100,7 @@ export class TaxRulesService extends WorkspaceCrudBaseService<TaxRule> {
       );
     }
 
-    return this.repository.save(
+    const saved = await this.repository.save(
       this.repository.create({
         workspaceId,
         categoryId,
@@ -69,10 +110,25 @@ export class TaxRulesService extends WorkspaceCrudBaseService<TaxRule> {
         isEnabled: dto.isEnabled ?? true,
       }),
     );
+    await this.recordAudit(
+      workspaceId,
+      userId,
+      saved.id,
+      AuditAction.CREATE,
+      null,
+      this.snapshotTaxRule(saved),
+    );
+    return saved;
   }
 
-  async update(id: string, workspaceId: string, dto: UpdateTaxRuleDto): Promise<TaxRule> {
+  async update(
+    id: string,
+    workspaceId: string,
+    dto: UpdateTaxRuleDto,
+    userId?: string,
+  ): Promise<TaxRule> {
     const rule = await this.findOne(id, workspaceId);
+    const before = this.snapshotTaxRule(rule);
 
     if (dto.taxRateCode !== undefined) {
       const code = dto.taxRateCode.trim();
@@ -109,6 +165,22 @@ export class TaxRulesService extends WorkspaceCrudBaseService<TaxRule> {
       rule.direction = nextDirection;
     }
 
-    return this.repository.save(rule);
+    const saved = await this.repository.save(rule);
+    await this.recordAudit(
+      workspaceId,
+      userId,
+      saved.id,
+      AuditAction.UPDATE,
+      before,
+      this.snapshotTaxRule(saved),
+    );
+    return saved;
+  }
+
+  async remove(id: string, workspaceId: string, userId?: string): Promise<void> {
+    const rule = await this.findOne(id, workspaceId);
+    const before = this.snapshotTaxRule(rule);
+    await this.repository.remove(rule);
+    await this.recordAudit(workspaceId, userId, id, AuditAction.DELETE, before, null);
   }
 }

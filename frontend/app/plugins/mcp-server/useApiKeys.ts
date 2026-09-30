@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import toast from 'react-hot-toast';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
@@ -29,6 +30,7 @@ export interface CreatedApiKey {
 export function useApiKeys() {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
+  const t = useIntlayer('mcpServerDrawer');
   const { hasPermission } = usePermissions();
   const [newKey, setNewKey] = useState<CreatedApiKey | null>(null);
   // Эндпоинт закрыт правом api_key.manage (есть только у admin), а хук висит в
@@ -48,9 +50,9 @@ export function useApiKeys() {
     mutationFn: (name: string) => apiClient.post('/api-keys', { name }),
     onSuccess: response => {
       setNewKey(response.data as CreatedApiKey);
-      toast.success('API key created');
+      toast.success(t.toasts.keyCreated.value);
     },
-    onError: () => toast.error('Failed to create API key'),
+    onError: () => toast.error(t.toasts.createFailed.value),
     onSettled: () => queryClient.invalidateQueries({ queryKey: queryKeys.apiKeys(workspaceId) }),
   });
 
@@ -60,9 +62,9 @@ export function useApiKeys() {
       queryClient.setQueryData<ApiKeyItem[]>(queryKeys.apiKeys(workspaceId), previous =>
         (previous ?? []).filter(k => k.id !== id),
       );
-      toast.success('API key revoked');
+      toast.success(t.toasts.keyRevoked.value);
     },
-    onError: () => toast.error('Failed to revoke API key'),
+    onError: () => toast.error(t.toasts.revokeFailed.value),
   });
 
   const create = useCallback(

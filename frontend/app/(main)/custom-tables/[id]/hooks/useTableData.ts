@@ -39,7 +39,9 @@ export function useTableData({
   const [table, setTable] = useState<CustomTable | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  // Loading from the start: until the first fetch begins there is no table
+  // yet, and the page would otherwise flash "not found".
+  const [loading, setLoading] = useState(Boolean(tableId));
 
   const loadCategories = useCallback(async () => {
     await (async () => {

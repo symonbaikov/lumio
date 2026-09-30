@@ -13,7 +13,7 @@ import apiClient from '@/app/lib/api';
 import { queryKeys } from '@/app/lib/query-keys';
 import { IntegrationDetailDrawer } from './IntegrationDetailDrawer';
 import { IntegrationsListDrawer } from './IntegrationsListDrawer';
-import { findIntegrationEntry, INTEGRATION_CATALOG } from './integration-catalog';
+import { findIntegrationEntry, useIntegrationCatalog } from './integration-catalog';
 
 /** Different endpoints answer with `connected` or with a `status` string. */
 async function readConnected(statusPath: string): Promise<boolean> {
@@ -32,13 +32,14 @@ function useConnectionStatuses(enabled: boolean): {
 } {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
+  const catalog = useIntegrationCatalog();
   const queryKey = queryKeys.integrationCatalogStatuses(workspaceId);
 
   const query = useQuery({
     queryKey,
     enabled,
     queryFn: async () => {
-      const entries = INTEGRATION_CATALOG.filter(entry => entry.statusPath);
+      const entries = catalog.filter(entry => entry.statusPath);
       const pairs = await Promise.all(
         entries.map(
           async entry => [entry.key, await readConnected(entry.statusPath ?? '')] as const,
@@ -59,6 +60,7 @@ export function IntegrationsPanel(): React.JSX.Element {
   const { panel, item } = useAppPanelState();
   const open = panel === 'integrations';
   const { statuses, refresh } = useConnectionStatuses(open);
+  const catalog = useIntegrationCatalog();
 
   return (
     <>
@@ -69,7 +71,7 @@ export function IntegrationsPanel(): React.JSX.Element {
         onClose={closeAppPanel}
       />
       <IntegrationDetailDrawer
-        entry={open ? findIntegrationEntry(item) : undefined}
+        entry={open ? findIntegrationEntry(catalog, item) : undefined}
         onBack={closeAppPanelItem}
         onClose={closeAppPanel}
         onConnectionChange={refresh}

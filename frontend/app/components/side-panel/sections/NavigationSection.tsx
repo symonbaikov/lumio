@@ -49,11 +49,12 @@ function NavigationItemComponent({ item, depth = 0 }: { item: NavigationItem; de
               height: 20,
               padding: '0 6px',
               fontSize: 11,
-              // Counts stay quiet: grey, no fill. Only the current item's count is green.
+              // Counts stay quiet: grey, or a soft green tint (same as the row
+              // highlight above) for the current item — never a solid fill.
               fontWeight: item.active ? 600 : 500,
               borderRadius: tokens.radius.full,
-              backgroundColor: item.active ? 'var(--primary-fill)' : 'transparent',
-              color: item.active ? 'white' : 'var(--muted-foreground)',
+              backgroundColor: item.active ? 'rgba(var(--primary-rgb),0.15)' : 'transparent',
+              color: item.active ? 'var(--primary)' : 'var(--muted-foreground)',
             }}
           >
             {item.badge}

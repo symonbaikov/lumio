@@ -9,6 +9,7 @@ import IconButton from '@mui/material/IconButton';
 import * as React from 'react';
 import { X } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useIntlayer } from '@/app/i18n';
 
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
@@ -57,6 +58,7 @@ function TitleBar(props: {
   showClose: boolean;
   onClose: () => void;
 }): React.JSX.Element {
+  const t = useIntlayer('uiShell');
   return (
     <DialogTitle
       id="modal-title"
@@ -67,7 +69,7 @@ function TitleBar(props: {
         <IconButton
           type="button"
           onClick={props.onClose}
-          aria-label="Close modal"
+          aria-label={t.closeModal.value}
           size="small"
           sx={{ ml: 'auto' }}
         >

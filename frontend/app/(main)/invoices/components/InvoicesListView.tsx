@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus } from '@/app/components/icons';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
@@ -162,7 +161,6 @@ export function InvoicesListView(): React.JSX.Element {
               {t.clientsNav}
             </Button>
             <Button onClick={() => router.push('/invoices/new')}>
-              <Plus size={16} />
               {t.newInvoice}
             </Button>
           </div>

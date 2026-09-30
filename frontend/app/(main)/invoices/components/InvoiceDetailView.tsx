@@ -6,7 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { MarkPaidDialog } from '@/app/(main)/statements/components/payables/MarkPaidDialog';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { ChevronLeft, Plus, Trash2 } from '@/app/components/icons';
+import { ChevronLeft, Trash2 } from '@/app/components/icons';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
@@ -268,8 +268,8 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
   }
 
   return (
-    <div className="container-shared lumio-stmt-list">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+    <div className="container-shared lumio-invoice-detail">
+      <div className="lumio-invoice-detail__header">
         <button
           type="button"
           onClick={() => router.push('/invoices')}
@@ -284,7 +284,7 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
         {invoice && (
           <Badge variant={getInvoiceStatusVariant(invoice.status)}>{invoice.status}</Badge>
         )}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+        <div className="lumio-invoice-detail__actions">
           {invoice?.status !== 'draft' && invoice && (
             <Button
               variant="outline"
@@ -324,7 +324,12 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
             value={clientId}
             disabled={!isEditable}
             onChange={setClientId}
-            options={clients.map(client => ({ value: client.id, label: client.name }))}
+            options={
+              clients.length > 0
+                ? clients.map(client => ({ value: client.id, label: client.name }))
+                : // An empty list opened as a blank strip; say why instead.
+                  [{ value: '', label: t.clients.empty.value, disabled: true }]
+            }
           />
         </div>
 
@@ -384,9 +389,9 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
           <div style={{ overflowX: 'auto' }}>
             <table className="lumio-invoice-lines__table">
               <colgroup>
-                <col style={{ width: '34%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '16%' }} />
+                <col style={{ width: '24%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '18%' }} />
                 <col style={{ width: '20%' }} />
                 <col style={{ width: '14%' }} />
                 {isEditable && <col style={{ width: '6%' }} />}
@@ -407,14 +412,14 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
                 {lineItems.map((line, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: rows have no stable id before saving
                   <tr key={index} className="lumio-invoice-lines__row">
-                    <td className="lumio-invoice-lines__td">
+                    <td className="lumio-invoice-lines__td" data-label={t.detail.description.value}>
                       <Input
                         value={line.description}
                         disabled={!isEditable}
                         onChange={event => updateLine(index, { description: event.target.value })}
                       />
                     </td>
-                    <td className="lumio-invoice-lines__td">
+                    <td className="lumio-invoice-lines__td" data-label={t.detail.quantity.value}>
                       <Input
                         type="number"
                         min="0"
@@ -426,7 +431,7 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
                         }
                       />
                     </td>
-                    <td className="lumio-invoice-lines__td">
+                    <td className="lumio-invoice-lines__td" data-label={t.detail.unitPrice.value}>
                       <Input
                         type="number"
                         min="0"
@@ -438,7 +443,7 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
                         }
                       />
                     </td>
-                    <td className="lumio-invoice-lines__td">
+                    <td className="lumio-invoice-lines__td" data-label={t.detail.taxRate.value}>
                       <Select
                         fullWidth
                         value={line.taxRateId || 'none'}
@@ -462,7 +467,10 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
                         }}
                       />
                     </td>
-                    <td className="lumio-invoice-lines__td lumio-invoice-lines__td--right">
+                    <td
+                      className="lumio-invoice-lines__td lumio-invoice-lines__td--right"
+                      data-label={t.detail.amount.value}
+                    >
                       {formatMoney(
                         Number(line.quantity) * Number(line.unitPrice),
                         currency,
@@ -470,7 +478,7 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
                       )}
                     </td>
                     {isEditable && (
-                      <td className="lumio-invoice-lines__td">
+                      <td className="lumio-invoice-lines__td lumio-invoice-lines__td--actions">
                         <Button
                           size="icon"
                           variant="ghost"
@@ -493,7 +501,6 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
               style={{ marginTop: 8 }}
               onClick={() => setLineItems(current => [...current, emptyLine()])}
             >
-              <Plus size={16} />
               {t.actions.addLine.value}
             </Button>
           )}
