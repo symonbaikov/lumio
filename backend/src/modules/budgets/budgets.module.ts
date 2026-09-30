@@ -5,6 +5,7 @@ import { Category } from '../../entities/category.entity';
 import { Goal } from '../../entities/goal.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { AuditModule } from '../audit/audit.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { BudgetEventsListener } from './budget-events.listener';
@@ -17,6 +18,7 @@ import { StoicLedgerService } from './stoic/stoic-ledger.service';
     TypeOrmModule.forFeature([Budget, Category, Goal, Transaction, Workspace]),
     NotificationsModule,
     ExchangeRatesModule,
+    AuditModule,
   ],
   controllers: [BudgetsController],
   providers: [BudgetsService, BudgetEventsListener, StoicLedgerService],

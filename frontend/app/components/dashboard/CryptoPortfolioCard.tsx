@@ -11,21 +11,30 @@ import apiClient from '@/app/lib/api';
 interface CryptoSummary {
   currency: string;
   portfolioValue: number;
+  /** Booked value of transfers in and out during the requested month. */
+  income: number;
+  expense: number;
   walletCount: number;
   holdings: Array<{ asset: string; amount: string; value: number }>;
 }
 
 type CryptoPortfolioCardProps = {
   formatAmount: (value: number) => string;
+  /** The dashboard's month as `YYYY-MM`; the in/out line follows it. */
+  month: string;
+  monthLabel: string;
 };
 
 /**
- * Crypto income and spending already reach every dashboard total: the sync writes
- * ordinary transactions. What those totals cannot show is what the wallets are
- * worth right now, so that is all this card adds — and only once a wallet exists.
+ * What the wallets are worth right now, plus how much crypto came in and went out
+ * in the month the dashboard is showing — so months can be compared. The value is
+ * always today's (past balances are not reconstructed); the flows are booked at
+ * the rate on the transfer date. Shown only once a wallet exists.
  */
 export function CryptoPortfolioCard({
   formatAmount,
+  month,
+  monthLabel,
 }: CryptoPortfolioCardProps): React.JSX.Element | null {
   const { currentWorkspace } = useWorkspace();
   const t = useIntlayer('cryptoPage');
@@ -35,7 +44,7 @@ export function CryptoPortfolioCard({
     let cancelled = false;
 
     apiClient
-      .get('/crypto/summary')
+      .get('/crypto/summary', { params: { month } })
       .then(response => {
         if (!cancelled) {
           setSummary(response.data?.data ?? response.data ?? null);
@@ -48,7 +57,7 @@ export function CryptoPortfolioCard({
     return () => {
       cancelled = true;
     };
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, month]);
 
   if (!summary || summary.walletCount === 0) {
     return null;
@@ -60,6 +69,14 @@ export function CryptoPortfolioCard({
         <div className="lumio-dashboard__card-sub">{t.portfolio}</div>
         <div className="lumio-dashboard__stat-value" style={VALUE_STYLE}>
           {formatAmount(summary.portfolioValue)}
+        </div>
+        <div className="lumio-dashboard__card-sub">
+          {monthLabel} ·{' '}
+          <span className="lumio-dashboard__amount--positive">+{formatAmount(summary.income)}</span>{' '}
+          ·{' '}
+          <span className="lumio-dashboard__amount--negative">
+            −{formatAmount(summary.expense)}
+          </span>
         </div>
         {summary.holdings.length > 0 && (
           <div className="lumio-dashboard__card-sub">

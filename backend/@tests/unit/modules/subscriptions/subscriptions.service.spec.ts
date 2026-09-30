@@ -1,3 +1,4 @@
+import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { SubscriptionFrequency, SubscriptionStatus } from '@/entities/subscription.entity';
 import { SubscriptionsService } from '@/modules/subscriptions/subscriptions.service';
 
@@ -7,6 +8,7 @@ const createRepoMock = () => ({
   find: jest.fn(),
   findOne: jest.fn(),
   count: jest.fn(),
+  remove: jest.fn(),
 });
 
 describe('SubscriptionsService', () => {
@@ -35,6 +37,9 @@ describe('SubscriptionsService', () => {
   const exchangeRatesService = {
     convert: jest.fn(),
   };
+  const auditService = {
+    createEvent: jest.fn(),
+  };
 
   let service: SubscriptionsService;
 
@@ -49,6 +54,7 @@ describe('SubscriptionsService', () => {
       chargeRepository as any,
       workspaceRepository as any,
       exchangeRatesService as any,
+      auditService as any,
     );
   });
 
@@ -170,7 +176,7 @@ describe('SubscriptionsService', () => {
       chargeRepository.create.mockImplementation(value => value);
       chargeRepository.save.mockImplementation(value => value);
 
-      await service.confirm('subscription-1', 'workspace-1');
+      await service.confirm('subscription-1', 'workspace-1', 'user-1');
 
       expect(chargeRepository.save).toHaveBeenCalledWith(expect.objectContaining({
         transactionId: 'tx-1', subscriptionId: 'subscription-1', matchStatus: 'matched', expectedAmount: 100,
@@ -189,7 +195,7 @@ describe('SubscriptionsService', () => {
       chargeRepository.create.mockImplementation(value => value);
       chargeRepository.save.mockImplementation(value => value);
 
-      await service.confirm('subscription-1', 'workspace-1');
+      await service.confirm('subscription-1', 'workspace-1', 'user-1');
 
       expect(chargeRepository.save).toHaveBeenCalledWith(expect.objectContaining({ matchStatus: 'price_changed' }));
       expect(subscriptionRepository.save).toHaveBeenLastCalledWith(expect.objectContaining({ riskStatus: 'price_changed' }));
@@ -271,4 +277,126 @@ describe('SubscriptionsService', () => {
     });
   });
 
+  describe('audit trail', () => {
+    const stored = () => ({
+      id: 'subscription-1',
+      workspaceId: 'workspace-1',
+      vendorName: 'Netflix',
+      amount: '15.99',
+      frequency: SubscriptionFrequency.MONTHLY,
+      currency: 'EUR',
+      status: SubscriptionStatus.DETECTED,
+      categoryId: null,
+      nextChargeDate: '2026-10-01',
+      vendorDomain: null,
+      ownerId: null,
+      reviewStatus: 'current',
+      reviewAt: null,
+      cancellationReason: null,
+      realizedAnnualSavings: '0.00',
+    });
+    const expectEvent = (action: AuditAction, extra: Record<string, unknown> = {}) =>
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-1',
+          entityType: EntityType.SUBSCRIPTION,
+          entityId: 'subscription-1',
+          action,
+          ...extra,
+        }),
+      );
+
+    beforeEach(() => {
+      subscriptionRepository.findOne.mockResolvedValue(stored());
+      subscriptionRepository.create.mockImplementation(value => value);
+      subscriptionRepository.save.mockImplementation(async value => value);
+      decisionRepository.create.mockImplementation(value => value);
+      decisionRepository.save.mockImplementation(async value => value);
+    });
+
+    it('records a created subscription', async () => {
+      subscriptionRepository.save.mockImplementation(async value => ({ ...value, id: 'subscription-1' }));
+
+      await service.create('workspace-1', 'user-1', {
+        vendorName: 'Netflix',
+        amount: 15.99,
+        frequency: SubscriptionFrequency.MONTHLY,
+      });
+
+      expectEvent(AuditAction.CREATE, { actorId: 'user-1', meta: { name: 'Netflix' } });
+    });
+
+    it('records an update without flagging untouched decimals and dates as changed', async () => {
+      await service.update('subscription-1', 'workspace-1', 'user-1', { amount: 17.99 });
+
+      expectEvent(AuditAction.UPDATE, { actorId: 'user-1' });
+      const { diff } = auditService.createEvent.mock.calls[0][0];
+      const changed = Object.keys(diff.after).filter(
+        key => JSON.stringify(diff.before[key]) !== JSON.stringify(diff.after[key]),
+      );
+      expect(changed).toEqual(['amount']);
+    });
+
+    it('records a removal', async () => {
+      await service.remove('subscription-1', 'workspace-1', 'user-1');
+
+      expect(subscriptionRepository.remove).toHaveBeenCalled();
+      expectEvent(AuditAction.DELETE, { actorId: 'user-1' });
+    });
+
+    it('records a confirmed detection as a status change', async () => {
+      await service.confirm('subscription-1', 'workspace-1', 'user-1');
+
+      expectEvent(AuditAction.UPDATE, {
+        actorId: 'user-1',
+        diff: {
+          before: expect.objectContaining({ status: SubscriptionStatus.DETECTED }),
+          after: expect.objectContaining({ status: SubscriptionStatus.ACTIVE }),
+        },
+        meta: expect.objectContaining({ change: 'confirmed' }),
+      });
+    });
+
+    it('records a dismissed detection as a deletion', async () => {
+      await service.dismiss('subscription-1', 'workspace-1', 'user-1');
+
+      expectEvent(AuditAction.DELETE, {
+        actorId: 'user-1',
+        meta: expect.objectContaining({ change: 'dismissed' }),
+      });
+    });
+
+    it('records a decision with what was decided', async () => {
+      await service.recordDecision('subscription-1', 'workspace-1', 'user-1', {
+        decision: 'cancelled',
+        note: 'Too expensive',
+        realizedAnnualSavings: 191.88,
+      } as any);
+
+      expectEvent(AuditAction.UPDATE, {
+        actorId: 'user-1',
+        meta: expect.objectContaining({
+          decision: expect.objectContaining({ type: 'cancelled', realizedAnnualSavings: 191.88 }),
+        }),
+      });
+    });
+
+    it('records an owner change with the previous and new owner', async () => {
+      workspaceMemberRepository.findOne.mockResolvedValue({ userId: 'owner-1' });
+
+      await service.assignOwner('subscription-1', 'workspace-1', 'owner-1', 'user-1');
+
+      expectEvent(AuditAction.UPDATE, {
+        actorId: 'user-1',
+        diff: { before: { ownerId: null }, after: { ownerId: 'owner-1' } },
+      });
+    });
+
+    it('does not fail the change when the audit write fails', async () => {
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.remove('subscription-1', 'workspace-1', 'user-1')).resolves.toBeUndefined();
+      expect(subscriptionRepository.remove).toHaveBeenCalled();
+    });
+  });
 });

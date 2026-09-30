@@ -58,7 +58,7 @@ export class AuditService {
     }
 
     const actorLabel = await this.resolveActorLabel(dto);
-    const isUndoable = dto.isUndoable ?? this.isUndoable(dto.action, dto.entityType);
+    const isUndoable = this.isUndoable(dto.action, dto.entityType, dto.isUndoable);
     // A caller-supplied description wins; otherwise emit a locale-independent
     // descriptor for clients and an English rendering for the stored column.
     const customDescription = dto.description?.trim();
@@ -299,7 +299,14 @@ export class AuditService {
     return 'System';
   }
 
-  private isUndoable(action: AuditAction, entityType: EntityType): boolean {
+  private isUndoable(action: AuditAction, entityType: EntityType, requested?: boolean): boolean {
+    // An undo button on an event that rollback cannot handle only fails when pressed.
+    if (!RollbackService.supports(entityType)) {
+      return false;
+    }
+    if (requested !== undefined) {
+      return requested;
+    }
     if (action === AuditAction.ROLLBACK) {
       return false;
     }

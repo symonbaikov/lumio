@@ -61,12 +61,17 @@ export class IncomeTaxController {
 
   @Put('profile')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async saveProfile(@WorkspaceId() workspaceId: string, @Body() dto: UpdateIncomeTaxProfileDto) {
+  async saveProfile(
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+    @Body() dto: UpdateIncomeTaxProfileDto,
+  ) {
     return this.draftService.saveProfile(
       workspaceId,
       parseTaxYear(dto.taxYear),
       dto.taxpayerType,
       dto.details ?? {},
+      user.id,
     );
   }
 
@@ -109,8 +114,12 @@ export class IncomeTaxController {
 
   @Post('returns/:taxYear/reopen')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async reopen(@WorkspaceId() workspaceId: string, @Param('taxYear') taxYear: string) {
-    return this.returnsService.reopen(workspaceId, parseTaxYear(taxYear));
+  async reopen(
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+    @Param('taxYear') taxYear: string,
+  ) {
+    return this.returnsService.reopen(workspaceId, parseTaxYear(taxYear), user.id);
   }
 
   @Get('returns/:taxYear/export')

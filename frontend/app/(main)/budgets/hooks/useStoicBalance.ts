@@ -85,7 +85,7 @@ export function useStoicBalance(): {
     onSettled: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.stoicBalance(workspaceId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.insights(workspaceId) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.insightsAll(workspaceId) }),
       ]),
   });
 

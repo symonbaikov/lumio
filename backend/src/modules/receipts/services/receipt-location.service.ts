@@ -1,11 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
   isValidCoordinatePair,
   roundCoordinate,
 } from '../../../common/utils/capture-location.util';
+import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
 import { Receipt, ReceiptLocationSource } from '../../../entities/receipt.entity';
+import { AuditService } from '../../audit/audit.service';
 import { GeocodingService } from '../../geocoding/geocoding.service';
 
 type ResolvedLocation = {
@@ -17,10 +19,13 @@ type ResolvedLocation = {
 
 @Injectable()
 export class ReceiptLocationService {
+  private readonly logger = new Logger(ReceiptLocationService.name);
+
   constructor(
     @InjectRepository(Receipt)
     private readonly receiptRepository: Repository<Receipt>,
     private readonly geocodingService: GeocodingService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -39,29 +44,65 @@ export class ReceiptLocationService {
     id: string,
     workspaceId: string,
     point: { latitude: number; longitude: number },
+    userId: string,
   ): Promise<Receipt | null> {
     const receipt = await this.receiptRepository.findOne({ where: { id, workspaceId } });
     if (!receipt) {
       return null;
     }
 
+    const before = locationSnapshot(receipt);
     this.assign(receipt, {
       lat: roundCoordinate(point.latitude),
       lng: roundCoordinate(point.longitude),
       source: ReceiptLocationSource.MANUAL,
       accuracyM: null,
     });
-    return this.receiptRepository.save(receipt);
+    const saved = await this.receiptRepository.save(receipt);
+    await this.recordAudit(saved, before, userId, workspaceId, 'manual');
+    return saved;
   }
 
-  async resetToAuto(id: string, workspaceId: string): Promise<Receipt | null> {
+  async resetToAuto(id: string, workspaceId: string, userId: string): Promise<Receipt | null> {
     const receipt = await this.receiptRepository.findOne({ where: { id, workspaceId } });
     if (!receipt) {
       return null;
     }
 
+    const before = locationSnapshot(receipt);
     this.assign(receipt, await this.resolveAutoLocation(receipt));
-    return this.receiptRepository.save(receipt);
+    const saved = await this.receiptRepository.save(receipt);
+    await this.recordAudit(saved, before, userId, workspaceId, 'reset');
+    return saved;
+  }
+
+  // Coordinates are the stored, already rounded ones; an audit failure never fails the edit.
+  private async recordAudit(
+    receipt: Receipt,
+    before: Record<string, unknown>,
+    userId: string,
+    workspaceId: string,
+    change: 'manual' | 'reset',
+  ): Promise<void> {
+    try {
+      await this.auditService.createEvent({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId,
+        entityType: EntityType.RECEIPT,
+        entityId: receipt.id,
+        action: AuditAction.UPDATE,
+        diff: { before, after: locationSnapshot(receipt) },
+        meta: {
+          reason: 'location',
+          change,
+          place: receipt.parsedData?.merchantAddress ?? receipt.parsedData?.vendor ?? null,
+        },
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for receipt ${receipt.id}: ${message}`);
+    }
   }
 
   // Store address first: it answers "where was this bought". The photo and the
@@ -106,4 +147,12 @@ export class ReceiptLocationService {
       receipt.locationUpdatedAt = new Date();
     }
   }
+}
+
+function locationSnapshot(receipt: Receipt): Record<string, unknown> {
+  return {
+    locationLat: receipt.locationLat ?? null,
+    locationLng: receipt.locationLng ?? null,
+    locationSource: receipt.locationSource ?? null,
+  };
 }

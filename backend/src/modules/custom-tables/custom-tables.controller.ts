@@ -22,9 +22,7 @@ import { appError } from '../../common/errors/app-error';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
-import { EntityType } from '../../entities/audit-event.entity';
 import type { User } from '../../entities/user.entity';
-import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CustomTablesService } from './custom-tables.service';
 import { CustomTablesCacheService } from './custom-tables-cache.service';
@@ -132,7 +130,6 @@ export class CustomTablesController {
 
   @Post()
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  @Audit({ entityType: EntityType.CUSTOM_TABLE, includeDiff: true, isUndoable: true })
   async createTable(
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
@@ -155,7 +152,6 @@ export class CustomTablesController {
 
   @Post('from-data-entry')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  @Audit({ entityType: EntityType.CUSTOM_TABLE, includeDiff: true, isUndoable: true })
   async createFromDataEntry(
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
@@ -168,7 +164,6 @@ export class CustomTablesController {
 
   @Post('from-data-entry-custom-tab')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  @Audit({ entityType: EntityType.CUSTOM_TABLE, includeDiff: true, isUndoable: true })
   async createFromDataEntryCustomTab(
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
@@ -198,7 +193,6 @@ export class CustomTablesController {
 
   @Post('from-statements')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  @Audit({ entityType: EntityType.CUSTOM_TABLE, includeDiff: true, isUndoable: true })
   async createFromStatements(
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
@@ -235,7 +229,6 @@ export class CustomTablesController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  @Audit({ entityType: EntityType.CUSTOM_TABLE, includeDiff: true, isUndoable: true })
   async updateTable(
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
@@ -250,7 +243,6 @@ export class CustomTablesController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  @Audit({ entityType: EntityType.CUSTOM_TABLE, includeDiff: true, isUndoable: true })
   async removeTable(
     @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
