@@ -23,7 +23,6 @@ export type StatementFilterScreen =
 
 const COLUMN_SCREEN_MAP: Record<string, StatementFilterScreen[]> = {
   receipt: ['type', 'status'],
-  date: ['date'],
   merchant: ['keywords'],
   from: ['from'],
   to: ['to'],
@@ -33,7 +32,13 @@ const COLUMN_SCREEN_MAP: Record<string, StatementFilterScreen[]> = {
   exported: ['exported'],
 };
 
-const ALWAYS_VISIBLE_SCREENS: StatementFilterScreen[] = ['groupBy', 'has', 'keywords', 'limit'];
+const ALWAYS_VISIBLE_SCREENS: StatementFilterScreen[] = [
+  'date',
+  'groupBy',
+  'has',
+  'keywords',
+  'limit',
+];
 
 export const serializeStatementFiltersToQuery = (filters: StatementFilters) => {
   const params: Record<string, unknown> = {};

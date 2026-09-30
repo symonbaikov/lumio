@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useIntlayer } from '@/app/i18n';
 import type { AuditEvent } from '@/lib/api/audit';
 import { rollbackEvent } from '@/lib/api/audit';
 import { getErrorMessage } from '../helpers/audit-helpers';
@@ -20,6 +21,7 @@ export function useAuditRollback({
   onAfterRollback,
   onCloseDrawer,
 }: RollbackParams): RollbackState {
+  const t = useIntlayer('auditUi');
   const [rollbackTarget, setRollbackTarget] = useState<AuditEvent | null>(null);
   const [rollbackLoading, setRollbackLoading] = useState(false);
   const [rollbackError, setRollbackError] = useState<string | null>(null);
@@ -42,13 +44,13 @@ export function useAuditRollback({
     await (async () => {
       const result = await rollbackEvent(rollbackTarget.id);
       assertRollbackSucceeded(result);
-      toast.success('Rollback successful');
+      toast.success(t.rollbackSuccess.value);
       setRollbackTarget(null);
       onCloseDrawer();
       onAfterRollback();
     })()
       .catch(async (err: unknown) => {
-        setRollbackError(getErrorMessage({ error: err, fallback: 'Rollback failed' }));
+        setRollbackError(getErrorMessage({ error: err, fallback: t.rollbackFailed.value }));
       })
       .finally(async () => {
         setRollbackLoading(false);

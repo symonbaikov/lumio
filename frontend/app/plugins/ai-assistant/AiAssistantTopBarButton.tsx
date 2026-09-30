@@ -2,11 +2,13 @@
 
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { useCallback, useState } from 'react';
+import { useIntlayer } from '@/app/i18n';
 import { usePluginState } from '../hooks/usePluginState';
 import { AiAssistantDrawer } from './AiAssistantDrawer';
 
 export function AiAssistantTopBarButton() {
   const { isEnabled } = usePluginState();
+  const t = useIntlayer('aiAssistantDrawer');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleOpen = useCallback(() => setDrawerOpen(true), []);
@@ -19,7 +21,7 @@ export function AiAssistantTopBarButton() {
       <button
         type="button"
         className="lumio-topbar__icon-btn"
-        title="AI Assistant"
+        title={t.title.value}
         onClick={handleOpen}
       >
         <SmartToyIcon sx={{ fontSize: 18 }} />

@@ -12,8 +12,10 @@ import {
 } from '@mui/material';
 import NextLink from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { ChevronLeft } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import type { BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
 
@@ -83,18 +85,19 @@ function DrawerTitle({
   editing,
   onClose,
 }: Pick<BudgetFormDrawerProps, 'editing' | 'onClose'>): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
     <div className="lumio-payable-drawer__title-wrap">
       <button
         type="button"
         onClick={onClose}
         className="lumio-payable-drawer__back-btn"
-        aria-label="Cancel"
+        aria-label={t.cancel.value}
       >
         <ChevronLeft size={20} />
       </button>
       <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--foreground)' }}>
-        {editing ? 'Edit Budget' : 'New Budget'}
+        {editing ? t.editBudget : t.newBudget}
       </span>
     </div>
   );
@@ -107,9 +110,10 @@ function NameField({
   value: string;
   onChange: (value: string) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
     <TextField
-      label="Name"
+      label={t.fieldName.value}
       value={value}
       onChange={event => onChange(event.target.value)}
       fullWidth
@@ -128,12 +132,13 @@ function CategoryField({
   categories: CategoryOption[];
   onChange: (value: string) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
     <FormControl fullWidth>
-      <InputLabel>Category</InputLabel>
+      <InputLabel>{t.fieldCategory}</InputLabel>
       <Select
         value={value}
-        label="Category"
+        label={t.fieldCategory.value}
         onChange={event => onChange(event.target.value)}
         disabled={disabled}
       >
@@ -154,9 +159,10 @@ function LimitAmountField({
   value: number;
   onChange: (value: number) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
     <TextField
-      label="Limit Amount"
+      label={t.fieldLimitAmount.value}
       type="number"
       value={value || ''}
       onChange={event => onChange(Number(event.target.value))}
@@ -175,19 +181,20 @@ function PeriodField({
   disabled: boolean;
   onChange: (value: BudgetFormData['periodType']) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
     <FormControl fullWidth>
-      <InputLabel>Period</InputLabel>
+      <InputLabel>{t.fieldPeriod}</InputLabel>
       <Select
         value={value}
-        label="Period"
+        label={t.fieldPeriod.value}
         onChange={event => onChange(event.target.value as BudgetFormData['periodType'])}
         disabled={disabled}
       >
-        <MenuItem value="weekly">Weekly</MenuItem>
-        <MenuItem value="monthly">Monthly</MenuItem>
-        <MenuItem value="quarterly">Quarterly</MenuItem>
-        <MenuItem value="annual">Annual</MenuItem>
+        <MenuItem value="weekly">{t.periodWeekly}</MenuItem>
+        <MenuItem value="monthly">{t.periodMonthly}</MenuItem>
+        <MenuItem value="quarterly">{t.periodQuarterly}</MenuItem>
+        <MenuItem value="annual">{t.periodAnnual}</MenuItem>
       </Select>
     </FormControl>
   );
@@ -204,12 +211,17 @@ function GoalField({
   onChange: (value: string) => void;
   onClose: () => void;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
     <FormControl fullWidth>
-      <InputLabel>Goal</InputLabel>
-      <Select value={value} label="Goal" onChange={event => onChange(event.target.value)}>
+      <InputLabel>{t.fieldGoal}</InputLabel>
+      <Select
+        value={value}
+        label={t.fieldGoal.value}
+        onChange={event => onChange(event.target.value)}
+      >
         <MenuItem value={NO_GOAL}>
-          <em>No goal</em>
+          <em>{t.noGoal}</em>
         </MenuItem>
         {(goals ?? []).map(goal => (
           <MenuItem key={goal.id} value={goal.id}>
@@ -221,9 +233,9 @@ function GoalField({
           own page, so an empty picker points the way there. */}
       {goals?.length === 0 && (
         <FormHelperText>
-          No goals yet —{' '}
+          {t.noGoalsYet}{' '}
           <Link component={NextLink} href="/goals" onClick={onClose}>
-            create one on the Goals page
+            {t.createGoalLink}
           </Link>
         </FormHelperText>
       )}
@@ -238,14 +250,13 @@ function StartsOnField({
   value: string;
   onChange: (value: string) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
-    <TextField
-      label="Starts on"
-      type="date"
+    <CustomDatePicker
+      label={t.fieldStartsOn.value}
       value={value}
-      onChange={event => onChange(event.target.value)}
-      fullWidth
-      slotProps={{ inputLabel: { shrink: true } }}
+      onChange={onChange}
+      size="medium"
     />
   );
 }
@@ -259,16 +270,15 @@ function EndsOnField({
   invalid: boolean;
   onChange: (value: string) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
-    <TextField
-      label="Ends on"
-      type="date"
+    <CustomDatePicker
+      label={t.fieldEndsOn.value}
       value={value}
-      onChange={event => onChange(event.target.value)}
-      fullWidth
-      slotProps={{ inputLabel: { shrink: true } }}
+      onChange={onChange}
+      size="medium"
       error={invalid}
-      helperText={invalid ? 'Must not be earlier than the start date' : undefined}
+      helperText={invalid ? t.endBeforeStart.value : undefined}
     />
   );
 }
@@ -347,13 +357,14 @@ function DrawerFooter({
 }: Pick<BudgetFormDrawerProps, 'saving' | 'onSave' | 'onClose'> & {
   canSave: boolean;
 }): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
   return (
     <div className="lumio-payable-drawer__footer">
       <Button variant="outlined" sx={{ flex: 1 }} onClick={onClose} disabled={saving}>
-        Cancel
+        {t.cancel}
       </Button>
       <Button variant="contained" sx={{ flex: 1 }} onClick={onSave} disabled={saving || !canSave}>
-        {saving ? 'Saving...' : 'Save'}
+        {saving ? t.saving : t.save}
       </Button>
     </div>
   );

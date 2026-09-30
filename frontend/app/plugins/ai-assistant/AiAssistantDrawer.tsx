@@ -90,20 +90,20 @@ export function AiAssistantDrawer({ isOpen, onClose }: AiAssistantDrawerProps) {
 
         if (url.length > MAX_URL_LENGTH) {
           await navigator.clipboard.writeText(prompt);
-          toast.success(String(t.copied));
+          toast.success(t.copied.value);
           window.open(CHATGPT_URL, '_blank', 'noopener,noreferrer');
         } else {
           window.open(url, '_blank', 'noopener,noreferrer');
         }
       })()
         .catch(async () => {
-          toast.error('Failed to load data');
+          toast.error(t.loadFailed.value);
         })
         .finally(async () => {
           setLoadingKey(null);
         });
     },
-    [t.copied],
+    [t.copied, t.loadFailed],
   );
 
   return (

@@ -5,7 +5,7 @@ import Skeleton from '@mui/material/Skeleton';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Download, Plus, RefreshCcw } from '@/app/components/icons';
+import { Download, RefreshCcw } from '@/app/components/icons';
 import { Button } from '@/app/components/ui/button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -99,7 +99,7 @@ function PayablesRowSkeleton(): React.JSX.Element {
 function PayablesViewSkeleton(): React.JSX.Element {
   return (
     <div className="container-shared lumio-stmt-list">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div className="lumio-stat-tiles">
         {SUMMARY_CARD_KEYS.map(key => (
           <PayablesSummaryCardSkeleton key={key} />
         ))}
@@ -722,7 +722,6 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
                 {labels.exportXlsx}
               </Button>
               <Button onClick={openCreateDrawer}>
-                <Plus size={16} />
                 {labels.add}
               </Button>
             </div>

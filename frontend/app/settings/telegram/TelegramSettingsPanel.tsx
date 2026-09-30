@@ -141,10 +141,10 @@ export function TelegramSettingsPanel({ user }: { user: User | null }): React.JS
       });
       setBotToken('');
       setBotConfigured(true);
-      setStatusMessage('Telegram bot settings saved.');
+      setStatusMessage(t.bot.saved.value);
     })()
       .catch(async err => {
-        const message = getApiErrorMessage(err, 'Failed to save Telegram bot settings');
+        const message = getApiErrorMessage(err, t.bot.saveFailed.value);
         setError(message);
       })
       .finally(async () => {
@@ -220,11 +220,10 @@ export function TelegramSettingsPanel({ user }: { user: User | null }): React.JS
         <Stack spacing={3}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Bot token
+              {t.bot.title.value}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Configure the workspace Telegram bot token in the UI. The token is encrypted and is
-              not returned after saving.
+              {t.bot.description.value}
             </Typography>
           </Box>
 
@@ -232,16 +231,14 @@ export function TelegramSettingsPanel({ user }: { user: User | null }): React.JS
             <TextField
               fullWidth
               type="password"
-              label="Bot token"
-              placeholder={
-                botConfigured ? 'Configured, leave blank to keep current token' : '123456:ABC'
-              }
+              label={t.bot.tokenLabel.value}
+              placeholder={botConfigured ? t.bot.tokenPlaceholderConfigured.value : '123456:ABC'}
               value={botToken}
               onChange={e => setBotToken(e.target.value)}
             />
             <TextField
               fullWidth
-              label="Timeout, ms"
+              label={t.bot.timeoutLabel.value}
               value={botTimeoutMs}
               onChange={e => setBotTimeoutMs(e.target.value)}
             />
@@ -254,13 +251,17 @@ export function TelegramSettingsPanel({ user }: { user: User | null }): React.JS
               onClick={saveBotSettings}
               disabled={savingBot || !(botConfigured || botToken)}
             >
-              {savingBot ? 'Checking...' : botConfigured ? 'Update bot' : 'Save bot'}
+              {savingBot
+                ? t.bot.checking.value
+                : botConfigured
+                  ? t.bot.update.value
+                  : t.bot.save.value}
             </Button>
             {botConfigured && (
               <Chip
                 icon={<TelegramIcon size={16} />}
                 color="success"
-                label="Bot configured"
+                label={t.bot.configured.value}
                 variant="outlined"
               />
             )}

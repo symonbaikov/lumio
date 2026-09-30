@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
@@ -30,9 +31,10 @@ import {
   type WorkspaceMemberPermissions,
   WorkspaceRole,
 } from '../../entities';
-import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { ActorType, AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
 import { AuditService } from '../audit/audit.service';
+import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { BalanceService } from '../balance/balance.service';
 import { CategoriesService } from '../categories/categories.service';
 import type {
@@ -50,6 +52,8 @@ const INVITATION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 @Injectable()
 export class WorkspacesService {
+  private readonly logger = new Logger(WorkspacesService.name);
+
   constructor(
     @InjectRepository(Workspace)
     private readonly workspaceRepository: Repository<Workspace>,
@@ -77,6 +81,56 @@ export class WorkspacesService {
     });
 
     return user?.name || user?.email || 'User';
+  }
+
+  // Member/invitation audit must never fail the change it records.
+  private async recordMemberAudit(event: CreateAuditEventDto): Promise<void> {
+    try {
+      await this.auditService.createEvent(event);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Audit event failed for ${event.entityType} ${event.entityId} (${event.action}): ${message}`,
+      );
+    }
+  }
+
+  private auditRoleChange(
+    workspaceId: string,
+    actorId: string,
+    member: WorkspaceMember,
+    before: WorkspaceRole,
+  ) {
+    return this.recordMemberAudit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId,
+      entityType: EntityType.WORKSPACE_MEMBER,
+      entityId: member.id,
+      action: AuditAction.UPDATE,
+      diff: { before: { role: before }, after: { role: member.role } },
+      meta: { userId: member.userId, email: member.user?.email ?? null },
+      severity:
+        member.role === WorkspaceRole.OWNER || member.role === WorkspaceRole.ADMIN
+          ? Severity.WARN
+          : Severity.INFO,
+    });
+  }
+
+  private auditInvitationCreated(
+    workspaceId: string,
+    actorId: string,
+    invitation: WorkspaceInvitation,
+  ) {
+    return this.recordMemberAudit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId,
+      entityType: EntityType.WORKSPACE_MEMBER,
+      entityId: invitation.id,
+      action: AuditAction.CREATE,
+      meta: { email: invitation.email, role: invitation.role },
+    });
   }
 
   async ensureUserWorkspace(user: User): Promise<Workspace> {
@@ -243,6 +297,7 @@ export class WorkspacesService {
 
     const member = await this.workspaceMemberRepository.findOne({
       where: { workspaceId, userId: targetUserId },
+      relations: ['user'],
     });
 
     if (!member) {
@@ -272,6 +327,8 @@ export class WorkspacesService {
       return { message: 'Role unchanged', role: member.role };
     }
 
+    const previousRole = member.role;
+
     if (role === WorkspaceRole.OWNER) {
       if (workspace.ownerId !== requestingUserId) {
         throw new ForbiddenException(appError('WORKSPACE_ONLY_OWNER_CAN_TRANSFER'));
@@ -295,6 +352,8 @@ export class WorkspacesService {
       await this.workspaceMemberRepository.save(currentOwnerMembership);
       await this.workspaceMemberRepository.save(member);
 
+      await this.auditRoleChange(workspaceId, requestingUserId, member, previousRole);
+
       return { message: 'Workspace ownership transferred', role: member.role };
     }
 
@@ -304,6 +363,8 @@ export class WorkspacesService {
     }
 
     await this.workspaceMemberRepository.save(member);
+
+    await this.auditRoleChange(workspaceId, requestingUserId, member, previousRole);
 
     return { message: 'Role updated', role: member.role };
   }
@@ -329,6 +390,16 @@ export class WorkspacesService {
 
     invitation.status = WorkspaceInvitationStatus.CANCELLED;
     await this.invitationRepository.save(invitation);
+
+    await this.recordMemberAudit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: requestingUserId,
+      entityType: EntityType.WORKSPACE_MEMBER,
+      entityId: invitation.id,
+      action: AuditAction.DELETE,
+      meta: { email: invitation.email },
+    });
 
     return { message: 'Invitation revoked' };
   }
@@ -442,6 +513,7 @@ export class WorkspacesService {
       existingInvitation.invitedById = currentUser.id;
       existingInvitation.token = randomUUID();
       const updated = await this.invitationRepository.save(existingInvitation);
+      await this.auditInvitationCreated(workspaceId, currentUser.id, updated);
       const invitationLink = await this.buildInvitationLink(
         updated.token,
         requestAppOrigin,
@@ -479,6 +551,7 @@ export class WorkspacesService {
     });
 
     const savedInvitation = await this.invitationRepository.save(invitation);
+    await this.auditInvitationCreated(workspaceId, currentUser.id, savedInvitation);
     const invitationLink = await this.buildInvitationLink(
       savedInvitation.token,
       requestAppOrigin,

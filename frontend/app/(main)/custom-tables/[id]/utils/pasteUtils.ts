@@ -61,7 +61,7 @@ import type {
   PastePreviewData,
   PasteSourceColumn,
 } from './pasteTypes';
-import type { CustomTableRowPatch } from './stylingUtils';
+import type { CustomTableRowPatch } from './types';
 
 // ---------------------------------------------------------------------------
 // DOM helpers

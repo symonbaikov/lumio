@@ -121,7 +121,7 @@
   }
 
   &:focus {
-    border-color: $lumio-color-primary;
+    border-color: var(--primary);
   }
 }
 
@@ -135,6 +135,15 @@
   @include dark {
     background: $color-card-bg-dk;
     border-color: $lumio-color-border-dk;
+  }
+
+  // AuditTimeline decides emptiness, so the card drops its box from CSS.
+  &:has(.audit-empty) {
+    &,
+    .dark & {
+      background: transparent;
+      border-color: transparent;
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 // Pure helper functions and types for the Statement Edit page
 
+import type { StatementStage } from '@/app/lib/statement-workflow';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { ParsingDroppedSample } from './ParsingWarningsPanel';
 
@@ -107,6 +108,7 @@ export interface Statement {
   id: string;
   fileName: string;
   status: string;
+  stage?: StatementStage | null;
   totalTransactions: number;
   categoryId?: string | null;
   category?: {

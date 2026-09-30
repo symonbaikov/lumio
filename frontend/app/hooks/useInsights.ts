@@ -7,6 +7,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
@@ -52,6 +53,9 @@ export function useInsights({ severities }: UseInsightsOptions): UseInsightsStat
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
   const key = severities.join(',');
+  // Совет приходит на языке интерфейса, а не профиля: сервер перерисовывает
+  // текст по ключу на каждом чтении, поэтому локаль обязана быть в ключе кэша.
+  const { locale } = useLocale();
 
   // select обязан быть референциально стабильным: инлайн-стрелка пересчитывала бы
   // фильтр на каждый рендер и отдавала новый массив, отменяя structural sharing.
@@ -64,16 +68,16 @@ export function useInsights({ severities }: UseInsightsOptions): UseInsightsStat
   );
 
   const query = useQuery({
-    queryKey: queryKeys.insights(workspaceId),
+    queryKey: queryKeys.insights(workspaceId, locale),
     queryFn: ({ signal }) =>
-      apiQuery<InsightsPayload>({ url: '/insights', params: { limit: 50 }, signal }),
+      apiQuery<InsightsPayload>({ url: '/insights', params: { limit: 50, locale }, signal }),
     select: selectBySeverity,
   });
 
   const dismissMutation = useMutation({
     mutationFn: (id: string) => apiClient.post(`/insights/${id}/dismiss`),
     onMutate: async (id: string) => {
-      const queryKey = queryKeys.insights(workspaceId);
+      const queryKey = queryKeys.insights(workspaceId, locale);
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<InsightsPayload>(queryKey);
       queryClient.setQueryData<InsightsPayload>(queryKey, current =>
@@ -83,12 +87,12 @@ export function useInsights({ severities }: UseInsightsOptions): UseInsightsStat
     },
     onError: (_error, _id, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(queryKeys.insights(workspaceId), context.previous);
+        queryClient.setQueryData(queryKeys.insights(workspaceId, locale), context.previous);
       }
     },
     onSettled: () => {
       // Уже убрано из вида; следующая загрузка вернёт элемент, если сервер не согласен.
-      void queryClient.invalidateQueries({ queryKey: queryKeys.insights(workspaceId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.insightsAll(workspaceId) });
     },
   });
 
@@ -113,11 +117,20 @@ export function useInsights({ severities }: UseInsightsOptions): UseInsightsStat
  * бы её нечистой и потребовал бы положить флаг в ключ, разделив общий кэш.
  * Дёргается только на странице, которую пользователь открыл намеренно.
  */
-export function useRefreshInsights(): UseMutationResult<unknown, Error, void> {
+/**
+ * Recomputes the advice on the server. The argument is the interface
+ * language, which can differ from the one saved on the profile — the advice
+ * is written in whatever the reader is looking at.
+ */
+export function useRefreshInsights(): UseMutationResult<unknown, Error, string> {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => apiClient.post('/insights/refresh'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.insights(workspaceId) }),
+    mutationFn: (locale: string) =>
+      apiClient.post('/insights/refresh', null, { params: { locale } }),
+    // Пересчёт переписывает сами строки, а не их перевод, поэтому устаревает
+    // кэш на всех языках сразу — инвалидация идёт по префиксу без локали.
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: queryKeys.insightsAll(workspaceId) }),
   });
 }

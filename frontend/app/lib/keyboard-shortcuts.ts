@@ -1,8 +1,23 @@
 export type ShortcutCategory = 'navigation' | 'action';
 
+/** Key into the `keyboardShortcutsModal` dictionary's `labels`. */
+export type ShortcutLabelKey =
+  | 'goDashboard'
+  | 'goStatements'
+  | 'goCustomTables'
+  | 'goReports'
+  | 'goWorkspaces'
+  | 'showShortcuts'
+  | 'openUpload'
+  | 'openFilters'
+  | 'export'
+  | 'focusSearch'
+  | 'selectAll'
+  | 'deleteSelected';
+
 export type ShortcutEntry = {
   keys: string;
-  label: string;
+  labelKey: ShortcutLabelKey;
   category: ShortcutCategory;
 };
 
@@ -14,19 +29,19 @@ export const SHORTCUT_SELECT_ALL = 'shortcuts:select-all';
 export const SHORTCUT_DELETE_SELECTED = 'shortcuts:delete-selected';
 
 export const GLOBAL_SHORTCUTS: ShortcutEntry[] = [
-  { keys: 'Shift+D', label: 'Go to Dashboard', category: 'navigation' },
-  { keys: 'Shift+S', label: 'Go to Statements', category: 'navigation' },
-  { keys: 'Shift+T', label: 'Go to Custom Tables', category: 'navigation' },
-  { keys: 'Shift+R', label: 'Go to Reports', category: 'navigation' },
-  { keys: 'Shift+W', label: 'Go to Workspaces', category: 'navigation' },
-  { keys: '?', label: 'Show keyboard shortcuts', category: 'action' },
-  { keys: 'Shift+A', label: 'Open statement upload', category: 'action' },
-  { keys: 'Shift+F', label: 'Open filters', category: 'action' },
-  { keys: 'Shift+E', label: 'Export', category: 'action' },
-  { keys: '/', label: 'Focus search', category: 'action' },
+  { keys: 'Shift+D', labelKey: 'goDashboard', category: 'navigation' },
+  { keys: 'Shift+S', labelKey: 'goStatements', category: 'navigation' },
+  { keys: 'Shift+T', labelKey: 'goCustomTables', category: 'navigation' },
+  { keys: 'Shift+R', labelKey: 'goReports', category: 'navigation' },
+  { keys: 'Shift+W', labelKey: 'goWorkspaces', category: 'navigation' },
+  { keys: '?', labelKey: 'showShortcuts', category: 'action' },
+  { keys: 'Shift+A', labelKey: 'openUpload', category: 'action' },
+  { keys: 'Shift+F', labelKey: 'openFilters', category: 'action' },
+  { keys: 'Shift+E', labelKey: 'export', category: 'action' },
+  { keys: '/', labelKey: 'focusSearch', category: 'action' },
 ];
 
 export const STATEMENTS_SHORTCUTS: ShortcutEntry[] = [
-  { keys: 'Shift+X', label: 'Select all', category: 'action' },
-  { keys: 'Shift+Delete', label: 'Delete selected', category: 'action' },
+  { keys: 'Shift+X', labelKey: 'selectAll', category: 'action' },
+  { keys: 'Shift+Delete', labelKey: 'deleteSelected', category: 'action' },
 ];

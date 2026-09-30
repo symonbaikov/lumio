@@ -8,6 +8,7 @@ import { IncomeTaxReturn } from '../../entities/income-tax-return.entity';
 import { Receipt } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
+import { AuditModule } from '../audit/audit.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { TaxModule } from '../tax/tax.module';
 import { BdiRatesService } from './bdi-rates.service';
@@ -32,6 +33,7 @@ import { NbpRatesService } from './nbp-rates.service';
     ]),
     TaxModule,
     ExchangeRatesModule,
+    AuditModule,
   ],
   controllers: [IncomeTaxController],
   providers: [

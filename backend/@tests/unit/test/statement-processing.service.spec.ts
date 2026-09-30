@@ -34,8 +34,6 @@ describe('StatementProcessingService', () => {
     totalDebit: 0,
     totalCredit: 0,
     currency: 'KZT',
-    googleSheet: null,
-    googleSheetId: null,
     transactions: [] as Transaction[],
     createdAt: new Date(),
     updatedAt: new Date(),

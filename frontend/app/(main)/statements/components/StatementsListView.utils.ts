@@ -1,6 +1,8 @@
 /* eslint-disable max-lines */
 
 import { resolveBankLogo } from '@bank-logos';
+import { getIntlayer } from 'react-intlayer';
+import { DEFAULT_LOCALE, readLocaleFromCookie } from '@/app/lib/locale';
 import { resolveLabel } from '@/app/lib/side-panel-utils';
 import type { StatementCategoryNode } from '@/app/lib/statement-categories';
 import { formatStoredDate } from '@/app/lib/user-format-store';
@@ -45,6 +47,7 @@ export type FilterOptionLabels = {
   typeChat: string;
   typeTrip: string;
   typeTask: string;
+  typeImage: string;
   statusUploaded: string;
   statusProcessing: string;
   statusParsed: string;
@@ -95,7 +98,6 @@ export type FilterOptionLabels = {
   columnDescription: string;
   columnExchangeRate: string;
   columnExported: string;
-  columnExportedTo: string;
   columnsTitle: string;
   paid: string;
 };
@@ -314,6 +316,9 @@ export const getBankDisplayName = (bankName: string): string => {
 // Duplicate detection helpers
 // ---------------------------------------------------------------------------
 
+/** Module-level helpers cannot use hooks; read the dictionary for the cookie locale. */
+const listUiText = () => getIntlayer('statementsListUi', readLocaleFromCookie() ?? DEFAULT_LOCALE);
+
 export const toDuplicateGroupLabel = (index: number): string => {
   let current = index + 1;
   let label = '';
@@ -322,7 +327,7 @@ export const toDuplicateGroupLabel = (index: number): string => {
     label = String.fromCharCode(65 + code) + label;
     current = Math.floor((current - 1) / 26);
   }
-  return `Group ${label}`;
+  return listUiText().groupLabel.value.replace('{label}', label);
 };
 
 export const DUPLICATE_GROUP_TONES: DuplicateGroupTone[] = [
@@ -538,6 +543,7 @@ export const buildFilterOptionLabels = (_t: IntlayerDict, tx: TxFn): FilterOptio
   typeChat: tx(['filters', 'typeChat'], 'Chat'),
   typeTrip: tx(['filters', 'typeTrip'], 'Trip'),
   typeTask: tx(['filters', 'typeTask'], 'Task'),
+  typeImage: tx(['filters', 'typeImage'], 'Image'),
   statusUploaded: tx(['filters', 'statusUploaded'], 'Uploaded'),
   statusProcessing: tx(['filters', 'statusProcessing'], 'Processing'),
   statusParsed: tx(['filters', 'statusParsed'], 'Parsed'),
@@ -588,7 +594,6 @@ export const buildFilterOptionLabels = (_t: IntlayerDict, tx: TxFn): FilterOptio
   columnDescription: tx(['filters', 'columnDescription'], 'Description'),
   columnExchangeRate: tx(['filters', 'columnExchangeRate'], 'Exchange rate'),
   columnExported: tx(['filters', 'columnExported'], 'Exported'),
-  columnExportedTo: tx(['filters', 'columnExportedTo'], 'Exported to'),
   columnsTitle: tx(['filters', 'columnsTitle'], 'Columns'),
   paid: tx(['filters', 'paid'], 'Paid'),
 });
@@ -596,7 +601,7 @@ export const buildFilterOptionLabels = (_t: IntlayerDict, tx: TxFn): FilterOptio
 export const buildTypeOptions = (
   labels: Record<string, string>,
 ): Array<{ value: string; label: string }> => [
-  { value: 'receipt', label: 'Receipt' },
+  { value: 'receipt', label: labels.columnReceipt },
   { value: 'expense', label: labels.typeExpense },
   { value: 'expense_report', label: labels.typeReport },
   { value: 'chat', label: labels.typeChat },
@@ -606,7 +611,7 @@ export const buildTypeOptions = (
   { value: 'pdf', label: 'PDF' },
   { value: 'xlsx', label: 'Excel' },
   { value: 'csv', label: 'CSV' },
-  { value: 'image', label: 'Image' },
+  { value: 'image', label: labels.typeImage },
 ];
 
 export const buildStatusOptions = (
@@ -659,7 +664,6 @@ export const buildHasOptions = (
 
 export const buildColumnLabels = (labels: Record<string, string>): Record<string, string> => ({
   receipt: labels.columnReceipt,
-  date: labels.columnDate,
   merchant: labels.columnMerchant,
   from: labels.columnFrom,
   to: labels.columnTo,
@@ -673,7 +677,6 @@ export const buildColumnLabels = (labels: Record<string, string>): Record<string
   description: labels.columnDescription,
   exchangeRate: labels.columnExchangeRate,
   exported: labels.columnExported,
-  exportedTo: labels.columnExportedTo,
 });
 
 interface StatementForFromOptions {
@@ -699,6 +702,7 @@ export const buildFromOptions = (
   iconUrl?: string | null;
   bankName?: string | null;
 }> => {
+  const text = listUiText();
   const seen = new Map<
     string,
     {
@@ -717,7 +721,7 @@ export const buildFromOptions = (
       if (!seen.has(key)) {
         seen.set(key, {
           id: key,
-          label: statement.user.name ?? statement.user.email ?? 'User',
+          label: statement.user.name ?? statement.user.email ?? text.user.value,
           description: statement.user.email ? `@${statement.user.email.split('@')[0]}` : null,
           avatarUrl: statement.user.avatarUrl ?? null,
         });
@@ -732,7 +736,11 @@ export const buildFromOptions = (
           statement.source === 'scan' && statement.receiptSource !== 'gmail' && !hasRealBank;
         seen.set(key, {
           id: key,
-          label: isGmail ? 'Gmail' : isStore ? 'Receipt' : getBankDisplayName(statement.bankName),
+          label: isGmail
+            ? 'Gmail'
+            : isStore
+              ? text.typeReceipt.value
+              : getBankDisplayName(statement.bankName),
           description: null,
           iconUrl: isGmail ? '/icons/gmail.png' : null,
           bankName: statement.bankName,

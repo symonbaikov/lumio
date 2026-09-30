@@ -6,16 +6,25 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { BankLogoAvatar } from '@/app/components/BankLogoAvatar';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
-import { AlertCircle, CheckCircle2, CircleHelp, CreditCard, Receipt } from '@/app/components/icons';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronRight,
+  CircleHelp,
+  CreditCard,
+  Receipt,
+} from '@/app/components/icons';
 import { NotesBadge } from '@/app/components/notes/NotesBadge';
 import { PDFThumbnail } from '@/app/components/PDFThumbnail';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import {
   DEFAULT_STATEMENT_COLUMNS,
   type StatementColumn,
   type StatementColumnId,
+  statementColumnWidthStyle,
 } from './columns/statement-columns';
 
 export type StatementListItem = {
@@ -54,11 +63,6 @@ export type StatementListItem = {
     icon?: string | null;
   } | null;
   tags?: Array<{ id?: string; name?: string; color?: string | null }>;
-  googleSheet?: {
-    id?: string;
-    sheetName?: string | null;
-    worksheetName?: string | null;
-  } | null;
   transactionSummary?: {
     description?: string | null;
     exchangeRate?: string | number | null;
@@ -138,13 +142,13 @@ const DUPLICATE_GROUP_STYLES: Record<DuplicateGroupTone, DuplicateGroupStyle> = 
     rowBg: 'rgba(237,247,237,0.1)',
     lineColor: 'rgba(168,213,168,0.9)',
     badgeBg: 'var(--color-success-soft-bg)',
-    badgeColor: '#157811',
+    badgeColor: 'var(--primary)',
     buttonBorder: 'var(--color-success-soft-border)',
     buttonBg: 'var(--color-success-soft-bg)',
-    buttonColor: '#157811',
+    buttonColor: 'var(--primary)',
     buttonHoverBorder: 'var(--color-success-soft-border)',
     buttonHoverBg: 'var(--color-success-soft-bg)',
-    buttonHoverColor: '#036704',
+    buttonHoverColor: 'var(--primary-strong)',
   },
   slate: {
     rowBorderColor: 'var(--border-color)',
@@ -220,7 +224,6 @@ type Props = {
 const EMPTY_CELL = '—';
 const APPROVED_STATUSES = new Set(['completed', 'parsed', 'validated']);
 const NUMERIC_COLUMN_IDS = new Set<StatementColumnId>(['amount', 'exchangeRate']);
-const BOOLEAN_COLUMN_IDS = new Set<StatementColumnId>(['approved', 'billable', 'exported']);
 
 const normalizeExchangeRateCurrency = (
   ...currencies: Array<string | null | undefined>
@@ -235,30 +238,18 @@ const normalizeExchangeRateCurrency = (
   return normalized;
 };
 
-const columnCellStyle = (columnId: StatementColumnId): React.CSSProperties => {
-  const common: React.CSSProperties = {
-    minWidth: 0,
-    display: 'flex',
-    alignItems: 'center',
-    overflow: 'hidden',
-  };
-
-  if (columnId === 'receipt')
-    return { ...common, width: 48, flex: '0 0 48px', justifyContent: 'center' };
-  if (columnId === 'merchant') return { ...common, minWidth: 220, flex: '1 1 260px' };
-  if (columnId === 'description') return { ...common, minWidth: 180, flex: '1 1 220px' };
-  if (columnId === 'action')
-    return { ...common, width: 128, flex: '0 0 128px', justifyContent: 'flex-end' };
-  if (columnId === 'amount')
-    return { ...common, width: 148, flex: '0 0 148px', justifyContent: 'flex-end' };
-  if (columnId === 'date') return { ...common, width: 124, flex: '0 0 124px' };
-  if (columnId === 'exchangeRate')
-    return { ...common, width: 156, flex: '0 0 156px', justifyContent: 'flex-end' };
-  if (NUMERIC_COLUMN_IDS.has(columnId))
-    return { ...common, width: 116, flex: '0 0 116px', justifyContent: 'flex-end' };
-  if (BOOLEAN_COLUMN_IDS.has(columnId)) return { ...common, width: 96, flex: '0 0 96px' };
-  return { ...common, width: 136, flex: '0 0 136px' };
-};
+const columnCellStyle = (columnId: StatementColumnId): React.CSSProperties => ({
+  display: 'flex',
+  alignItems: 'center',
+  overflow: 'hidden',
+  justifyContent:
+    columnId === 'receipt'
+      ? 'center'
+      : columnId === 'action' || columnId === 'amount'
+        ? 'flex-end'
+        : undefined,
+  ...statementColumnWidthStyle(columnId),
+});
 
 const textCellStyle = (columnId: StatementColumnId, muted = false): React.CSSProperties => ({
   overflow: 'hidden',
@@ -278,9 +269,9 @@ const firstNonEmpty = (...values: Array<unknown>): string | null => {
   return null;
 };
 
-const formatBoolean = (value: boolean | null): string => {
+const formatBoolean = (value: boolean | null, yes: string, no: string): string => {
   if (value === null) return EMPTY_CELL;
-  return value ? 'Yes' : 'No';
+  return value ? yes : no;
 };
 
 function StatusBadge({
@@ -292,19 +283,30 @@ function StatusBadge({
   isProcessing: boolean;
   errorMessage?: string | null;
 }) {
+  const listText = useIntlayer('statementsListUi');
   if (errorMessage || status === 'error') {
-    return <span className="lumio-stmt-badge lumio-stmt-badge--error">Error</span>;
+    return <span className="lumio-stmt-badge lumio-stmt-badge--error">{listText.statusError}</span>;
   }
   if (isProcessing || status === 'processing' || status === 'uploaded') {
-    return <span className="lumio-stmt-badge lumio-stmt-badge--pending">Pending</span>;
+    return (
+      <span className="lumio-stmt-badge lumio-stmt-badge--pending">{listText.statusPending}</span>
+    );
   }
   // Parsed, but the balance did not reconcile: held out of analytics until a user
   // confirms it on the statement page.
   if (status === 'needs_review') {
-    return <span className="lumio-stmt-badge lumio-stmt-badge--review">Needs review</span>;
+    return (
+      <span className="lumio-stmt-badge lumio-stmt-badge--review">
+        {listText.statusNeedsReview}
+      </span>
+    );
   }
   if (status === 'completed' || status === 'parsed' || status === 'validated') {
-    return <span className="lumio-stmt-badge lumio-stmt-badge--completed">Completed</span>;
+    return (
+      <span className="lumio-stmt-badge lumio-stmt-badge--completed">
+        {listText.statusCompleted}
+      </span>
+    );
   }
   return null;
 }
@@ -339,6 +341,7 @@ export function StatementsListItem({
   workspaceCurrency,
 }: Props) {
   const { resolvedTheme } = useTheme();
+  const listText = useIntlayer('statementsListUi');
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const PREVIEW_WIDTH = 430;
   const PREVIEW_HEIGHT = 620;
@@ -430,15 +433,18 @@ export function StatementsListItem({
   const showAmountLoader =
     !isReceipt && isPendingStatement && (isZeroAmountLabel || isMissingAmount);
   const resolvedDuplicateRole: DuplicateRole = duplicateRole || 'suspected';
-  const resolvedDuplicateGroupLabel = duplicateGroupLabel || 'Group';
+  const resolvedDuplicateGroupLabel = duplicateGroupLabel || listText.group.value;
   const resolvedDuplicateGroupTone: DuplicateGroupTone = duplicateGroupTone || 'stone';
   const duplicateStyle = DUPLICATE_GROUP_STYLES[resolvedDuplicateGroupTone];
-  const duplicateRoleLabel = resolvedDuplicateRole === 'primary' ? 'PRIMARY' : 'SUSPECTED';
+  const duplicateRoleLabel =
+    resolvedDuplicateRole === 'primary' ? listText.rolePrimary.value : listText.roleSuspected.value;
   const duplicateBadgeLabel = isPossibleDuplicate
     ? `${resolvedDuplicateGroupLabel} · ${duplicateRoleLabel} #${duplicatePosition || 1}${duplicateGroupSize ? `/${duplicateGroupSize}` : ''}`
     : null;
-  const duplicateTooltipText = duplicateReason || 'Same merchant · same date · same amount';
-  const actionLabel = isPossibleDuplicate ? duplicateActionLabel || 'Review' : viewLabel;
+  const duplicateTooltipText = duplicateReason || listText.duplicateReasonSame.value;
+  const actionLabel = isPossibleDuplicate
+    ? duplicateActionLabel || listText.review.value
+    : viewLabel;
   const duplicateRoleBadgeStyle: React.CSSProperties =
     resolvedDuplicateRole === 'primary'
       ? { fontWeight: 700, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.15)' }
@@ -479,7 +485,11 @@ export function StatementsListItem({
   };
   const visibleColumns = columns.filter(column => column.visible);
   const renderedColumns = visibleColumns.length > 0 ? visibleColumns : columns.slice(0, 1);
-  const sourceLabel = isGmailReceipt ? 'Gmail' : isLocalReceipt ? 'Receipt' : statement.bankName;
+  const sourceLabel = isGmailReceipt
+    ? 'Gmail'
+    : isLocalReceipt
+      ? listText.typeReceipt.value
+      : statement.bankName;
   // importPreview.categoryId is deliberately not a fallback: it is a bare id,
   // and rendering it puts a raw UUID in the column.
   const categoryLabel = firstNonEmpty(statement.category?.name, statement.parsedData?.category);
@@ -512,15 +522,23 @@ export function StatementsListItem({
     usdExchangeRateLabel ??
     currentExchangeRateLabel ??
     (statement.transactionSummary?.exchangeRateMixed
-      ? 'Mixed'
+      ? listText.mixed.value
       : firstNonEmpty(statement.transactionSummary?.exchangeRate));
-  const exportedToLabel = firstNonEmpty(
-    statement.googleSheet?.worksheetName,
-    statement.googleSheet?.sheetName,
+  const approvedLabel = formatBoolean(
+    APPROVED_STATUSES.has(statement.status.toLowerCase()),
+    listText.yes.value,
+    listText.no.value,
   );
-  const approvedLabel = formatBoolean(APPROVED_STATUSES.has(statement.status.toLowerCase()));
-  const billableLabel = formatBoolean(!(isMissingAmount || isZeroAmountLabel));
-  const exportedLabel = formatBoolean(Boolean(statement.exported ?? statement.processedAt));
+  const billableLabel = formatBoolean(
+    !(isMissingAmount || isZeroAmountLabel),
+    listText.yes.value,
+    listText.no.value,
+  );
+  const exportedLabel = formatBoolean(
+    Boolean(statement.exported ?? statement.processedAt),
+    listText.yes.value,
+    listText.no.value,
+  );
 
   const renderPlainCell = (
     columnId: StatementColumnId,
@@ -570,6 +588,7 @@ export function StatementsListItem({
             fileId={statement.id}
             source={previewSource}
             size={28}
+            muted
           />
         </span>
       </button>
@@ -643,7 +662,7 @@ export function StatementsListItem({
             fontSize: 15,
           }}
         >
-          {isProcessing ? 'Processing...' : merchantLabel}
+          {isProcessing ? listText.processing : merchantLabel}
         </span>
 
         {hasError ? (
@@ -754,7 +773,10 @@ export function StatementsListItem({
         event.stopPropagation();
         handleView();
       }}
-      className="lumio-stmt-list-item__view-btn"
+      // The whole row already opens the statement, so a plain row gets a quiet
+      // arrow instead of a "View" pill; a duplicate keeps its "Review" label,
+      // which says something the row click does not.
+      className={`lumio-stmt-list-item__view-btn${isPossibleDuplicate ? '' : ' lumio-stmt-list-item__view-btn--arrow'}`}
       style={
         isPossibleDuplicate
           ? {
@@ -768,14 +790,13 @@ export function StatementsListItem({
       aria-label={actionLabel}
       disabled={viewDisabled}
     >
-      {actionLabel}
+      {isPossibleDuplicate ? actionLabel : <ChevronRight size={18} aria-hidden />}
     </button>
   );
 
   const renderColumnCell = (columnId: StatementColumnId): React.JSX.Element => {
     if (columnId === 'receipt') return renderReceiptCell();
     if (columnId === 'merchant') return renderMerchantCell();
-    if (columnId === 'date') return renderPlainCell(columnId, dateLabel);
     if (columnId === 'from')
       return renderPlainCell(
         columnId,
@@ -793,7 +814,6 @@ export function StatementsListItem({
     if (columnId === 'description') return renderPlainCell(columnId, descriptionLabel);
     if (columnId === 'exchangeRate') return renderPlainCell(columnId, exchangeRateLabel);
     if (columnId === 'exported') return renderPlainCell(columnId, exportedLabel);
-    if (columnId === 'exportedTo') return renderPlainCell(columnId, exportedToLabel);
     return renderPlainCell(columnId, null);
   };
 
@@ -836,6 +856,75 @@ export function StatementsListItem({
         aria-disabled={viewDisabled}
       />
 
+      {/* Mobile layout (<768px): who and how much on the first line, when and what
+          on the second — the amount never leaves the screen. Taps outside the
+          checkbox and icon fall through to the overlay button and open the row. */}
+      <div
+        data-testid={`statement-item-mobile-${statement.id}`}
+        className="lumio-stmt-list-item__mobile"
+      >
+        <div className="lumio-stmt-list-item__mobile-select">
+          {selectionDisabled ? null : (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={onToggleSelect}
+              onClick={(event: { stopPropagation: () => void }) => event.stopPropagation()}
+              aria-label={merchantLabel}
+            />
+          )}
+        </div>
+        <button
+          type="button"
+          className="lumio-stmt-list-item__mobile-icon"
+          onClick={event => {
+            event.stopPropagation();
+            onIconClick();
+          }}
+          aria-label={statement.fileName}
+        >
+          <DocumentTypeIcon
+            fileType={isReceipt ? 'pdf' : statement.fileType}
+            fileName={statement.fileName}
+            fileId={statement.id}
+            source={previewSource}
+            size={28}
+            muted
+          />
+        </button>
+        <div className="lumio-stmt-list-item__mobile-body">
+          <div className="lumio-stmt-list-item__mobile-line">
+            <span className="lumio-stmt-list-item__mobile-merchant">
+              {isProcessing ? listText.processing : merchantLabel}
+            </span>
+            {hasError ? <AlertCircle size={14} style={{ color: c.danger, flexShrink: 0 }} /> : null}
+            <span
+              className="lumio-stmt-list-item__mobile-amount"
+              style={{
+                color: isNegativeAmount || hasError || isMissingAmount ? c.danger : undefined,
+              }}
+            >
+              {showAmountLoader ? (
+                <Spinner style={{ width: 14, height: 14, color: c.ink400 }} />
+              ) : (
+                amountLabel
+              )}
+            </span>
+          </div>
+          <div className="lumio-stmt-list-item__mobile-line lumio-stmt-list-item__mobile-meta">
+            <span className="lumio-stmt-list-item__mobile-meta-text">
+              {[dateLabel, isPossibleDuplicate ? duplicateBadgeLabel : categoryLabel || sourceLabel]
+                .filter(Boolean)
+                .join(' · ')}
+            </span>
+            <StatusBadge
+              status={statement.status}
+              isProcessing={isProcessing}
+              errorMessage={statement.errorMessage}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Desktop Layout */}
       <div
         data-testid={`statement-item-desktop-${statement.id}`}
@@ -868,7 +957,7 @@ export function StatementsListItem({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 24,
+            gap: 16,
             flex: 1,
             minWidth: 0,
             pointerEvents: 'auto',

@@ -146,8 +146,10 @@ export function StorageFileTable({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box
         sx={{
-          bgcolor: 'background.paper',
-          border: '1px solid var(--border-color)',
+          ...((loading || filteredFiles.length > 0) && {
+            bgcolor: 'background.paper',
+            border: '1px solid var(--border-color)',
+          }),
           overflow: 'visible',
         }}
       >

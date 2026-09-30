@@ -3,7 +3,7 @@
 import { useCallback, useEffect } from 'react';
 import { useAutoSave } from '@/app/hooks/useAutoSave';
 import type { StatementStageAction, StatementStageActionId } from '@/app/lib/statement-workflow';
-import { getStatementStage } from '@/app/lib/statement-workflow';
+import { resolveStatementStage } from '@/app/lib/statement-workflow';
 import type { Transaction } from '../editHelpers';
 import {
   convertDroppedSampleAction,
@@ -91,10 +91,16 @@ export function useStatementEditForm({
 
   useEffect(() => {
     if (user && statementId) {
-      setCurrentStage(getStatementStage(statementId));
       void loadData();
     }
-  }, [user, statementId, loadData, setCurrentStage]);
+  }, [user, statementId, loadData]);
+
+  const loadedStage = s.statement ? resolveStatementStage(s.statement) : null;
+  useEffect(() => {
+    if (loadedStage) {
+      setCurrentStage(loadedStage);
+    }
+  }, [loadedStage, setCurrentStage]);
 
   const handleMetadataAutoSave = useCallback(
     async (formData: Parameters<typeof metadataAutoSave>[0]['formData']): Promise<void> => {

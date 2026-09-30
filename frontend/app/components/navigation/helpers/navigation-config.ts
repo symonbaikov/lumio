@@ -180,13 +180,15 @@ export function buildUserMenuNavItems(nav: {
       label: nav.integrations as ReactNode,
       path: '/integrations',
       icon: React.createElement(Plug, { size: 18 }),
-      permission: 'google_sheet.view',
+      // Held by the admin and user roles but not by viewer, which is who
+      // these two links have always been shown to.
+      permission: 'telegram.connect',
     },
     {
       label: nav.plugins as ReactNode,
       path: '/plugins',
       icon: React.createElement(Puzzle, { size: 18 }),
-      permission: 'google_sheet.view',
+      permission: 'telegram.connect',
     },
     {
       label: nav.activityLog as ReactNode,

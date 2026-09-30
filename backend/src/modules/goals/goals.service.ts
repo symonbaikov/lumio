@@ -1,8 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { assertFound } from '../../common/utils/assert-found.util';
 import { Goal, GoalContribution } from '../../entities';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { AuditService } from '../audit/audit.service';
+import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import type { CreateContributionDto } from './dto/create-contribution.dto';
 import type { CreateGoalDto } from './dto/create-goal.dto';
 import type { UpdateGoalDto } from './dto/update-goal.dto';
@@ -32,11 +35,14 @@ export interface GoalDetail extends GoalWithProgress {
 
 @Injectable()
 export class GoalsService {
+  private readonly logger = new Logger(GoalsService.name);
+
   constructor(
     @InjectRepository(Goal)
     private readonly goalRepository: Repository<Goal>,
     @InjectRepository(GoalContribution)
     private readonly contributionRepository: Repository<GoalContribution>,
+    private readonly auditService: AuditService,
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateGoalDto): Promise<GoalWithProgress> {
@@ -50,6 +56,15 @@ export class GoalsService {
     });
 
     const saved = await this.goalRepository.save(goal);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: saved.id,
+      action: AuditAction.CREATE,
+      diff: { before: null, after: goalSnapshot(saved) },
+    });
     return toProgress(saved, 0);
   }
 
@@ -97,9 +112,15 @@ export class GoalsService {
     };
   }
 
-  async update(id: string, workspaceId: string, dto: UpdateGoalDto): Promise<GoalWithProgress> {
+  async update(
+    id: string,
+    workspaceId: string,
+    userId: string,
+    dto: UpdateGoalDto,
+  ): Promise<GoalWithProgress> {
     const goal = await this.goalRepository.findOne({ where: { id, workspaceId } });
     assertFound(goal, 'Goal');
+    const before = goalSnapshot(goal);
 
     if (dto.name !== undefined) {
       goal.name = dto.name;
@@ -115,6 +136,16 @@ export class GoalsService {
     }
 
     await this.goalRepository.save(goal);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: goal.id,
+      action: AuditAction.UPDATE,
+      diff: { before, after: goalSnapshot(goal) },
+      meta: { name: goal.name },
+    });
     const totals = await this.sumContributions(workspaceId, [goal.id]);
     return toProgress(goal, totals.get(goal.id) ?? 0);
   }
@@ -123,10 +154,21 @@ export class GoalsService {
    * Soft delete: the contribution history is a record of real money set
    * aside, so removing a goal hides it rather than erasing what happened.
    */
-  async remove(id: string, workspaceId: string): Promise<void> {
+  async remove(id: string, workspaceId: string, userId: string): Promise<void> {
     const goal = await this.goalRepository.findOne({ where: { id, workspaceId } });
     assertFound(goal, 'Goal');
+    const before = goalSnapshot(goal);
     await this.goalRepository.softRemove(goal);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: id,
+      action: AuditAction.DELETE,
+      diff: { before, after: null },
+      meta: { softDeleted: true },
+    });
   }
 
   async addContribution(
@@ -146,7 +188,17 @@ export class GoalsService {
       contributionDate: dto.contributionDate ?? today(),
       note: dto.note ?? null,
     });
-    await this.contributionRepository.save(contribution);
+    const saved = await this.contributionRepository.save(contribution);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: goal.id,
+      action: AuditAction.UPDATE,
+      description: `Added contribution of ${toNumber(saved.amount)} ${goal.currency} to goal "${goal.name}"`,
+      meta: { contribution: contributionSnapshot(saved), change: 'contribution_added' },
+    });
 
     return this.findOne(goal.id, workspaceId);
   }
@@ -155,14 +207,40 @@ export class GoalsService {
     id: string,
     contributionId: string,
     workspaceId: string,
+    userId: string,
   ): Promise<GoalDetail> {
     const contribution = await this.contributionRepository.findOne({
       where: { id: contributionId, goalId: id, workspaceId },
     });
     assertFound(contribution, 'Contribution');
+    const removed = contributionSnapshot(contribution);
 
     await this.contributionRepository.remove(contribution);
-    return this.findOne(id, workspaceId);
+    const detail = await this.findOne(id, workspaceId);
+    await this.audit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: userId,
+      entityType: EntityType.GOAL,
+      entityId: id,
+      action: AuditAction.UPDATE,
+      description: `Removed contribution of ${removed.amount} ${detail.currency} from goal "${detail.name}"`,
+      meta: { contribution: removed, change: 'contribution_removed' },
+    });
+    return detail;
+  }
+
+  /** The audit trail is a side record: failing to write it must not fail the goal change. */
+  private async audit(event: CreateAuditEventDto): Promise<void> {
+    try {
+      await this.auditService.createEvent(event);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to record audit event ${event.action} for goal ${event.entityId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /** Totals for many goals in one query, so a list of N goals is not N+1. */
@@ -181,6 +259,24 @@ export class GoalsService {
 
     return new Map(rows.map(row => [row.goalId, toNumber(row.total)]));
   }
+}
+
+function goalSnapshot(goal: Goal) {
+  return {
+    name: goal.name,
+    targetAmount: toNumber(goal.targetAmount),
+    currency: goal.currency,
+    targetDate: goal.targetDate ?? null,
+  };
+}
+
+function contributionSnapshot(contribution: GoalContribution) {
+  return {
+    id: contribution.id,
+    amount: toNumber(contribution.amount),
+    contributionDate: contribution.contributionDate,
+    note: contribution.note ?? null,
+  };
 }
 
 function toProgress(goal: Goal, currentAmount: number): GoalWithProgress {

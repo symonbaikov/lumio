@@ -1,10 +1,6 @@
 import apiClient from '@/app/lib/api';
-import type {
-  CustomTableGridRow,
-  CustomTableRowPatch,
-  CustomTableRowStyles,
-} from '../utils/stylingUtils';
 import { getCreatedRowResponse } from '../utils/tableHelpers';
+import type { CustomTableGridRow, CustomTableRowPatch } from '../utils/types';
 import { isDraftRowId } from './draftRowHelpers';
 
 export function applyRowDataPatch(
@@ -15,29 +11,14 @@ export function applyRowDataPatch(
   return rows.map(r => (r.id === rowId ? { ...r, data: { ...(r.data || {}), ...patch } } : r));
 }
 
-export function applyRowStylePatch(
-  rows: CustomTableGridRow[],
-  rowId: string,
-  styles: CustomTableRowStyles,
-): CustomTableGridRow[] {
-  return rows.map(r => (r.id === rowId ? { ...r, styles } : r));
-}
-
-export function hasPaidColChange(
-  paidColKey: string | null,
-  patchData: CustomTableRowPatch,
-): boolean {
-  return Boolean(paidColKey && Object.hasOwn(patchData, paidColKey));
-}
-
 function extractPayload(data: unknown): unknown {
   if (!data || typeof data !== 'object') {
     return data;
   }
   const d = data as Record<string, unknown>;
-  // У самой строки есть поле data со значениями ячеек, поэтому конверт можно
-  // разворачивать только тогда, когда снаружи лежит не строка. Иначе вместо
-  // строки разбирались её же ячейки, id терялся и подставлялся временный.
+  // A row itself has a `data` field with cell values, so the envelope is only
+  // unwrapped when the outer object is not a row; otherwise the cells would be
+  // parsed instead of the row and the id would be replaced by a draft one.
   if (typeof d.id === 'string' || typeof d.rowNumber === 'number') {
     return data;
   }
@@ -48,8 +29,6 @@ export function parseCreateRowResponse(data: unknown, rowCount: number): CustomT
   const payload = extractPayload(data);
   const raw = Array.isArray(payload) ? payload[0] : payload;
   const created = getCreatedRowResponse(raw);
-  // Без серверного id строка осталась бы черновиком: getCreatedRowResponse
-  // подставляет временный id, и молча сохранять такую строку нельзя.
   if (!created || isDraftRowId(created.id)) {
     return null;
   }
@@ -57,10 +36,7 @@ export function parseCreateRowResponse(data: unknown, rowCount: number): CustomT
   return created;
 }
 
-/**
- * Данные строки из ответа PATCH/POST: сервер возвращает их вместе с
- * посчитанными формулами, поэтому грид берёт их вместо локальной правки.
- */
+/** Row data from a PATCH/POST reply, with server-computed formula values. */
 export function extractRowData(data: unknown): CustomTableRowPatch {
   const payload = extractPayload(data);
   const raw = (Array.isArray(payload) ? payload[0] : payload) as { data?: unknown } | null;
@@ -82,49 +58,13 @@ export async function createRowRequest(
   return created;
 }
 
-export interface UpdateCellRequestParams {
-  tableId: string;
-  rowId: string;
-  columnKey: string;
-  value: unknown;
-}
-export async function updateCellRequest({
-  tableId,
-  rowId,
-  columnKey,
-  value,
-}: UpdateCellRequestParams): Promise<void> {
-  await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, {
-    data: { [columnKey]: value },
-  });
-}
-
 export async function updateRowPatchRequest(
   tableId: string,
   rowId: string,
   patchData: CustomTableRowPatch,
-): Promise<void> {
-  await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, { data: patchData });
-}
-
-export interface PersistRowStyleParams {
-  tableId: string;
-  rowId: string;
-  rows: CustomTableGridRow[];
-  styles: CustomTableRowStyles;
-}
-
-export async function persistRowStyle({
-  tableId,
-  rowId,
-  rows,
-  styles,
-}: PersistRowStyleParams): Promise<CustomTableRowStyles> {
-  const row = rows.find(r => r.id === rowId);
-  const mergedStyles = { ...(row?.styles || {}), ...styles };
-  await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, {
-    data: row?.data || {},
-    styles: mergedStyles,
+): Promise<CustomTableRowPatch> {
+  const response = await apiClient.patch(`/custom-tables/${tableId}/rows/${rowId}`, {
+    data: patchData,
   });
-  return mergedStyles;
+  return extractRowData(response.data);
 }

@@ -14,7 +14,6 @@ import type { StatementFilters } from '@/app/(main)/statements/components/filter
 import { TypeFilterDropdown } from '@/app/(main)/statements/components/filters/TypeFilterDropdown';
 import { ChevronDown, Columns2, Copy, Search, SlidersHorizontal } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
-import { Spinner } from '@/app/components/ui/spinner';
 import { SHORTCUT_FOCUS_SEARCH, SHORTCUT_OPEN_FILTERS } from '@/app/lib/keyboard-shortcuts';
 import { tokens } from '@/lib/theme-tokens';
 import { StatementsBulkActions } from './StatementsBulkActions';
@@ -131,6 +130,7 @@ interface Props {
   onMarkDuplicate: () => void;
   onExport: () => void;
   onDelete: () => void;
+  stageMove?: { label: string; onMove: () => void };
   onSelectDetectedDuplicates: () => void;
   onTypeDropdownChange: (open: boolean) => void;
   onStatusDropdownChange: (open: boolean) => void;
@@ -255,6 +255,7 @@ export function StatementsListHeader({
   onMarkDuplicate,
   onExport,
   onDelete,
+  stageMove,
   onSelectDetectedDuplicates,
   onTypeDropdownChange,
   onStatusDropdownChange,
@@ -348,6 +349,7 @@ export function StatementsListHeader({
           onMarkDuplicate={onMarkDuplicate}
           onExport={onExport}
           onDelete={onDelete}
+          stageMove={stageMove}
         />
       ) : (
         <div
@@ -443,17 +445,18 @@ export function StatementsListHeader({
             resetLabel={filterOptionLabels.reset}
           />
 
-          {loading || duplicateStatementIds.length > 0 ? (
+          {/* Not shown while loading: an orange chip flashing in and out on every
+              refetch reads as a warning even when there are no duplicates. */}
+          {!loading && duplicateStatementIds.length > 0 ? (
             <button
               type="button"
               className="lumio-stmt-list-view__duplicate-chip"
               onClick={onSelectDetectedDuplicates}
-              disabled={loading || duplicateStatementIds.length === 0}
             >
               <Copy size={14} />
               {selectDuplicatesLabel}
               <span className="lumio-stmt-list-view__duplicate-count">
-                {loading ? <Spinner size={12} /> : duplicateStatementIds.length}
+                {duplicateStatementIds.length}
               </span>
             </button>
           ) : null}

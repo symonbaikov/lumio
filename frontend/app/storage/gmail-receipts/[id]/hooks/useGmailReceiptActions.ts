@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useIntlayer } from '@/app/i18n';
 import { gmailReceiptsApi } from '@/app/lib/api';
 import type {
   EditableReceiptData,
@@ -36,7 +37,7 @@ export interface UseGmailReceiptActionsReturn {
   handleSubmitDocument: () => Promise<void>;
   handleCategorySelect: (categoryId: string) => Promise<void>;
   handleExportToGmailDraft: () => Promise<void>;
-  handleExportToSheets: () => Promise<void>;
+  handleExportToXlsx: () => Promise<void>;
   handleMarkDuplicate: (originalId: string) => Promise<void>;
   handleUnmarkDuplicate: () => Promise<void>;
   handleCreatePayable: () => Promise<void>;
@@ -52,6 +53,7 @@ export function useGmailReceiptActions({
   setEditedData,
 }: UseGmailReceiptActionsProps): UseGmailReceiptActionsReturn {
   const router = useRouter();
+  const t = useIntlayer('gmailReceiptPage');
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -79,12 +81,12 @@ export function useGmailReceiptActions({
         amount: normalizedLineItems.length > 0 ? lineItemsTotal : editedData.amount,
         lineItems: normalizedLineItems,
       });
-      toast.success('Receipt updated');
+      toast.success(t.toasts.receiptUpdated.value);
       await refreshReceipt();
     })()
       .catch(async error => {
         console.error('Failed to save receipt changes', error);
-        toast.error('Failed to save receipt');
+        toast.error(t.toasts.saveFailed.value);
       })
       .finally(async () => {
         setSaving(false);
@@ -97,7 +99,7 @@ export function useGmailReceiptActions({
     }
     const amount = parseAmountValue(editedData.amount ?? receipt.parsedData?.amount ?? null);
     if (amount === null || amount <= 0) {
-      toast.error('Amount is required before submit');
+      toast.error(t.toasts.amountRequired.value);
       return;
     }
 
@@ -109,12 +111,12 @@ export function useGmailReceiptActions({
         currency: editedData.currency || receipt.parsedData?.currency || 'KZT',
         date: editedData.date || receipt.parsedData?.date || receipt.receivedAt,
       });
-      toast.success('Receipt submitted');
+      toast.success(t.toasts.submitted.value);
       await refreshReceipt();
     })()
       .catch(async error => {
         console.error('Failed to submit receipt', error);
-        toast.error('Failed to submit receipt');
+        toast.error(t.toasts.submitFailed.value);
       })
       .finally(async () => {
         setSubmitting(false);
@@ -155,11 +157,11 @@ export function useGmailReceiptActions({
       );
 
       setCategoryDrawerOpen(false);
-      toast.success('Category updated');
+      toast.success(t.toasts.categoryUpdated.value);
     })()
       .catch(async error => {
         console.error('Failed to update category', error);
-        toast.error('Failed to update category');
+        toast.error(t.toasts.categoryUpdateFailed.value);
       })
       .finally(async () => {
         setCategorySaving(false);
@@ -174,29 +176,29 @@ export function useGmailReceiptActions({
       if (url) {
         window.open(url, '_blank');
       }
-      toast.success('Gmail draft created');
+      toast.success(t.toasts.draftCreated.value);
     })()
       .catch(async error => {
         console.error('Failed to create Gmail draft', error);
-        toast.error('Failed to create Gmail draft');
+        toast.error(t.toasts.draftFailed.value);
       })
       .finally(async () => {
         setExporting(false);
       });
   };
 
-  const handleExportToSheets = async (): Promise<void> => {
+  const handleExportToXlsx = async (): Promise<void> => {
     await (async () => {
       setExporting(true);
-      const response = await gmailReceiptsApi.exportReceiptsToSheets([receiptId]);
+      const response = await gmailReceiptsApi.exportReceiptsToXlsx([receiptId]);
       if (response.data?.url) {
         window.open(response.data.url, '_blank');
       }
-      toast.success('Receipt exported to Sheets');
+      toast.success(t.toasts.exportedToExcel.value);
     })()
       .catch(async error => {
         console.error('Failed to export receipt', error);
-        toast.error('Failed to export receipt');
+        toast.error(t.toasts.exportFailed.value);
       })
       .finally(async () => {
         setExporting(false);
@@ -206,27 +208,27 @@ export function useGmailReceiptActions({
   const handleMarkDuplicate = async (originalId: string): Promise<void> => {
     await (async () => {
       await gmailReceiptsApi.markDuplicate(receiptId, originalId);
-      toast.success('Marked as duplicate');
+      toast.success(t.toasts.markedDuplicate.value);
       await refreshReceipt();
     })().catch(async error => {
       console.error('Failed to mark duplicate', error);
-      toast.error('Failed to mark duplicate');
+      toast.error(t.toasts.markDuplicateFailed.value);
     });
   };
 
   const handleUnmarkDuplicate = async (): Promise<void> => {
     await (async () => {
       await gmailReceiptsApi.unmarkDuplicate(receiptId);
-      toast.success('Duplicate mark removed');
+      toast.success(t.toasts.duplicateRemoved.value);
       await refreshReceipt();
     })().catch(async error => {
       console.error('Failed to unmark duplicate', error);
-      toast.error('Failed to unmark duplicate');
+      toast.error(t.toasts.unmarkFailed.value);
     });
   };
 
   const handleCreatePayable = async (): Promise<void> => {
-    toast.success('Payable draft is ready to save');
+    toast.success(t.toasts.payableReady.value);
     router.push('/statements/pay');
   };
 
@@ -245,7 +247,7 @@ export function useGmailReceiptActions({
     handleSubmitDocument,
     handleCategorySelect,
     handleExportToGmailDraft,
-    handleExportToSheets,
+    handleExportToXlsx,
     handleMarkDuplicate,
     handleUnmarkDuplicate,
     handleCreatePayable,

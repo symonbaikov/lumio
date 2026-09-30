@@ -1,4 +1,4 @@
-import { forwardRef, Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
@@ -18,7 +18,6 @@ import { User } from '../../../entities/user.entity';
 import { extractTaxFromPurpose } from '../../classification/helpers/tax-extractor.util';
 import type { TransactionEnrichment } from '../../classification/interfaces/transaction-enrichment.interface';
 import { ClassificationService } from '../../classification/services/classification.service';
-import { GoogleSheetsService } from '../../google-sheets/google-sheets.service';
 import { ImportSessionService } from '../../import/services/import-session.service';
 import type {
   ImportCommittedEvent,
@@ -79,9 +78,6 @@ export class StatementProcessingService {
     private transactionFingerprintService: TransactionFingerprintService,
     private readonly dataSource: DataSource,
     private readonly taxAssignmentService: TaxAssignmentService,
-    @Optional()
-    @Inject(forwardRef(() => GoogleSheetsService))
-    private googleSheetsService?: GoogleSheetsService,
     private metricsService?: MetricsService,
     @Optional()
     private crossStatementDeduplicationService?: CrossStatementDeduplicationService,
@@ -943,19 +939,6 @@ export class StatementProcessingService {
         `Successfully processed statement ${statementId}: ${parsedStatement.transactions.length} transactions (total time: ${totalTime}ms)`,
       );
 
-      // Auto-sync to Google Sheets if connected (async, non-blocking)
-      if (statement.googleSheetId && this.googleSheetsService) {
-        this.syncToGoogleSheets(statement.googleSheetId, statementId, statement.userId).catch(
-          error => {
-            this.logger.error(
-              `Failed to auto-sync statement ${statementId} to Google Sheets:`,
-              error,
-            );
-            // Don't throw - sync failure shouldn't fail the whole process
-          },
-        );
-      }
-
       return statement;
     } catch (error) {
       const message = this.getErrorMessage(error);
@@ -1313,38 +1296,6 @@ export class StatementProcessingService {
     }
 
     return flagged;
-  }
-
-  /**
-   * Sync transactions to Google Sheets (async, non-blocking)
-   */
-  private async syncToGoogleSheets(
-    googleSheetId: string,
-    statementId: string,
-    userId: string,
-  ): Promise<void> {
-    if (!this.googleSheetsService) {
-      this.logger.warn('GoogleSheetsService not available, skipping sync');
-      return;
-    }
-
-    try {
-      const result = await this.googleSheetsService.syncStatementTransactions(
-        googleSheetId,
-        statementId,
-        userId,
-      );
-      this.logger.log(
-        `Auto-synced ${result.synced} transactions from statement ${statementId} to Google Sheet ${googleSheetId}`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error auto-syncing statement ${statementId} to Google Sheet ${googleSheetId}:`,
-        error,
-      );
-      // Re-throw to be caught by caller
-      throw error;
-    }
   }
 
   private hydratePreviewTransactions(raw: unknown): ParsedTransaction[] {

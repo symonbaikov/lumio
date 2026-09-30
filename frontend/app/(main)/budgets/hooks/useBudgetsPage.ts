@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { apiQuery } from '@/app/lib/query-fn';
@@ -121,6 +122,7 @@ export function buildBudgetUpdatePayload(
 }
 
 export function useBudgetsPage() {
+  const text = useIntlayer('budgetsPage');
   const { currentWorkspace } = useWorkspace();
   const workspaceCurrency = currentWorkspace?.currency ?? DEFAULT_CURRENCY;
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -203,8 +205,8 @@ export function useBudgetsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/budgets/${id}`),
-    onSuccess: () => toast.success('Budget deleted'),
-    onError: () => toast.error('Failed to delete budget'),
+    onSuccess: () => toast.success(text.toastDeleted.value),
+    onError: () => toast.error(text.toastDeleteFailed.value),
     onSettled: invalidate,
   });
 
@@ -235,13 +237,13 @@ export function useBudgetsPage() {
     await saveMutation
       .mutateAsync({ id: editingId, body })
       .then(() => {
-        toast.success(editingId ? 'Budget updated' : 'Budget created');
+        toast.success(editingId ? text.toastUpdated.value : text.toastCreated.value);
         closeDialog();
       })
       .catch(err => {
-        toast.error(getApiErrorMessage(err, 'Failed to save budget'));
+        toast.error(getApiErrorMessage(err, text.toastSaveFailed.value));
       });
-  }, [editingBudget, formData, closeDialog, saveMutation.mutateAsync]);
+  }, [editingBudget, formData, closeDialog, saveMutation.mutateAsync, text]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -258,7 +260,7 @@ export function useBudgetsPage() {
     budgets: query.data ?? [],
     isPending: query.isPending,
     isFetching: query.isFetching || deleteMutation.isPending,
-    error: query.isError ? 'Failed to load budgets' : null,
+    error: query.isError ? text.loadFailed.value : null,
     dialogOpen,
     editingBudget,
     formData,

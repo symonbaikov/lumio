@@ -32,7 +32,8 @@ export default function RoiPage() {
     [result, investment],
   );
 
-  const money = (value: number) => formatMoney(value, currency, locale);
+  const compactMoney = (value: number) =>
+    formatMoney(value, currency, locale, { notation: 'compact' });
 
   return (
     <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
@@ -145,10 +146,10 @@ export default function RoiPage() {
                   {year}
                 </Typography>
                 <Typography variant="body2" fontWeight={600} sx={{ flexGrow: 1 }}>
-                  {money(projection[year]?.compound ?? 0)}
+                  {compactMoney(projection[year]?.compound ?? 0)}
                 </Typography>
                 <Typography variant="body2" sx={{ flexGrow: 1, color: 'text.secondary' }}>
-                  {money(projection[year]?.simple ?? 0)}
+                  {compactMoney(projection[year]?.simple ?? 0)}
                 </Typography>
               </Box>
             ))}

@@ -9,32 +9,27 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
   Skeleton,
   Switch,
+  type SxProps,
   TextField,
+  type Theme,
   Typography,
-  useTheme,
 } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ChangeEvent, useCallback, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import {
-  Check,
-  ChevronRight,
-  FolderOpen,
-  Lock,
-  Plus,
-  Search as SearchIcon,
-  Tag,
-} from '@/app/components/icons';
+import { Check, ChevronRight, Lock, Search as SearchIcon } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
+import { CATEGORY_ICON_CHOICES, categoryIconFor } from '@/app/lib/category-icon-choices';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
@@ -91,59 +86,23 @@ const resolveIconUrl = (iconValue?: string) => {
   return null;
 };
 
-const PREDEFINED_ICONS = [
-  'mdi:home',
-  'mdi:food',
-  'mdi:car',
-  'mdi:shopping',
-  'mdi:cart',
-  'mdi:medical-bag',
-  'mdi:school',
-  'mdi:briefcase',
-  'mdi:airplane',
-  'mdi:gift',
-  'mdi:gamepad-variant',
-  'mdi:dumbbell',
-  'mdi:bank',
-  'mdi:cash',
-  'mdi:chart-line',
-  'mdi:credit-card',
-  'mdi:shield-check',
-  'mdi:cog',
-  'mdi:wrench',
-  'mdi:tag',
-  'mdi:coffee',
-  'mdi:monitor',
-  'mdi:phone',
-  'mdi:music',
-  'mdi:camera',
-  'mdi:book',
-  'mdi:heart',
-  'mdi:star',
-  'mdi:flag',
-  'mdi:bell',
+// Tailwind 500 tones: even saturation, readable as icon tints on light and dark.
+const PREDEFINED_COLORS = [
+  '#10b981', // emerald
+  '#14b8a6', // teal
+  '#0ea5e9', // sky
+  '#3b82f6', // blue
+  '#6366f1', // indigo
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#f43f5e', // rose
+  '#f97316', // orange
+  '#f59e0b', // amber
+  '#84cc16', // lime
+  '#64748b', // slate
 ];
 
-const PREDEFINED_COLORS = [
-  '#F44336',
-  '#E91E63',
-  '#9C27B0',
-  '#673AB7',
-  '#3F51B5',
-  '#2196F3',
-  '#03A9F4',
-  '#009688',
-  '#4CAF50',
-  '#8BC34A',
-  '#CDDC39',
-  '#FFEB3B',
-  '#FFC107',
-  '#FF9800',
-  '#FF5722',
-  '#795548',
-  '#9E9E9E',
-  '#607D8B',
-];
+const DEFAULT_CATEGORY_COLOR = '#3b82f6';
 
 const CATEGORY_ROW_SKELETON_KEYS = [
   'row-0',
@@ -155,6 +114,53 @@ const CATEGORY_ROW_SKELETON_KEYS = [
   'row-6',
   'row-7',
 ];
+
+/** Divider between rows; barely there, in either theme. */
+const HAIRLINE = (theme: Theme): string => alpha(theme.palette.text.primary, 0.06);
+
+// Flat row: a hairline under it and a faint wash on hover (action.hover is brand
+// green in this theme). The edit chevron stays faint until the row is hovered.
+const CATEGORY_ROW_SX = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 2,
+  px: 1.5,
+  py: 1.25,
+  borderBottom: '1px solid',
+  borderColor: HAIRLINE,
+  transition: 'background-color 120ms ease',
+  '&:hover': { bgcolor: (theme: Theme) => alpha(theme.palette.text.primary, 0.04) },
+  '& .category-row-open': { opacity: 0.35, transition: 'opacity 120ms ease' },
+  '&:hover .category-row-open, & .category-row-open:focus-visible': { opacity: 1 },
+  '@media (hover: none)': { '& .category-row-open': { opacity: 1 } },
+} satisfies SxProps<Theme>;
+
+// A compact switch; "on" is the filled green, which is darker and calmer than
+// the accent green in dark mode.
+const COMPACT_SWITCH_SX = {
+  width: 34,
+  height: 20,
+  p: 0,
+  '& .MuiSwitch-switchBase': {
+    p: '3px',
+    transitionDuration: '160ms',
+    '&:hover': { bgcolor: 'transparent' },
+    '&.Mui-checked': {
+      transform: 'translateX(14px)',
+      color: '#fff',
+      '&:hover': { bgcolor: 'transparent' },
+      '& + .MuiSwitch-track': { bgcolor: 'var(--primary-fill)', opacity: 1 },
+    },
+    '&.Mui-disabled': { opacity: 0.55 },
+  },
+  '& .MuiSwitch-thumb': { width: 14, height: 14, boxShadow: 'none' },
+  '& .MuiSwitch-track': {
+    borderRadius: tokens.radius.full,
+    bgcolor: (theme: Theme) => alpha(theme.palette.text.primary, 0.2),
+    opacity: 1,
+  },
+} satisfies SxProps<Theme>;
 
 function CategoryRowSkeleton(): React.JSX.Element {
   return (
@@ -190,7 +196,6 @@ function CategoryRowSkeleton(): React.JSX.Element {
 export default function WorkspaceCategoriesView() {
   const t = useIntlayer('categoriesPage');
   const { locale } = useLocale();
-  const theme = useTheme();
   const { user } = useAuth();
   const tx = (path: string[], fallback: string) => resolveLabel(getNestedValue(t, path), fallback);
   const workspaceId = useWorkspaceId();
@@ -208,6 +213,9 @@ export default function WorkspaceCategoriesView() {
     category: Category;
     usage: CategoryUsageCount;
   } | null>(null);
+  // The category name sits in bold inside the sentence, so the template is split around it.
+  const [disableUsedInBefore, disableUsedInAfter = ''] =
+    t.manage.disableDialog.usedIn.value.split('{name}');
 
   const getCategoryBadgeLabel = (category: Category) => {
     if (category.source === 'parsing') {
@@ -234,11 +242,12 @@ export default function WorkspaceCategoriesView() {
   const [formData, setFormData] = useState({
     name: '',
     type: 'expense' as 'income' | 'expense',
-    color: '#2196F3',
+    color: DEFAULT_CATEGORY_COLOR,
     icon: 'mdi:tag',
     withoutIcon: false,
     parentId: '',
   });
+  const SelectedGlyph = categoryIconFor(formData.icon);
 
   const categoriesQuery = useQuery({
     queryKey: queryKeys.categories(workspaceId),
@@ -283,7 +292,7 @@ export default function WorkspaceCategoriesView() {
       setFormData({
         name: category.name,
         type: category.type,
-        color: category.color || '#2196F3',
+        color: category.color || DEFAULT_CATEGORY_COLOR,
         icon: category.icon || 'mdi:tag',
         withoutIcon: !category.icon,
         parentId: category.parentId || '',
@@ -293,7 +302,7 @@ export default function WorkspaceCategoriesView() {
       setFormData({
         name: '',
         type: 'expense',
-        color: '#2196F3',
+        color: DEFAULT_CATEGORY_COLOR,
         icon: 'mdi:tag',
         withoutIcon: false,
         parentId: '',
@@ -407,7 +416,7 @@ export default function WorkspaceCategoriesView() {
           apiClient.put(`/categories/${id}`, { isEnabled: enable }),
         ),
       );
-      toast.success(enable ? 'Categories enabled' : 'Categories disabled');
+      toast.success(enable ? t.manage.toasts.enabled.value : t.manage.toasts.disabled.value);
       await loadCategories();
       setSelectedIds(new Set());
     })().catch(async err => {
@@ -417,7 +426,7 @@ export default function WorkspaceCategoriesView() {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete selected custom categories?')) {
+    if (!window.confirm(t.manage.confirmBulkDelete.value)) {
       return;
     }
 
@@ -426,12 +435,12 @@ export default function WorkspaceCategoriesView() {
         id => !categories.find(c => c.id === id)?.isSystem,
       );
       await Promise.all(customIds.map(id => apiClient.delete(`/categories/${id}`)));
-      toast.success('Categories deleted');
+      toast.success(t.manage.toasts.deleted.value);
       await loadCategories();
       setSelectedIds(new Set());
     })().catch(async err => {
       console.error('Failed to delete categories:', err);
-      toast.error('Failed to delete some categories');
+      toast.error(t.manage.toasts.deleteFailed.value);
     });
   };
 
@@ -472,48 +481,78 @@ export default function WorkspaceCategoriesView() {
   };
 
   return (
-    <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, py: 6 }}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {/* Page header */}
+    <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, py: 4, maxWidth: 1120 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        {/* Title, hint, search and Add in one header, straight on the page. */}
         <Box
           sx={{
             display: 'flex',
-            flexDirection: { xs: 'column', lg: 'row' },
-            alignItems: { lg: 'flex-start' },
-            justifyContent: { lg: 'space-between' },
+            flexWrap: 'wrap',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
             gap: 2,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
-            <Box
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              component="h1"
+              sx={{ fontSize: 20, fontWeight: 600, color: 'var(--foreground)' }}
+            >
+              {t.title}
+            </Typography>
+            <Typography sx={{ mt: 0.25, fontSize: 13, color: 'var(--muted-foreground)' }}>
+              {t.subtitle}
+            </Typography>
+            {/* A hint, not a banner. */}
+            <Typography
               sx={{
+                mt: 0.75,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                width: 44,
-                height: 44,
-                borderRadius: tokens.radius.sm,
-                bgcolor: 'rgba(var(--primary-rgb,22,129,24),0.1)',
-                color: 'var(--primary)',
-                flexShrink: 0,
+                gap: 0.75,
+                fontSize: 12,
+                color: 'var(--muted-foreground)',
               }}
             >
-              <FolderOpen size={22} />
-            </Box>
-            <Box>
-              <Typography variant="h5" fontWeight={600} sx={{ color: 'var(--foreground)' }}>
-                {t.title}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ mt: 0.5, maxWidth: 672, color: 'var(--muted-foreground)' }}
-              >
-                {t.subtitle}
-              </Typography>
-            </Box>
+              <Box
+                component="span"
+                sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'var(--primary)' }}
+              />
+              {t.manage.disableHint}
+            </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ position: 'relative', width: { xs: '100%', sm: 260 } }}>
+              <SearchIcon
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: 12,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--muted-foreground)',
+                }}
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                data-tour-id="categories-search"
+                placeholder={tx(['searchPlaceholder'], 'Find category')}
+                style={{
+                  width: '100%',
+                  border: '1px solid var(--border)',
+                  background: 'transparent',
+                  padding: '8px 12px 8px 36px',
+                  fontSize: 14,
+                  fontFamily: 'inherit',
+                  color: 'var(--foreground)',
+                  borderRadius: tokens.radius.sm,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </Box>
             <button
               type="button"
               onClick={() => handleOpenDialog()}
@@ -532,157 +571,92 @@ export default function WorkspaceCategoriesView() {
                 borderRadius: tokens.radius.md,
               }}
             >
-              <Plus size={16} />
               {t.add}
             </button>
           </Box>
         </Box>
 
-        {/* Search + bulk actions */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', lg: 'row' },
-            alignItems: { lg: 'center' },
-            justifyContent: { lg: 'space-between' },
-            gap: 2,
-          }}
-        >
-          <Box sx={{ position: 'relative', width: '100%', maxWidth: 448 }}>
-            <SearchIcon
-              size={16}
+        {selectedIds.size > 0 ? (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <Typography
+              variant="body2"
+              fontWeight={500}
+              sx={{ mr: 1, color: 'var(--muted-foreground)' }}
+            >
+              {t.manage.selectedCount.value.replace('{count}', String(selectedIds.size))}
+            </Typography>
+            <button
+              type="button"
+              onClick={() => handleBulkEnable(true)}
               style={{
-                position: 'absolute',
-                left: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--muted-foreground)',
-              }}
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              data-tour-id="categories-search"
-              placeholder={tx(['searchPlaceholder'], 'Find category')}
-              style={{
-                width: '100%',
                 border: '1px solid var(--border)',
                 background: 'var(--card)',
-                padding: '10px 16px 10px 40px',
+                padding: '6px 12px',
                 fontSize: 14,
+                fontWeight: 500,
                 color: 'var(--foreground)',
+                cursor: 'pointer',
                 borderRadius: tokens.radius.md,
-                boxSizing: 'border-box',
               }}
-            />
+            >
+              {t.manage.enable}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkEnable(false)}
+              style={{
+                border: '1px solid var(--border)',
+                background: 'var(--card)',
+                padding: '6px 12px',
+                fontSize: 14,
+                fontWeight: 500,
+                color: 'var(--foreground)',
+                cursor: 'pointer',
+                borderRadius: tokens.radius.md,
+              }}
+            >
+              {t.manage.disable}
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              style={{
+                border: '1px solid rgba(239,68,68,0.3)',
+                background: 'var(--color-error-soft-bg)',
+                padding: '6px 12px',
+                fontSize: 14,
+                fontWeight: 500,
+                color: 'var(--destructive)',
+                cursor: 'pointer',
+                borderRadius: tokens.radius.md,
+              }}
+            >
+              {t.manage.deleteCustom}
+            </button>
           </Box>
-          {selectedIds.size > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography
-                variant="body2"
-                fontWeight={500}
-                sx={{ mr: 1, color: 'var(--muted-foreground)' }}
-              >
-                {selectedIds.size} selected
-              </Typography>
-              <button
-                type="button"
-                onClick={() => handleBulkEnable(true)}
-                style={{
-                  border: '1px solid var(--border)',
-                  background: 'var(--card)',
-                  padding: '6px 12px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: 'var(--foreground)',
-                  cursor: 'pointer',
-                  borderRadius: tokens.radius.md,
-                }}
-              >
-                Enable
-              </button>
-              <button
-                type="button"
-                onClick={() => handleBulkEnable(false)}
-                style={{
-                  border: '1px solid var(--border)',
-                  background: 'var(--card)',
-                  padding: '6px 12px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: 'var(--foreground)',
-                  cursor: 'pointer',
-                  borderRadius: tokens.radius.md,
-                }}
-              >
-                Disable
-              </button>
-              <button
-                type="button"
-                onClick={handleBulkDelete}
-                style={{
-                  border: '1px solid rgba(239,68,68,0.3)',
-                  background: 'var(--color-error-soft-bg)',
-                  padding: '6px 12px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: 'var(--destructive)',
-                  cursor: 'pointer',
-                  borderRadius: tokens.radius.md,
-                }}
-              >
-                Delete Custom
-              </button>
-            </Box>
-          )}
-        </Box>
+        ) : null}
 
-        {/* Info banner */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.75,
-            bgcolor: 'rgba(var(--primary-rgb,22,129,24),0.1)',
-            borderRadius: tokens.radius.md,
-            px: 1.5,
-            py: 1,
-            fontSize: 14,
-            color: 'var(--primary)',
-          }}
-        >
-          Disabling a category will hide it from statements and reports.
-        </Box>
-
-        {/* Category list */}
-        <Box
-          sx={{
-            border: '1px solid var(--border)',
-            borderRadius: tokens.radius.lg,
-            bgcolor: 'var(--card)',
-            p: 1,
-          }}
-          data-tour-id="categories-list"
-        >
-          {/* Table header */}
+        {/* Category list: flat rows on the page, no outer frame. */}
+        <Box className="lumio-categories-list" data-tour-id="categories-list">
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              px: 2,
-              py: 1.5,
-              fontSize: 12,
+              px: 1.5,
+              py: 1,
+              fontSize: 11,
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               color: 'var(--muted-foreground)',
+              borderBottom: '1px solid',
+              borderColor: HAIRLINE,
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               <Checkbox
-                aria-label="Select all categories"
+                aria-label={t.manage.selectAll.value}
                 checked={
                   selectedIds.size === filteredCategories.length && filteredCategories.length > 0
                 }
@@ -694,30 +668,17 @@ export default function WorkspaceCategoriesView() {
           </Box>
 
           {categoriesQuery.isPending ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, px: 1, pb: 2, pt: 1.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1.5 }}>
               {CATEGORY_ROW_SKELETON_KEYS.map(key => (
                 <CategoryRowSkeleton key={key} />
               ))}
             </Box>
           ) : filteredCategories.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 8, px: 2 }}>
-              <Box
-                sx={{
-                  mx: 'auto',
-                  mb: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 64,
-                  height: 64,
-                  borderRadius: tokens.radius.full,
-                  bgcolor: 'var(--muted)',
-                  color: 'var(--muted-foreground)',
-                }}
-              >
-                <SearchIcon size={32} />
+              <Box sx={{ display: 'inline-flex', color: 'var(--muted-foreground)', mb: 1.5 }}>
+                <SearchIcon size={28} />
               </Box>
-              <Typography variant="h6" fontWeight={500} sx={{ color: 'var(--foreground)', mb: 3 }}>
+              <Typography sx={{ fontSize: 15, fontWeight: 500, color: 'var(--foreground)', mb: 2 }}>
                 {tx(['noData'], 'No categories')}
               </Typography>
               <button
@@ -728,7 +689,7 @@ export default function WorkspaceCategoriesView() {
                   alignItems: 'center',
                   gap: 8,
                   border: '1px solid var(--border)',
-                  background: 'var(--card)',
+                  background: 'transparent',
                   padding: '8px 16px',
                   fontSize: 14,
                   fontWeight: 500,
@@ -737,19 +698,13 @@ export default function WorkspaceCategoriesView() {
                   borderRadius: tokens.radius.md,
                 }}
               >
-                <Plus size={16} />
                 {t.add}
               </button>
             </Box>
           ) : (
             <Box
               sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1.5,
-                px: 1,
-                pb: 2,
-                // Массовые действия перезагружают список в фоне, не гася строки.
+                // Bulk actions reload the list in the background without blanking the rows.
                 opacity: categoriesQuery.isFetching ? 0.6 : 1,
                 transition: 'opacity 150ms ease',
               }}
@@ -758,7 +713,7 @@ export default function WorkspaceCategoriesView() {
                 const categoryColor = category.color || '#2196F3';
                 const hasIcon = Boolean(category.icon?.trim());
                 const iconUrl = resolveIconUrl(category.icon);
-                const iconTint = alpha(categoryColor, category.isEnabled === false ? 0.12 : 0.16);
+                const CategoryGlyph = categoryIconFor(category.icon);
                 const badgeLabel = getCategoryBadgeLabel(category);
                 const badgeSource = getCategoryBadgeSource(category);
                 const badgeColors = badgeSource ? SOURCE_BADGE_COLORS[badgeSource] : null;
@@ -766,38 +721,23 @@ export default function WorkspaceCategoriesView() {
                 const isToggling = togglingIds.has(category.id);
 
                 return (
-                  <Box
-                    key={category.id}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      border: '1px solid var(--border)',
-                      borderLeft: `3px solid ${categoryColor}`,
-                      borderRadius: tokens.radius.md,
-                      px: 2,
-                      py: 2,
-                      bgcolor:
-                        index % 2 === 0 ? 'var(--card)' : 'rgba(var(--muted-rgb,243,244,246),0.4)',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box key={category.id} sx={CATEGORY_ROW_SX}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
                       <Checkbox
                         aria-label={category.name}
                         checked={selectedIds.has(category.id)}
                         onCheckedChange={() => handleToggleSelect(category.id)}
                       />
+                      {/* Colour as a small marker, not a stripe down every row. */}
                       {!category.isSystem && hasIcon ? (
                         <Box
                           sx={{
-                            display: 'flex',
-                            alignItems: 'center',
+                            display: 'inline-flex',
+                            width: 16,
                             justifyContent: 'center',
-                            width: 32,
-                            height: 32,
-                            borderRadius: tokens.radius.sm,
-                            bgcolor: iconTint,
                             color: categoryColor,
+                            opacity: isEnabled ? 1 : 0.5,
+                            flexShrink: 0,
                           }}
                         >
                           {iconUrl ? (
@@ -808,16 +748,39 @@ export default function WorkspaceCategoriesView() {
                               sx={{ width: 16, height: 16, objectFit: 'contain' }}
                             />
                           ) : (
-                            <Tag size={16} />
+                            <CategoryGlyph size={16} />
                           )}
                         </Box>
-                      ) : null}
-                      <Box>
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 16,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Box
+                            component="span"
+                            aria-hidden
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              bgcolor: categoryColor,
+                              opacity: isEnabled ? 1 : 0.4,
+                            }}
+                          />
+                        </Box>
+                      )}
+                      <Box sx={{ minWidth: 0 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <Typography
-                            variant="body1"
-                            fontWeight={600}
-                            sx={{ color: 'var(--foreground)' }}
+                            sx={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: isEnabled ? 'var(--foreground)' : 'var(--muted-foreground)',
+                            }}
                           >
                             {getCategoryDisplayName(category, locale)}
                           </Typography>
@@ -827,11 +790,9 @@ export default function WorkspaceCategoriesView() {
                               sx={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                px: 1,
-                                py: 0.25,
-                                fontSize: 12,
+                                px: 0.75,
+                                fontSize: 11,
                                 fontWeight: 500,
-                                bgcolor: badgeColors.bg,
                                 color: badgeColors.color,
                                 border: `1px solid ${badgeColors.border}`,
                                 borderRadius: tokens.radius.sm,
@@ -843,18 +804,23 @@ export default function WorkspaceCategoriesView() {
                         </Box>
                         <Typography
                           variant="caption"
-                          sx={{ color: 'var(--muted-foreground)', display: 'block', mt: 0.25 }}
+                          sx={{ color: 'var(--muted-foreground)', display: 'block' }}
                         >
                           {usageCounts[category.id]?.total ? (
-                            <span>Used in {usageCounts[category.id].total} transactions</span>
+                            <span>
+                              {t.manage.usedIn.value.replace(
+                                '{count}',
+                                String(usageCounts[category.id].total),
+                              )}
+                            </span>
                           ) : (
-                            <span>Not used yet</span>
+                            <span>{t.manage.notUsed}</span>
                           )}
                         </Typography>
                       </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Switch
                         data-tour-id={index === 0 ? 'category-toggle' : undefined}
                         checked={isEnabled}
@@ -862,49 +828,16 @@ export default function WorkspaceCategoriesView() {
                         disabled={isToggling}
                         onClick={event => event.stopPropagation()}
                         onChange={() => handleToggleEnabled(category)}
-                        size="medium"
                         slotProps={{
                           input: {
-                            'aria-label': `${getCategoryDisplayName(category, locale)} enabled`,
+                            'aria-label': t.manage.toggleAria.value.replace(
+                              '{name}',
+                              getCategoryDisplayName(category, locale),
+                            ),
                             role: 'switch',
                           },
                         }}
-                        sx={{
-                          width: 52,
-                          height: 32,
-                          p: 0,
-                          '& .MuiSwitch-switchBase': {
-                            p: '4px',
-                            transitionDuration: '180ms',
-                            '&:hover': {
-                              bgcolor: 'transparent',
-                            },
-                            '&.Mui-checked': {
-                              transform: 'translateX(20px)',
-                              color: 'var(--card)',
-                              '&:hover': {
-                                bgcolor: 'transparent',
-                              },
-                              '& + .MuiSwitch-track': {
-                                bgcolor: 'var(--primary)',
-                                opacity: 1,
-                              },
-                            },
-                            '&.Mui-disabled': {
-                              opacity: 0.55,
-                            },
-                          },
-                          '& .MuiSwitch-thumb': {
-                            width: 24,
-                            height: 24,
-                            boxShadow: '0 2px 6px rgba(15, 23, 42, 0.24)',
-                          },
-                          '& .MuiSwitch-track': {
-                            borderRadius: tokens.radius.full,
-                            bgcolor: 'rgba(107,114,128,0.4)',
-                            opacity: 1,
-                          },
-                        }}
+                        sx={COMPACT_SWITCH_SX}
                       />
                       {category.isSystem ? (
                         <Box
@@ -912,24 +845,29 @@ export default function WorkspaceCategoriesView() {
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 32,
-                            height: 32,
-                            borderRadius: tokens.radius.full,
-                            color: 'rgba(107,114,128,0.6)',
+                            width: 28,
+                            height: 28,
+                            color: 'var(--muted-foreground)',
+                            opacity: 0.5,
                           }}
                         >
-                          <Lock size={16} />
+                          <Lock size={14} />
                         </Box>
                       ) : (
                         <button
                           type="button"
+                          className="category-row-open"
+                          aria-label={t.manage.editAria.value.replace(
+                            '{name}',
+                            getCategoryDisplayName(category, locale),
+                          )}
                           onClick={() => handleOpenDialog(category)}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 32,
-                            height: 32,
+                            width: 28,
+                            height: 28,
                             borderRadius: tokens.radius.full,
                             color: 'var(--muted-foreground)',
                             background: 'none',
@@ -956,7 +894,7 @@ export default function WorkspaceCategoriesView() {
         </DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-            {/* Name and Type */}
+            {/* Name and Type; the prefix previews the category as it is being built. */}
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField
                 label={t.dialog.nameLabel.value}
@@ -964,6 +902,47 @@ export default function WorkspaceCategoriesView() {
                 fullWidth
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Box
+                          aria-hidden
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: tokens.radius.sm,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: alpha(formData.color, 0.14),
+                            color: formData.color,
+                          }}
+                        >
+                          {formData.withoutIcon ? (
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                bgcolor: formData.color,
+                              }}
+                            />
+                          ) : resolveIconUrl(formData.icon) ? (
+                            <Box
+                              component="img"
+                              src={resolveIconUrl(formData.icon) as string}
+                              alt=""
+                              sx={{ width: 18, height: 18, objectFit: 'contain' }}
+                            />
+                          ) : (
+                            <SelectedGlyph size={18} />
+                          )}
+                        </Box>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
               <FormControl sx={{ minWidth: 120 }}>
                 <InputLabel>{t.type.label}</InputLabel>
@@ -985,9 +964,25 @@ export default function WorkspaceCategoriesView() {
 
             {/* Icon Picker */}
             <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                {t.dialog.chooseIcon}
-              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  mb: 1,
+                }}
+              >
+                <Typography variant="subtitle2">{t.dialog.chooseIcon}</Typography>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={triggerIconUpload}
+                  disabled={uploadingIcon}
+                >
+                  {uploadingIcon ? t.dialog.uploading : t.dialog.uploadIcon}
+                </Button>
+              </Box>
               <input
                 type="file"
                 accept="image/*"
@@ -999,43 +994,41 @@ export default function WorkspaceCategoriesView() {
                 sx={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))',
-                  gap: 1,
-                  maxHeight: 200,
-                  overflowY: 'auto',
-                  p: 1,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: tokens.radius.lg,
+                  gap: 0.5,
                 }}
               >
-                {PREDEFINED_ICONS.map(iconName => (
-                  <Box
-                    key={iconName}
-                    onClick={() => setFormData({ ...formData, icon: iconName, withoutIcon: false })}
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: tokens.radius.sm,
-                      cursor: 'pointer',
-                      bgcolor:
-                        formData.icon === iconName ? alpha(formData.color, 0.2) : 'transparent',
-                      color: formData.icon === iconName ? formData.color : 'text.secondary',
-                      border:
-                        formData.icon === iconName
-                          ? `2px solid ${formData.color}`
-                          : '1px solid transparent',
-                      '&:hover': {
-                        bgcolor: alpha(formData.color || theme.palette.primary.main, 0.1),
-                        color: formData.color || theme.palette.primary.main,
-                      },
-                    }}
-                  >
-                    <Tag size={24} />
-                  </Box>
-                ))}
+                {CATEGORY_ICON_CHOICES.map(({ value, Icon }) => {
+                  const selected = !formData.withoutIcon && formData.icon === value;
+                  return (
+                    <Box
+                      key={value}
+                      component="button"
+                      type="button"
+                      aria-label={value.replace('mdi:', '')}
+                      aria-pressed={selected}
+                      onClick={() => setFormData({ ...formData, icon: value, withoutIcon: false })}
+                      sx={{
+                        height: 40,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        p: 0,
+                        border: 'none',
+                        borderRadius: tokens.radius.sm,
+                        cursor: 'pointer',
+                        bgcolor: selected ? alpha(formData.color, 0.14) : 'transparent',
+                        color: selected ? formData.color : 'text.secondary',
+                        boxShadow: selected ? `inset 0 0 0 1.5px ${formData.color}` : 'none',
+                        '&:hover': {
+                          bgcolor: alpha(formData.color, 0.1),
+                          color: formData.color,
+                        },
+                      }}
+                    >
+                      <Icon size={22} />
+                    </Box>
+                  );
+                })}
               </Box>
               <Box sx={{ mt: 1.5 }}>
                 <label
@@ -1056,45 +1049,6 @@ export default function WorkspaceCategoriesView() {
                   {tx(['dialog', 'withoutIcon'], 'Without icon')}
                 </label>
               </Box>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  mt: 1.5,
-                  gap: 2,
-                }}
-              >
-                {!formData.withoutIcon && resolveIconUrl(formData.icon) && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {t.dialog.uploadedIcon}
-                    </Typography>
-                    <Box
-                      component="img"
-                      src={resolveIconUrl(formData.icon) || formData.icon}
-                      alt=""
-                      sx={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: tokens.radius.sm,
-                        objectFit: 'contain',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    />
-                  </Box>
-                )}
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={triggerIconUpload}
-                  disabled={uploadingIcon}
-                  sx={{ ml: 'auto' }}
-                >
-                  {uploadingIcon ? t.dialog.uploading : t.dialog.uploadIcon}
-                </Button>
-              </Box>
             </Box>
 
             {/* Color Picker */}
@@ -1102,74 +1056,37 @@ export default function WorkspaceCategoriesView() {
               <Typography variant="subtitle2" gutterBottom>
                 {t.dialog.chooseColor}
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {PREDEFINED_COLORS.map(color => (
-                  <Box
-                    key={color}
-                    onClick={() => setFormData({ ...formData, color })}
-                    sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: tokens.radius.full,
-                      bgcolor: color,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxShadow: formData.color === color ? 3 : 0,
-                      transform: formData.color === color ? 'scale(1.1)' : 'scale(1)',
-                      transition: 'transform 0.2s',
-                      border: formData.color === color ? '2px solid white' : 'none',
-                      outline: formData.color === color ? `2px solid ${color}` : 'none',
-                    }}
-                  >
-                    {formData.color === color && <Check size={20} style={{ color: 'white' }} />}
-                  </Box>
-                ))}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, p: 0.5 }}>
+                {PREDEFINED_COLORS.map(color => {
+                  const selected = formData.color === color;
+                  return (
+                    <Box
+                      key={color}
+                      component="button"
+                      type="button"
+                      aria-label={color}
+                      aria-pressed={selected}
+                      onClick={() => setFormData({ ...formData, color })}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        p: 0,
+                        border: 'none',
+                        borderRadius: tokens.radius.full,
+                        bgcolor: color,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        outline: selected ? `2px solid ${color}` : 'none',
+                        outlineOffset: 2,
+                      }}
+                    >
+                      {selected && <Check size={16} style={{ color: 'white' }} />}
+                    </Box>
+                  );
+                })}
               </Box>
-            </Box>
-
-            {/* Preview */}
-            <Box
-              sx={{
-                mt: 2,
-                p: 2,
-                bgcolor: 'background.default',
-                borderRadius: tokens.radius.lg,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                {t.dialog.preview}
-              </Typography>
-              <Box
-                sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: tokens.radius.sm,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: alpha(formData.color || '#2196F3', 0.1),
-                  color: formData.color || '#2196F3',
-                }}
-              >
-                {!formData.withoutIcon && resolveIconUrl(formData.icon) ? (
-                  <Box
-                    component="img"
-                    src={resolveIconUrl(formData.icon) as string}
-                    alt=""
-                    sx={{ width: 28, height: 28, objectFit: 'contain' }}
-                  />
-                ) : !formData.withoutIcon ? (
-                  <Tag size={28} />
-                ) : null}
-              </Box>
-              <Typography variant="subtitle1" fontWeight="bold">
-                {formData.name || t.dialog.placeholderName}
-              </Typography>
             </Box>
           </Box>
         </DialogContent>
@@ -1190,30 +1107,36 @@ export default function WorkspaceCategoriesView() {
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 600 }}>Disable category?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 600 }}>{t.manage.disableDialog.title}</DialogTitle>
         <DialogContent dividers>
           {disableConfirm ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Typography variant="body2" color="text.secondary">
-                Category <strong>{disableConfirm.category.name}</strong> is already used in:
+                {disableUsedInBefore}
+                <strong>{disableConfirm.category.name}</strong>
+                {disableUsedInAfter}
               </Typography>
               <Typography variant="body2" color="text.primary">
-                {disableConfirm.usage.transactions} transaction
-                {disableConfirm.usage.transactions === 1 ? '' : 's'}
+                {(disableConfirm.usage.transactions === 1
+                  ? t.manage.disableDialog.transactionsOne
+                  : t.manage.disableDialog.transactionsMany
+                ).value.replace('{count}', String(disableConfirm.usage.transactions))}
               </Typography>
               <Typography variant="body2" color="text.primary">
-                {disableConfirm.usage.statements} statement
-                {disableConfirm.usage.statements === 1 ? '' : 's'}
+                {(disableConfirm.usage.statements === 1
+                  ? t.manage.disableDialog.statementsOne
+                  : t.manage.disableDialog.statementsMany
+                ).value.replace('{count}', String(disableConfirm.usage.statements))}
               </Typography>
               <Typography variant="body2" sx={{ color: 'error.main', fontWeight: 500, mt: 1 }}>
-                Existing items will show a warning until a new category is selected.
+                {t.manage.disableDialog.warning}
               </Typography>
             </Box>
           ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setDisableConfirm(null)} color="inherit">
-            Cancel
+            {t.dialog.cancel}
           </Button>
           <Button
             variant="contained"
@@ -1224,7 +1147,7 @@ export default function WorkspaceCategoriesView() {
               }
             }}
           >
-            Disable
+            {t.manage.disable}
           </Button>
         </DialogActions>
       </Dialog>

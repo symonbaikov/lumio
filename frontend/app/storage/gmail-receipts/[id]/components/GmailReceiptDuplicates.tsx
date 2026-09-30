@@ -19,6 +19,7 @@ import { EntityHistoryTimeline } from '@/app/audit/components/EntityHistoryTimel
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { CheckCircle2, ChevronDown } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useIntlayer } from '@/app/i18n';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import type { AuditEvent } from '@/lib/api/audit';
 import type {
@@ -112,6 +113,7 @@ export function GmailReceiptDetails({
   setEditedData,
   setShowPreview,
 }: GmailReceiptDetailsProps): React.ReactElement {
+  const t = useIntlayer('gmailReceiptPage');
   return (
     <>
       <Accordion
@@ -132,7 +134,7 @@ export function GmailReceiptDetails({
           }}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-            Receipt details &amp; parsing info
+            {t.details.title}
           </Typography>
         </AccordionSummary>
         <AccordionDetails sx={{ p: 3 }}>
@@ -145,7 +147,7 @@ export function GmailReceiptDetails({
             }}
           >
             <TextField
-              label="Vendor / Merchant"
+              label={t.details.vendorMerchant.value}
               size="small"
               fullWidth
               value={editedData.vendor || ''}
@@ -155,12 +157,12 @@ export function GmailReceiptDetails({
               }}
             />
             <CustomDatePicker
-              label="Date"
+              label={t.details.date.value}
               value={editedData.date ? editedData.date.split('T')[0] : ''}
               onChange={value => setEditedData(prev => ({ ...prev, date: value }))}
             />
             <TextField
-              label="Currency"
+              label={t.details.currency.value}
               size="small"
               fullWidth
               value={editedData.currency || ''}
@@ -170,7 +172,7 @@ export function GmailReceiptDetails({
               }}
             />
             <TextField
-              label="Category"
+              label={t.details.category.value}
               size="small"
               fullWidth
               select
@@ -187,7 +189,7 @@ export function GmailReceiptDetails({
                 '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: 'primary.main' } },
               }}
             >
-              <MenuItem value="">Select category</MenuItem>
+              <MenuItem value="">{t.details.selectCategory}</MenuItem>
               {enabledCategories.map(cat => (
                 <MenuItem key={cat.id} value={cat.id}>
                   {cat.name}
@@ -203,13 +205,13 @@ export function GmailReceiptDetails({
               gap: 2,
             }}
           >
-            <ParsedMetadataField label="From" value={receipt.sender || '—'} />
+            <ParsedMetadataField label={t.details.from.value} value={receipt.sender || '—'} />
             <ParsedMetadataField
-              label="Transaction type"
+              label={t.details.transactionType.value}
               value={receipt.parsedData?.transactionType || '—'}
             />
             <ParsedMetadataField
-              label="Tax"
+              label={t.details.tax.value}
               value={
                 editedData.tax !== undefined && editedData.tax !== null
                   ? `${editedData.tax} ${currency}`
@@ -218,7 +220,7 @@ export function GmailReceiptDetails({
             />
             <Box>
               <Typography variant="caption" color="text.secondary">
-                Confidence
+                {t.details.confidence}
               </Typography>
               <Typography
                 variant="body2"
@@ -228,10 +230,18 @@ export function GmailReceiptDetails({
               </Typography>
             </Box>
             {warningCount > 0 && (
-              <ParsedMetadataField label="Parsing warnings" value={warningCount} color="warning" />
+              <ParsedMetadataField
+                label={t.details.parsingWarnings.value}
+                value={warningCount}
+                color="warning"
+              />
             )}
             {receipt.isDuplicate && (
-              <ParsedMetadataField label="Duplicate" value="Yes" color="error" />
+              <ParsedMetadataField
+                label={t.details.duplicate.value}
+                value={t.details.yes.value}
+                color="error"
+              />
             )}
           </Box>
 
@@ -242,7 +252,7 @@ export function GmailReceiptDetails({
                 color="warning.main"
                 sx={{ display: 'block', mb: 1, fontWeight: 600, textTransform: 'uppercase' }}
               >
-                Validation issues
+                {t.details.validationIssues}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                 {receipt.parsedData?.validationIssues?.map(issue => (
@@ -265,7 +275,7 @@ export function GmailReceiptDetails({
                 color="text.secondary"
                 sx={{ display: 'block', mb: 1, fontWeight: 600, textTransform: 'uppercase' }}
               >
-                Attachments
+                {t.details.attachments}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {receipt.metadata?.attachments?.map(attachment => (
@@ -291,7 +301,7 @@ export function GmailReceiptDetails({
                       onClick={() => setShowPreview(true)}
                       sx={{ textTransform: 'none', fontWeight: 600, color: 'primary.main' }}
                     >
-                      Preview
+                      {t.details.preview}
                     </Button>
                   </Box>
                 ))}
@@ -306,7 +316,10 @@ export function GmailReceiptDetails({
                 color="warning.main"
                 sx={{ display: 'block', mb: 1, fontWeight: 600, textTransform: 'uppercase' }}
               >
-                Potential duplicates ({potentialDuplicates.length})
+                {t.details.potentialDuplicates.value.replace(
+                  '{count}',
+                  String(potentialDuplicates.length),
+                )}
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {potentialDuplicates.map(dup => (
@@ -341,7 +354,7 @@ export function GmailReceiptDetails({
                           '&:hover': { bgcolor: 'warning.100' },
                         }}
                       >
-                        Mark as duplicate
+                        {t.details.markAsDuplicate}
                       </Button>
                     </Box>
                   </Paper>
@@ -358,7 +371,7 @@ export function GmailReceiptDetails({
                 onClick={onUnmarkDuplicate}
                 sx={{ textTransform: 'none', fontWeight: 600 }}
               >
-                Unmark as duplicate
+                {t.details.unmarkAsDuplicate}
               </Button>
             </Box>
           )}
@@ -369,12 +382,12 @@ export function GmailReceiptDetails({
               color="text.secondary"
               sx={{ display: 'block', mb: 1, fontWeight: 600, textTransform: 'uppercase' }}
             >
-              History
+              {t.details.history}
             </Typography>
             {historyLoading ? (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
                 <Spinner className="h-4 w-4 text-inherit" />
-                <Typography variant="body2">Loading history...</Typography>
+                <Typography variant="body2">{t.details.loadingHistory}</Typography>
               </Box>
             ) : (
               <EntityHistoryTimeline
@@ -402,10 +415,10 @@ export function GmailReceiptDetails({
         selecting={categorySaving}
         onSelect={onCategorySelect}
         labels={{
-          title: 'Category',
-          searchPlaceholder: 'Search categories',
-          allOption: 'Not selected',
-          noResults: 'No categories found',
+          title: t.categoryDrawer.title.value,
+          searchPlaceholder: t.categoryDrawer.searchPlaceholder.value,
+          allOption: t.categoryDrawer.notSelected.value,
+          noResults: t.categoryDrawer.noResults.value,
         }}
         width="sm"
         showAllOption
@@ -434,6 +447,7 @@ export function BulkCategoryDialog({
   onApply,
 }: BulkCategoryDialogProps): React.ReactElement {
   const titleId = useId();
+  const t = useIntlayer('gmailReceiptPage');
   // Modal traps focus inside, closes on Escape and restores focus on close.
   return (
     <Modal open={open} onClose={onClose} hideBackdrop>
@@ -476,21 +490,21 @@ export function BulkCategoryDialog({
               pb: 1,
             }}
           >
-            Assign category to {selectedRowsSize} item(s)
+            {t.bulk.title.value.replace('{count}', String(selectedRowsSize))}
           </Typography>
           <Box sx={{ pt: 3 }}>
             <TextField
               select
-              label="Category"
+              label={t.bulk.category.value}
               fullWidth
               value={bulkCategoryId}
               onChange={e => onCategoryChange(e.target.value)}
-              helperText="Choose a category to assign to all selected line items"
+              helperText={t.bulk.helper.value}
               sx={{
                 '& .MuiOutlinedInput-root': { '&:hover fieldset': { borderColor: 'primary.main' } },
               }}
             >
-              <MenuItem value="">Not selected</MenuItem>
+              <MenuItem value="">{t.bulk.notSelected}</MenuItem>
               {enabledCategories.map(cat => (
                 <MenuItem key={cat.id} value={cat.id}>
                   {cat.name}
@@ -503,7 +517,7 @@ export function BulkCategoryDialog({
               onClick={onClose}
               sx={{ textTransform: 'none', fontWeight: 500, color: 'text.secondary' }}
             >
-              Cancel
+              {t.bulk.cancel}
             </Button>
             <Button
               variant="contained"
@@ -517,7 +531,7 @@ export function BulkCategoryDialog({
                 '&:hover': { boxShadow: 'none' },
               }}
             >
-              Apply
+              {t.bulk.apply}
             </Button>
           </Box>
         </Box>

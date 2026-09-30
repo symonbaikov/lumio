@@ -1,9 +1,11 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { ChevronLeft, ChevronRight, Search } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 
 /** Section caption above a group of rows. */
@@ -66,17 +68,21 @@ export function PanelSearchField({
         value={value}
         placeholder={placeholder}
         onChange={(event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
+        // Flat: only a bottom hairline, which turns brand green on focus.
         sx={{
           width: '100%',
-          border: '1px solid',
+          border: 'none',
+          borderBottom: '1px solid',
           borderColor: 'divider',
-          borderRadius: tokens.radius.md,
-          bgcolor: 'background.paper',
+          borderRadius: 0,
+          bgcolor: 'transparent',
           padding: '8px 12px 8px 36px',
           fontSize: 14,
           color: 'text.primary',
           outline: 'none',
+          transition: 'border-color 120ms ease',
           '&:focus': { borderColor: 'primary.main' },
+          '&:focus-visible': { outline: 'none', borderBottomWidth: 2, pb: '7px' },
         }}
       />
     </Box>
@@ -121,7 +127,11 @@ export function PanelRow({
         textAlign: 'left',
         cursor: 'pointer',
         color: 'text.primary',
-        '&:hover': { bgcolor: 'action.hover' },
+        // A faint neutral wash with a thin green edge; action.hover is brand green in this theme.
+        '&:hover': {
+          bgcolor: theme => alpha(theme.palette.text.primary, 0.05),
+          boxShadow: theme => `inset 2px 0 0 ${theme.palette.primary.main}`,
+        },
         '&:focus-visible': { outline: '2px solid var(--color-primary)', outlineOffset: -2 },
       }}
     >
@@ -130,10 +140,9 @@ export function PanelRow({
           display: 'grid',
           placeItems: 'center',
           flexShrink: 0,
-          width: 36,
+          // No tile behind the icon: it sits straight on the panel.
+          width: 28,
           height: 36,
-          borderRadius: tokens.radius.sm,
-          bgcolor: 'action.hover',
           color: 'text.secondary',
         }}
       >
@@ -204,13 +213,14 @@ export function PanelBackTitle({
   title: React.ReactNode;
   onBack: () => void;
 }): React.JSX.Element {
+  const t = useIntlayer('panelUi');
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
       <Box
         component="button"
         type="button"
         onClick={onBack}
-        aria-label="Back to the list"
+        aria-label={t.backToList.value}
         sx={{
           display: 'grid',
           placeItems: 'center',

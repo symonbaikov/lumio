@@ -214,11 +214,11 @@ function RowActions({
     );
   }
   return (
-    <Box sx={{ display: 'flex', gap: 0.5 }}>
+    <Box className="lumio-stmt-edit-table__row-actions" sx={{ display: 'flex', gap: 0.5 }}>
       <IconButton
         size="small"
         onClick={() => onEdit(transaction)}
-        sx={{ color: 'primary.600', '&:hover': { bgcolor: 'primary.50' } }}
+        sx={{ color: 'text.secondary', '&:hover': { color: 'primary.600', bgcolor: 'primary.50' } }}
       >
         <Pencil size={18} />
       </IconButton>
@@ -229,7 +229,7 @@ function RowActions({
             void onDelete(transaction.id);
           }
         }}
-        sx={{ color: 'error.600', '&:hover': { bgcolor: 'error.50' } }}
+        sx={{ color: 'text.secondary', '&:hover': { color: 'error.600', bgcolor: 'error.50' } }}
       >
         <Trash2 size={18} />
       </IconButton>

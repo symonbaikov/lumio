@@ -202,7 +202,7 @@ export function mapWalletBalances(input: {
  * (hash, asset, direction), so those parts are summed here rather than dropped
  * by the unique index later.
  */
-function aggregate(transfers: ChainTransfer[]): ChainTransfer[] {
+export function aggregate(transfers: ChainTransfer[]): ChainTransfer[] {
   const merged = new Map<string, ChainTransfer>();
 
   for (const transfer of transfers) {
@@ -220,7 +220,7 @@ function aggregate(transfers: ChainTransfer[]): ChainTransfer[] {
   return [...merged.values()].sort((a, b) => a.timestamp - b.timestamp);
 }
 
-function toBigInt(value: string | undefined): bigint {
+export function toBigInt(value: string | undefined): bigint {
   if (!value) {
     return 0n;
   }

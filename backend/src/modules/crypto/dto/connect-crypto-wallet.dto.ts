@@ -1,15 +1,38 @@
-import { IsIn, IsOptional, IsString, Length, Matches } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayNotEmpty,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 import { SUPPORTED_CHAIN_IDS } from '../crypto.constants';
 
 export class ConnectCryptoWalletDto {
-  /** A public EVM address. Checked here so a typo fails at the edge, not mid-sync. */
+  /**
+   * A public address: EVM (`0x…`), Tron (`T…`), Bitcoin or Solana. The format is
+   * checked in the service, where the network is read off it.
+   */
   @IsString()
-  @Matches(/^0x[0-9a-fA-F]{40}$/, { message: 'address must be a valid EVM address' })
+  @Length(26, 100)
   address: string;
 
+  /** Optional: one network. Read off the address format when both fields are absent. */
   @IsOptional()
   @IsIn(SUPPORTED_CHAIN_IDS)
   chainId?: number;
+
+  /**
+   * Optional: several networks for one EVM address, which is the same address on
+   * every EVM chain. One wallet is created per chain.
+   */
+  @IsOptional()
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(SUPPORTED_CHAIN_IDS.length)
+  @IsIn(SUPPORTED_CHAIN_IDS, { each: true })
+  chainIds?: number[];
 
   @IsOptional()
   @IsString()

@@ -727,7 +727,6 @@ export class StatementsService {
     user: User,
     workspaceId: string,
     file: Express.Multer.File,
-    googleSheetId?: string,
     walletId?: string,
     branchId?: string,
     allowDuplicates = false,
@@ -787,7 +786,6 @@ export class StatementsService {
       const statement = statements.create({
         userId: user.id,
         workspaceId,
-        googleSheetId: googleSheetId || null,
         fileName: normalizedName,
         filePath: file.path,
         fileType: getFileTypeFromMime(file.mimetype) as FileType,
@@ -870,7 +868,6 @@ export class StatementsService {
       .leftJoinAndSelect('statement.user', 'user')
       .leftJoinAndSelect('statement.category', 'category')
       .leftJoinAndSelect('statement.tags', 'tags')
-      .leftJoinAndSelect('statement.googleSheet', 'googleSheet')
       .where('statement.deletedAt IS NULL')
       .andWhere('statement.workspaceId = :workspaceId', { workspaceId })
       .orderBy('statement.createdAt', 'DESC');
@@ -1147,7 +1144,7 @@ export class StatementsService {
     if (typeof statementRepository.createQueryBuilder !== 'function') {
       const statement = await this.statementRepository.findOne({
         where: { id, workspaceId },
-        relations: ['transactions', 'googleSheet', 'user'],
+        relations: ['transactions', 'user'],
       });
 
       if (!statement) {
@@ -1163,7 +1160,6 @@ export class StatementsService {
     const qb = statementRepository
       .createQueryBuilder('statement')
       .leftJoinAndSelect('statement.transactions', 'transactions')
-      .leftJoinAndSelect('statement.googleSheet', 'googleSheet')
       .leftJoinAndSelect('statement.user', 'owner')
       .where('statement.id = :id', { id })
       .andWhere('statement.workspaceId = :workspaceId', { workspaceId });

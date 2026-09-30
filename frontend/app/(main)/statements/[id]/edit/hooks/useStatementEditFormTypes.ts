@@ -51,8 +51,8 @@ export interface UseStatementEditFormReturn {
   setMetadataForm: React.Dispatch<React.SetStateAction<MetaForm>>;
   exportConfirmOpen: boolean;
   setExportConfirmOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  parsingDetailsExpanded: boolean;
-  setParsingDetailsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  parsingDetailsExpanded: boolean | null;
+  setParsingDetailsExpanded: React.Dispatch<React.SetStateAction<boolean | null>>;
   balanceStartInputRef: React.RefObject<HTMLInputElement | null>;
   balanceEndInputRef: React.RefObject<HTMLInputElement | null>;
   loadData: () => Promise<void>;

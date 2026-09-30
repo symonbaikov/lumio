@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type {
   SubscriptionChargeCalendar,
@@ -131,10 +131,11 @@ describe('SubscriptionsContent', () => {
     expect(screen.queryByText('Upcoming charges')).not.toBeInTheDocument();
   });
 
-  it('shows the charge calendar once the workspace has enough subscriptions', async () => {
+  it('switches to the charge calendar once the workspace has enough subscriptions', async () => {
     renderContent({ summary: { activeCount: 5 }, chargeCalendar: filledCalendar });
 
-    expect(screen.getByText('Upcoming charges')).toBeInTheDocument();
+    expect(screen.queryByTestId('charge-calendar')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Upcoming charges' }));
     // The matrix loads as its own chunk, so it arrives a tick later.
     expect(await screen.findByTestId('charge-calendar')).toBeInTheDocument();
   });

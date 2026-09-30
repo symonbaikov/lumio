@@ -6,6 +6,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import * as React from 'react';
 import { X } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 
 export type DrawerPosition = 'left' | 'right';
@@ -40,6 +41,43 @@ export interface DrawerShellProps {
   zIndex?: number;
 }
 
+/** Set on an overlay while a sidebar opened after it sits on top; styled in `_drawer-stack.scss`. */
+const COVERED_ATTR = 'data-lumio-covered';
+/** Every overlay a sidebar can open over: other sidebars and centred dialogs, however they are built. */
+const OVERLAY_SELECTOR = '.MuiDrawer-root, .MuiDialog-root';
+
+/**
+ * While this drawer is open, the overlays that were already on screen fade out so
+ * two panels never overlap; they fade back in when it closes. A counter rather than
+ * a flag, because several drawers can stack over the same overlay.
+ */
+function useHideOverlaysBelow(
+  isOpen: boolean,
+  ownRoot: React.RefObject<HTMLDivElement | null>,
+): void {
+  React.useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const below = [...document.querySelectorAll<HTMLElement>(OVERLAY_SELECTOR)].filter(
+      el => el !== ownRoot.current && !el.contains(ownRoot.current),
+    );
+    for (const el of below) {
+      el.setAttribute(COVERED_ATTR, String(Number(el.getAttribute(COVERED_ATTR) ?? 0) + 1));
+    }
+    return () => {
+      for (const el of below) {
+        const left = Number(el.getAttribute(COVERED_ATTR) ?? 1) - 1;
+        if (left > 0) {
+          el.setAttribute(COVERED_ATTR, String(left));
+        } else {
+          el.removeAttribute(COVERED_ATTR);
+        }
+      }
+    };
+  }, [isOpen, ownRoot]);
+}
+
 const widthMap: Record<DrawerWidth, number | string> = {
   sm: 320,
   md: 448,
@@ -72,6 +110,7 @@ export function DrawerShell({
   sx,
   zIndex,
 }: DrawerShellProps) {
+  const t = useIntlayer('uiShell');
   // eslint-disable-next-line max-params
   const handleClose = (_event: object, reason: 'backdropClick' | 'escapeKeyDown'): void => {
     if (reason === 'backdropClick' && !closeOnBackdropClick) {
@@ -84,6 +123,8 @@ export function DrawerShell({
   };
 
   const drawerWidth = widthMap[width];
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  useHideOverlaysBelow(isOpen, rootRef);
 
   return (
     <Drawer
@@ -91,6 +132,7 @@ export function DrawerShell({
       onClose={handleClose}
       anchor={position}
       className={className}
+      ref={rootRef}
       sx={zIndex !== undefined ? { zIndex } : undefined}
       PaperProps={{
         role: 'dialog',
@@ -127,7 +169,7 @@ export function DrawerShell({
             <IconButton
               type="button"
               onClick={onClose}
-              aria-label="Close drawer"
+              aria-label={t.closeDrawer.value}
               size="small"
               sx={{ ml: 'auto' }}
             >

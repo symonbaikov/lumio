@@ -1,6 +1,7 @@
 'use client';
 
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { useIntlayer } from '@/app/i18n';
 import { Checkbox } from '../ui/checkbox';
 import { TransactionMobileCard } from './TransactionMobileCard';
 import type { TransactionRowFormatters, TransactionRowHandlers } from './TransactionRow';
@@ -44,6 +45,7 @@ export function TransactionMobileList({
   columnDateLabel,
   columnDateSortLabel,
 }: TransactionMobileListProps): React.ReactElement {
+  const t = useIntlayer('transactionsTable');
   return (
     <div className="lumio-tx-mobile">
       <div className="lumio-tx-mobile__header">
@@ -53,7 +55,7 @@ export function TransactionMobileList({
             indeterminate={someSelected && !allSelected}
             onCheckedChange={onSelectAll}
             style={{ height: 20, width: 20 }}
-            aria-label="Select all rows"
+            aria-label={t.selectAllRows.value}
           />
           <span style={{ fontSize: 14, color: 'var(--foreground)' }}>
             {selectedIds.length}/{allTransactionsCount}

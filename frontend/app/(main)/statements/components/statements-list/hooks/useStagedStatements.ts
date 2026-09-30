@@ -8,12 +8,13 @@ import {
   paginateStatements,
   resolveStatementSortDate,
 } from '@/app/(main)/statements/components/StatementsListView.utils';
-import { getStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
+import { resolveStatementStage, type StatementStage } from '@/app/lib/statement-workflow';
 
 interface StatementForStaging {
   id: string;
   source?: 'statement' | 'gmail' | 'scan';
   status: string;
+  stage?: StatementStage | null;
   fileName: string;
   subject?: string | null;
   sender?: string | null;
@@ -89,7 +90,7 @@ export function useStagedStatements<T extends StatementForStaging>({
 }: UseStagedStatementsParams): UseStagedStatementsResult<T> {
   const stagedStatements = useMemo((): T[] => {
     const base = statements.filter(
-      s => getStatementStage(s.id) === stage && !isReceiptDerivedStatement(s),
+      s => resolveStatementStage(s) === stage && !isReceiptDerivedStatement(s),
     ) as T[];
     if (stage !== 'submit') {
       return base;

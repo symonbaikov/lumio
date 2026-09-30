@@ -57,13 +57,21 @@ vi.mock('next-themes', () => ({
   useTheme: () => themeMock,
 }));
 
-vi.mock('@/app/i18n', () => ({
-  useIntlayer: () => ({
-    common: {
-      close: { value: 'Close' },
-    },
-  }),
-}));
+vi.mock('@/app/i18n', async () => {
+  const actual = await vi.importActual<typeof import('react-intlayer')>('react-intlayer');
+  const realKeys = new Set(['statementsTablesReports']);
+  return {
+    useLocale: () => ({ locale: 'en' }),
+    useIntlayer: (key: string) =>
+      realKeys.has(key)
+        ? actual.useIntlayer(key as never)
+        : {
+            common: {
+              close: { value: 'Close' },
+            },
+          },
+  };
+});
 
 vi.mock('@/app/components/ui/spinner', () => ({
   Spinner: () => <div data-testid="loading-animation" />,
@@ -88,8 +96,8 @@ describe('TablesReportsView', () => {
             { id: 'table-1', name: 'Manual Table', source: 'manual', rowCount: 3 },
             {
               id: 'table-2',
-              name: 'Google Sheet',
-              source: 'google_sheets_import',
+              name: 'Second Table',
+              source: 'manual',
               rowCount: 7,
             },
           ],
@@ -105,8 +113,7 @@ describe('TablesReportsView', () => {
           data: {
             totals: {
               total: 225,
-              manualTotal: 175,
-              googleSheetsTotal: 50,
+              manualTotal: 225,
               operations: 3,
             },
             comparison: {
@@ -116,9 +123,6 @@ describe('TablesReportsView', () => {
               manualDelta: 5,
               manualPercentage: 3,
               manualTrend: 'up',
-              googleSheetsDelta: 5,
-              googleSheetsPercentage: 10,
-              googleSheetsTrend: 'up',
               operationsDelta: 1,
               operationsPercentage: 50,
               operationsTrend: 'up',
@@ -127,7 +131,7 @@ describe('TablesReportsView', () => {
               { date: '2026-03-10', amount: 100 },
               { date: '2026-03-11', amount: 50 },
             ],
-            sourceSplit: { manual: 175, googleSheets: 50 },
+            sourceSplit: { manual: 225 },
             aggregatedRows: [
               {
                 counterparty: 'Vendor A',
@@ -240,10 +244,10 @@ describe('TablesReportsView', () => {
       fireEvent.click(dropdownTrigger);
     });
 
-    expect(screen.getByText('Google Sheet')).toBeInTheDocument();
+    expect(screen.getByText('Second Table')).toBeInTheDocument();
 
     await act(async () => {
-      fireEvent.click(screen.getByLabelText(/select table google sheet/i));
+      fireEvent.click(screen.getByLabelText(/select table second table/i));
     });
 
     await act(async () => {

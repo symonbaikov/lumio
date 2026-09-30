@@ -4,6 +4,7 @@ import {
   countStatementStages,
   getStatementStageActions,
   isStageActionBlocked,
+  resolveStatementStage,
 } from '../statement-workflow';
 
 describe('statement workflow helpers', () => {
@@ -42,12 +43,9 @@ describe('statement workflow helpers', () => {
     ]);
   });
 
-  it('counts statements by stage using stored stage map', () => {
+  it('counts statements by their server-side stage', () => {
     expect(
-      countStatementStages(['s1', 's2', 's3', 's4'], {
-        s1: 'approve',
-        s2: 'pay',
-      }),
+      countStatementStages([{ stage: 'approve' }, { stage: 'pay' }, { stage: 'submit' }, {}]),
     ).toEqual({
       submit: 2,
       approve: 1,
@@ -55,16 +53,10 @@ describe('statement workflow helpers', () => {
     });
   });
 
-  it('ignores stage ids that are not in the current statement list', () => {
-    expect(
-      countStatementStages(['s1'], {
-        ghost: 'approve',
-      }),
-    ).toEqual({
-      submit: 1,
-      approve: 0,
-      pay: 0,
-    });
+  it('puts a row without a stage (older API response) in submit', () => {
+    expect(resolveStatementStage({})).toBe('submit');
+    expect(resolveStatementStage({ stage: null })).toBe('submit');
+    expect(resolveStatementStage({ stage: 'pay' })).toBe('pay');
   });
 
   it('blocks submit action when at least one transaction has no category', () => {

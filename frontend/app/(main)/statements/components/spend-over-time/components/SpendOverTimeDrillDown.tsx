@@ -9,6 +9,7 @@ import type {
 } from '@/app/(main)/statements/components/spend-over-time.utils';
 import { X } from '@/app/components/icons';
 import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
+import { useIntlayer } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 
@@ -61,6 +62,7 @@ function DrillDownTable({
   sourceLabels,
   labels,
 }: TableProps): React.JSX.Element {
+  const spendT = useIntlayer('statementsSpendOverTime');
   return (
     <table className="lumio-view-page__table">
       <thead>
@@ -68,7 +70,7 @@ function DrillDownTable({
           <th>{labels.lastOperation}</th>
           <th>{labels.source}</th>
           <th>{labels.workspace}</th>
-          <th>Merchant</th>
+          <th>{spendT.merchant}</th>
           <th style={{ textAlign: 'right' }}>{labels.amount}</th>
         </tr>
       </thead>

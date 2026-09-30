@@ -7,7 +7,6 @@ import { Statement } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { ClassificationModule } from '../classification/classification.module';
-import { GoogleSheetsModule } from '../google-sheets/google-sheets.module';
 import { ImportModule } from '../import/import.module';
 import { ObservabilityModule } from '../observability/observability.module';
 import { TaxModule } from '../tax/tax.module';
@@ -69,7 +68,6 @@ import { UniversalExtractorService } from './services/universal-extractor.servic
   imports: [
     TypeOrmModule.forFeature([Statement, Transaction, ParsingRule, User]),
     ClassificationModule,
-    forwardRef(() => GoogleSheetsModule),
     forwardRef(() => ImportModule),
     ObservabilityModule,
     forwardRef(() => TransactionsModule),

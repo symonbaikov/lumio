@@ -486,7 +486,7 @@ function StoragePageContent({
               sx={{
                 bgcolor: 'background.paper',
                 p: 2,
-                border: '1px solid rgba(22,129,24,0.5)',
+                border: '1px solid rgba(var(--primary-rgb),0.5)',
                 opacity: 0.9,
                 width: 300,
               }}

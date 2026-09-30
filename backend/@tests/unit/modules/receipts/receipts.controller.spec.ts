@@ -6,6 +6,7 @@ import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-c
 import { ReceiptsController } from '../../../../src/modules/receipts/receipts.controller';
 import { ReceiptsService } from '../../../../src/modules/receipts/receipts.service';
 import { ReceiptLocationService } from '../../../../src/modules/receipts/services/receipt-location.service';
+import { ReceiptStageService } from '../../../../src/modules/receipts/services/receipt-stage.service';
 
 describe('ReceiptsController', () => {
   let controller: ReceiptsController;
@@ -52,6 +53,7 @@ describe('ReceiptsController', () => {
       providers: [
         { provide: ReceiptsService, useValue: service },
         { provide: ReceiptLocationService, useValue: locationService },
+        { provide: ReceiptStageService, useValue: {} },
       ],
     });
 
@@ -111,25 +113,43 @@ describe('ReceiptsController', () => {
   });
 
   it('delegates approval to service', async () => {
-    await controller.approve('receipt-1', 'workspace-1');
+    await controller.approve('receipt-1', 'workspace-1', { id: 'user-1' } as any);
 
-    expect(service.approve).toHaveBeenCalledWith('receipt-1', 'workspace-1');
+    expect(service.approve).toHaveBeenCalledWith('receipt-1', 'workspace-1', 'user-1');
   });
 
   it('delegates bulk approval to service', async () => {
-    await controller.bulkApprove({ receiptIds: ['receipt-1', 'receipt-2'] } as any, 'workspace-1');
+    await controller.bulkApprove(
+      { receiptIds: ['receipt-1', 'receipt-2'] } as any,
+      'workspace-1',
+      { id: 'user-1' } as any,
+    );
 
     expect(service.bulkApprove).toHaveBeenCalledWith(
       ['receipt-1', 'receipt-2'],
       'workspace-1',
+      'user-1',
       undefined,
     );
   });
 
-  it('delegates delete to service', async () => {
-    await controller.delete('receipt-1', 'workspace-1');
+  it('passes the editing user to update', async () => {
+    await controller.update('receipt-1', 'workspace-1', { status: 'reviewed' } as any, {
+      id: 'user-1',
+    } as any);
 
-    expect(service.delete).toHaveBeenCalledWith('receipt-1', 'workspace-1');
+    expect(service.update).toHaveBeenCalledWith(
+      'receipt-1',
+      'workspace-1',
+      { status: 'reviewed' },
+      'user-1',
+    );
+  });
+
+  it('delegates delete to service', async () => {
+    await controller.delete('receipt-1', 'workspace-1', { id: 'user-1' } as any);
+
+    expect(service.delete).toHaveBeenCalledWith('receipt-1', 'workspace-1', 'user-1');
   });
 
   it('returns receipt file content', async () => {
@@ -184,31 +204,38 @@ describe('ReceiptsController', () => {
 
   it('pins a manual location inside the workspace', async () => {
     await expect(
-      controller.setLocation('receipt-1', 'workspace-1', { latitude: 1, longitude: 2 }),
+      controller.setLocation('receipt-1', 'workspace-1', { latitude: 1, longitude: 2 }, {
+        id: 'user-1',
+      } as any),
     ).resolves.toMatchObject({ locationSource: 'manual' });
 
-    expect(locationService.setManual).toHaveBeenCalledWith('receipt-1', 'workspace-1', {
-      latitude: 1,
-      longitude: 2,
-    });
+    expect(locationService.setManual).toHaveBeenCalledWith(
+      'receipt-1',
+      'workspace-1',
+      { latitude: 1, longitude: 2 },
+      'user-1',
+    );
   });
 
   it('rejects a manual location for a receipt outside the workspace', async () => {
     locationService.setManual.mockResolvedValue(null);
 
     await expect(
-      controller.setLocation('receipt-1', 'workspace-2', { latitude: 1, longitude: 2 }),
+      controller.setLocation('receipt-1', 'workspace-2', { latitude: 1, longitude: 2 }, {
+        id: 'user-1',
+      } as any),
     ).rejects.toThrow('Receipt not found');
   });
 
   it('resets the location to automatic', async () => {
-    await expect(controller.resetLocation('receipt-1', 'workspace-1')).resolves.toMatchObject({
+    const user = { id: 'user-1' } as any;
+    await expect(controller.resetLocation('receipt-1', 'workspace-1', user)).resolves.toMatchObject({
       locationSource: 'device',
     });
-    expect(locationService.resetToAuto).toHaveBeenCalledWith('receipt-1', 'workspace-1');
+    expect(locationService.resetToAuto).toHaveBeenCalledWith('receipt-1', 'workspace-1', 'user-1');
 
     locationService.resetToAuto.mockResolvedValue(null);
-    await expect(controller.resetLocation('receipt-1', 'workspace-2')).rejects.toThrow(
+    await expect(controller.resetLocation('receipt-1', 'workspace-2', user)).rejects.toThrow(
       'Receipt not found',
     );
   });

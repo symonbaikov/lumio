@@ -2,11 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
-import { CryptoWallet } from '../../entities/crypto-wallet.entity';
+import { CryptoWallet, type CryptoWalletBalance } from '../../entities/crypto-wallet.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
-import { CHAIN_NAMES, NATIVE_ASSET_BY_CHAIN, TICKER_BY_CONTRACT } from './crypto.constants';
+import { BitcoinClient } from './bitcoin.client';
+import { mapBitcoinBalance, mapBitcoinTransfers } from './bitcoin-transfer.mapper';
+import {
+  CHAIN_NAMES,
+  CHAINS,
+  type ChainFamily,
+  NATIVE_ASSET_BY_CHAIN,
+  SOLANA_TOKENS,
+  TICKER_BY_CONTRACT,
+  TRON_TOKENS,
+} from './crypto.constants';
 import { CryptoPriceService } from './crypto-price.service';
 import {
   type ChainTransfer,
@@ -17,9 +27,13 @@ import {
   mapWalletBalances,
 } from './crypto-transfer.mapper';
 import { isTransient, MAX_ATTEMPTS, retryWaitMs, sleep } from './retry.util';
+import { SolanaRpcClient } from './solana-rpc.client';
+import { mapSolanaBalances, mapSolanaTransfers } from './solana-transfer.mapper';
+import { TronGridClient } from './tron-grid.client';
+import { mapTronBalances, mapTronTransfers } from './tron-transfer.mapper';
 
 /**
- * Blockscout's hosted Ethereum mainnet explorer mirrors Etherscan's account API
+ * Blockscout's hosted explorers (one host per EVM chain, see `CHAINS`) mirror Etherscan's account API
  * (same actions, same field names) but needs no API key, so wallet sync works with
  * zero setup.
  *
@@ -31,7 +45,6 @@ import { isTransient, MAX_ATTEMPTS, retryWaitMs, sleep } from './retry.util';
  * ponytail: single free provider, no fallback. Point this at Etherscan (with a key)
  * or add a second provider if Blockscout's limit or uptime ever becomes a problem.
  */
-const BLOCK_EXPLORER_BASE_URL = 'https://eth.blockscout.com/api';
 /**
  * ponytail: newest-N window instead of a stored block cursor. Re-reading rows we
  * already have is free (the unique index absorbs them), so this is only a ceiling
@@ -59,7 +72,18 @@ export class CryptoSyncService {
     private readonly workspaceRepo: Repository<Workspace>,
     private readonly priceService: CryptoPriceService,
     private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly tronGrid: TronGridClient,
+    private readonly bitcoin: BitcoinClient,
+    private readonly solana: SolanaRpcClient,
   ) {}
+
+  /** One reader per chain family; each returns the chain's balances and transfers. */
+  private readonly readers: Record<ChainFamily, (wallet: CryptoWallet) => Promise<ChainRead>> = {
+    evm: wallet => this.readEvm(wallet),
+    tron: wallet => this.readTron(wallet),
+    bitcoin: wallet => this.readBitcoin(wallet),
+    solana: wallet => this.readSolana(wallet),
+  };
 
   @Cron('0 */6 * * *')
   async syncAllWallets(): Promise<void> {
@@ -90,43 +114,20 @@ export class CryptoSyncService {
   }
 
   private async runSync(wallet: CryptoWallet): Promise<WalletSyncResult> {
-    const nativeAsset = NATIVE_ASSET_BY_CHAIN[wallet.chainId] ?? 'ETH';
-    // Which contracts count as real money on this chain. A chain we have no table
-    // for prices no tokens at all, which is safer than trusting another chain's.
-    const tickerByContract = TICKER_BY_CONTRACT[wallet.chainId] ?? {};
     // Balances are fetched alongside the transfers rather than after them: if the
     // explorer is unreachable the whole sync fails and the stored balances stay as
     // they were, instead of being half-updated from a partial read.
-    const [transactions, tokenTransfers, nativeBalance, tokenBalances, ownAddresses, currency] =
-      await Promise.all([
-        this.fetchEtherscan<EtherscanTx>(wallet, 'txlist'),
-        this.fetchEtherscan<EtherscanTokenTx>(wallet, 'tokentx'),
-        this.fetchNativeBalance(wallet),
-        this.fetchTokenBalances(wallet),
-        this.getWorkspaceAddresses(wallet.workspaceId, wallet.chainId),
-        this.getWorkspaceCurrency(wallet.workspaceId),
-      ]);
+    const [chain, currency] = await Promise.all([
+      this.readChain(wallet),
+      this.getWorkspaceCurrency(wallet.workspaceId),
+    ]);
 
     // Balances are stored the moment they are read, before the ledger work that can
     // fail on a rate-limited price lookup. The portfolio value is balances times
     // current prices, so a historical-price outage has no business freezing it.
-    const balances = mapWalletBalances({
-      nativeAsset,
-      nativeBalance,
-      tickerByContract,
-      tokens: tokenBalances,
-    });
-    await this.walletRepo.update(wallet.id, { balances });
+    await this.walletRepo.update(wallet.id, { balances: chain.balances });
 
-    const transfers = mapChainTransfers({
-      address: wallet.address,
-      nativeAsset,
-      ownAddresses,
-      tickerByContract,
-      transactions,
-      tokenTransfers,
-    });
-
+    const transfers = chain.transfers;
     await this.primePrices(transfers);
 
     let imported = 0;
@@ -142,6 +143,96 @@ export class CryptoSyncService {
     }
 
     return { imported, skipped };
+  }
+
+  private readChain(wallet: CryptoWallet): Promise<ChainRead> {
+    const family = CHAINS[wallet.chainId]?.family;
+    if (!family) {
+      throw new Error(`Chain ${wallet.chainId} is not supported`);
+    }
+    return this.readers[family](wallet);
+  }
+
+  private async readBitcoin(wallet: CryptoWallet): Promise<ChainRead> {
+    const [account, transactions, ownAddresses] = await Promise.all([
+      this.bitcoin.getAddress(wallet.address),
+      this.bitcoin.getTransactions(wallet.address),
+      this.getWorkspaceAddresses(wallet.workspaceId, wallet.chainId),
+    ]);
+    return {
+      balances: mapBitcoinBalance(account),
+      transfers: mapBitcoinTransfers({ address: wallet.address, ownAddresses, transactions }),
+    };
+  }
+
+  private async readSolana(wallet: CryptoWallet): Promise<ChainRead> {
+    // Sequential: the public RPC's budget is per second, and the history alone is
+    // one request per transaction.
+    const lamports = await this.solana.getLamports(wallet.address);
+    const tokenAccounts = await this.solana.getTokenAccounts(wallet.address);
+    const transactions = await this.solana.getTransactions(wallet.address);
+    const ownAddresses = await this.getWorkspaceAddresses(wallet.workspaceId, wallet.chainId);
+    return {
+      balances: mapSolanaBalances({ lamports, tokenAccounts, tokens: SOLANA_TOKENS }),
+      transfers: mapSolanaTransfers({
+        address: wallet.address,
+        ownAddresses,
+        tokens: SOLANA_TOKENS,
+        transactions,
+      }),
+    };
+  }
+
+  private async readTron(wallet: CryptoWallet): Promise<ChainRead> {
+    const [account, transactions, tokenTransfers, ownAddresses] = await Promise.all([
+      this.tronGrid.getAccount(wallet.address),
+      this.tronGrid.getTransactions(wallet.address),
+      this.tronGrid.getTrc20Transfers(wallet.address),
+      this.getWorkspaceAddresses(wallet.workspaceId, wallet.chainId),
+    ]);
+
+    return {
+      balances: mapTronBalances({ account, tokens: TRON_TOKENS }),
+      transfers: mapTronTransfers({
+        address: wallet.address,
+        ownAddresses,
+        tokens: TRON_TOKENS,
+        transactions,
+        tokenTransfers,
+      }),
+    };
+  }
+
+  private async readEvm(wallet: CryptoWallet): Promise<ChainRead> {
+    const nativeAsset = NATIVE_ASSET_BY_CHAIN[wallet.chainId] ?? 'ETH';
+    // Which contracts count as real money on this chain. A chain we have no table
+    // for prices no tokens at all, which is safer than trusting another chain's.
+    const tickerByContract = TICKER_BY_CONTRACT[wallet.chainId] ?? {};
+    const [transactions, tokenTransfers, nativeBalance, tokenBalances, ownAddresses] =
+      await Promise.all([
+        this.fetchEtherscan<EtherscanTx>(wallet, 'txlist'),
+        this.fetchEtherscan<EtherscanTokenTx>(wallet, 'tokentx'),
+        this.fetchNativeBalance(wallet),
+        this.fetchTokenBalances(wallet),
+        this.getWorkspaceAddresses(wallet.workspaceId, wallet.chainId),
+      ]);
+
+    return {
+      balances: mapWalletBalances({
+        nativeAsset,
+        nativeBalance,
+        tickerByContract,
+        tokens: tokenBalances,
+      }),
+      transfers: mapChainTransfers({
+        address: wallet.address,
+        nativeAsset,
+        ownAddresses,
+        tickerByContract,
+        transactions,
+        tokenTransfers,
+      }),
+    };
   }
 
   /**
@@ -168,7 +259,7 @@ export class CryptoSyncService {
 
   /** The address's current native-coin balance, in wei. */
   private async fetchNativeBalance(wallet: CryptoWallet): Promise<string> {
-    const data = await this.explorerGet({
+    const data = await this.explorerGet(wallet.chainId, {
       module: 'account',
       action: 'balance',
       address: wallet.address,
@@ -183,7 +274,7 @@ export class CryptoSyncService {
 
   /** The address's current token balances. An address holding none returns no rows. */
   private async fetchTokenBalances(wallet: CryptoWallet): Promise<EtherscanTokenBalance[]> {
-    const data = await this.explorerGet({
+    const data = await this.explorerGet(wallet.chainId, {
       module: 'account',
       action: 'tokenlist',
       address: wallet.address,
@@ -281,7 +372,7 @@ export class CryptoSyncService {
       sort: 'desc',
     });
 
-    const data = await this.explorerGet(params);
+    const data = await this.explorerGet(wallet.chainId, params);
 
     if (typeof data.result === 'string') {
       // "No transactions found" comes back as status 0 with a string result and is
@@ -301,12 +392,17 @@ export class CryptoSyncService {
    * failing the whole wallet on a moment's bad luck.
    */
   private async explorerGet(
+    chainId: number,
     params: URLSearchParams | Record<string, string>,
   ): Promise<ExplorerResponse> {
+    const baseUrl = CHAINS[chainId]?.explorerUrl;
+    if (!baseUrl) {
+      throw new Error(`No block explorer for chain ${chainId}`);
+    }
     const query = new URLSearchParams(params).toString();
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
-      const response = await fetch(`${BLOCK_EXPLORER_BASE_URL}?${query}`).catch(() => null);
+      const response = await fetch(`${baseUrl}?${query}`).catch(() => null);
 
       if (response?.ok) {
         return (await response.json()) as ExplorerResponse;
@@ -327,6 +423,12 @@ export class CryptoSyncService {
 
     throw new Error('Block explorer is unreachable');
   }
+}
+
+/** What one chain's provider reports: current holdings and the transfers to book. */
+interface ChainRead {
+  balances: CryptoWalletBalance[];
+  transfers: ChainTransfer[];
 }
 
 interface ExplorerResponse {

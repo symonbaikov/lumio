@@ -8,6 +8,6 @@ describe('filing info helpers', () => {
   });
 
   it('formats a date-only value without shifting the day', () => {
-    expect(formatFilingDate('2026-04-30', 'en-GB')).toBe('30/04/2026');
+    expect(formatFilingDate('2026-04-30', 'en-GB')).toBe('30 Apr 2026');
   });
 });

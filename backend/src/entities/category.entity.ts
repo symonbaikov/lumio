@@ -23,6 +23,18 @@ export enum CategorySource {
   PARSING = 'parsing',
 }
 
+/**
+ * How a category's spending is judged on the Budgets page and in the Stoic
+ * advice: what life requires, what the work requires, what makes a person
+ * better or helps others, and what is merely pleasant.
+ */
+export enum StoicClass {
+  NECESSITY = 'necessity',
+  WORK = 'work',
+  VIRTUE = 'virtue',
+  LEISURE = 'leisure',
+}
+
 @Entity('categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
@@ -80,6 +92,21 @@ export class Category {
 
   @Column({ nullable: true })
   icon: string | null;
+
+  /**
+   * Set only by the user. Null means "not decided yet": the Stoic ledger then
+   * falls back to a suggestion computed from the name (see stoic-classifier).
+   */
+  @Column({ name: 'stoic_class', type: 'varchar', length: 16, nullable: true })
+  stoicClass: StoicClass | null;
+
+  /**
+   * Whether this spending is help given to others — charity, donations,
+   * gifts. Null means the user has not said; the Stoic advice then guesses
+   * from the name (see suggestHelpsOthers).
+   */
+  @Column({ name: 'helps_others', type: 'boolean', nullable: true })
+  helpsOthers: boolean | null;
 
   /**
    * The income or expense account this category books to. Set on root

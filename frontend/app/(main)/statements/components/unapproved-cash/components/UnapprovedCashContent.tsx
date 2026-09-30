@@ -69,7 +69,7 @@ const SOURCE_BADGE_STYLE: Record<UnapprovedSource, BadgeStyle> = {
   manual: {
     borderColor: 'var(--color-success-soft-border)',
     background: 'var(--color-success-soft-bg)',
-    color: '#036704',
+    color: 'var(--primary-strong)',
   },
   unknown: {
     borderColor: 'var(--border-color)',

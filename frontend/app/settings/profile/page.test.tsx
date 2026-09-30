@@ -64,6 +64,13 @@ vi.mock('@/app/i18n', () => ({
   useLocale: () => ({ locale: 'ru', setLocale: vi.fn() }),
 }));
 
+// Настоящий список — 418 зон, и отрисовка стольких кнопок в jsdom уходит за
+// таймаут. Проверяется проводка ярлыка, а не полнота списка от ICU.
+vi.mock('@/app/settings/profile/profileHelpers', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/app/settings/profile/profileHelpers')>()),
+  resolveTimeZoneOptions: () => ['UTC', 'Europe/Berlin', 'Asia/Tokyo'],
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: routerPush, replace: routerReplace }),
   usePathname: () => '/settings/profile',
@@ -143,6 +150,30 @@ describe('ProfileSettingsPage', () => {
     ) as HTMLButtonElement;
     expect(updatedSubmitButton.disabled).toBe(false);
     expect(container.textContent).toContain('profileCard.unsavedChanges');
+  });
+
+  it('names time zones in the interface language once the drawer is open', async () => {
+    const container = await renderPage();
+
+    const trigger = container.querySelector(
+      '[data-testid="profile-timezone-trigger"]',
+    ) as HTMLButtonElement;
+    expect(trigger).toBeTruthy();
+    // Ящик уезжает в портал, поэтому его кнопки ищутся в body, а не в контейнере.
+    // Пока он закрыт, зоны не называются — ни одной кнопки зоны в документе нет.
+    expect(findButton(document.body, 'Europe/Berlin')).toBeUndefined();
+
+    await act(async () => {
+      trigger.click();
+    });
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const berlin = findButton(document.body, 'Europe/Berlin');
+    expect(berlin).toBeTruthy();
+    // Локаль в моке — ru, поэтому и название зоны обязано быть русским.
+    expect(berlin?.textContent).toContain('Центральная Европа');
   });
 
   it('renders the five tabs and switches tab through the URL', async () => {

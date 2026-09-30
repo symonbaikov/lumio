@@ -1,14 +1,20 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { toast } from 'react-hot-toast';
+import { getIntlayer } from 'react-intlayer';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { DEFAULT_LOCALE, readLocaleFromCookie } from '@/app/lib/locale';
 import { payablesApi } from '@/app/lib/payables-api';
 import type {
   StatementStage,
   StatementStageAction,
   StatementStageActionId,
 } from '@/app/lib/statement-workflow';
-import { isStageActionBlocked, setStatementStage } from '@/app/lib/statement-workflow';
+import {
+  isStageActionBlocked,
+  statementStageSkipMessage,
+  updateStatementStages,
+} from '@/app/lib/statement-workflow';
 import type {
   BranchOption,
   CategoryOption,
@@ -236,9 +242,12 @@ export async function convertDroppedSampleAction({
   setTimeout(() => setSuccess(false), 3000);
 }
 
-const STAGE_ERROR: Record<string, string> = {
-  pay: 'Failed to create payable',
-  default: 'Failed to update stage',
+const stageErrorMessages = () =>
+  getIntlayer('statementStageErrors', readLocaleFromCookie() ?? DEFAULT_LOCALE);
+
+const stageErrorFor = (actionId?: string): string => {
+  const messages = stageErrorMessages();
+  return actionId === 'pay' ? messages.createPayableFailed.value : messages.updateStageFailed.value;
 };
 
 type StageArgs = {
@@ -267,7 +276,7 @@ async function handlePayStageAction(
 ): Promise<boolean> {
   const payableDraft = buildPayableFromStatement({ statement, transactions });
   if (!payableDraft) {
-    toast.error('No expense amount available to create payable');
+    toast.error(stageErrorMessages().noExpenseAmount.value);
     setId(null);
     return false;
   }
@@ -295,7 +304,12 @@ export async function processStageAction({
         return;
       }
     }
-    setStatementStage(statement.id, action.nextStage);
+    const { skipped } = await updateStatementStages([statement.id], action.nextStage);
+    if (skipped.length > 0) {
+      setStageActionLoadingId(null);
+      toast.error(statementStageSkipMessage(skipped[0].code) ?? stageErrorFor());
+      return;
+    }
     setCurrentStage(action.nextStage);
     setStageActionLoadingId(null);
     toast.success(stageActionToasts[action.id]);
@@ -303,7 +317,7 @@ export async function processStageAction({
   } catch (err) {
     console.error('Failed to process stage action:', err);
     setStageActionLoadingId(null);
-    toast.error(STAGE_ERROR[action.id] ?? STAGE_ERROR.default);
+    toast.error(stageErrorFor(action.id));
   }
 }
 

@@ -1,8 +1,4 @@
-import type {
-  CustomTableColumn,
-  CustomTableGridRow,
-  CustomTableRowPatch,
-} from '../utils/stylingUtils';
+import type { CustomTableColumn, CustomTableGridRow, CustomTableRowPatch } from '../utils/types';
 
 /**
  * Черновик — строка, которой ещё нет на сервере. Кнопка «+» создаёт её локально,
@@ -28,7 +24,6 @@ export const createDraftRow = (seq: number, rowNumber: number): CustomTableGridR
   id: `${DRAFT_ROW_ID_PREFIX}${seq}`,
   rowNumber,
   data: {},
-  styles: null,
 });
 
 /**

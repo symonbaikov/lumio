@@ -66,6 +66,7 @@ export const useSpendOverTimeViewModel = (): SpendOverTimeViewModelReturn => {
   const [searchInput, setSearchInput] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState<string | null>(null);
   const t = useIntlayer('statementsPage');
+  const spendT = useIntlayer('statementsSpendOverTime');
   const tx = useMemo(() => createTx(t), [t]);
   const labels = useMemo(() => buildSpendOverTimeLabels(tx), [tx]);
   const filterOptionLabels = useMemo(() => buildAnalyticsFilterLabels(tx), [tx]);
@@ -96,22 +97,22 @@ export const useSpendOverTimeViewModel = (): SpendOverTimeViewModelReturn => {
   );
   const groupByOptions = useMemo(
     () => [
-      { value: 'day', label: 'Day' },
-      { value: 'week', label: 'Week' },
-      { value: 'month', label: 'Month' },
-      { value: 'quarter', label: 'Quarter' },
-      { value: 'year', label: 'Year' },
+      { value: 'day', label: spendT.groupByDay.value },
+      { value: 'week', label: spendT.groupByWeek.value },
+      { value: 'month', label: spendT.groupByMonth.value },
+      { value: 'quarter', label: spendT.groupByQuarter.value },
+      { value: 'year', label: spendT.groupByYear.value },
     ],
-    [],
+    [spendT],
   );
   const viewOptions = useMemo(
     () => [
-      { value: 'calendar', label: 'Calendar' },
-      { value: 'line', label: 'Line' },
-      { value: 'bar', label: 'Bar' },
-      { value: 'stacked', label: 'Stacked' },
+      { value: 'calendar', label: spendT.viewCalendar.value },
+      { value: 'line', label: spendT.viewLine.value },
+      { value: 'bar', label: spendT.viewBar.value },
+      { value: 'stacked', label: spendT.viewStacked.value },
     ],
-    [],
+    [spendT],
   );
   return {
     ...state,

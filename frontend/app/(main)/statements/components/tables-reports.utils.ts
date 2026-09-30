@@ -12,7 +12,7 @@ export interface TablesReportsFilters {
 
 export interface TablesReportRow {
   counterparty: string;
-  source: 'manual' | 'google_sheets_import';
+  source: 'manual';
   tableId: string;
   tableName: string;
   count: number;
@@ -26,7 +26,6 @@ export interface TablesReportResponse {
   totals: {
     total: number;
     manualTotal: number;
-    googleSheetsTotal: number;
     operations: number;
   };
   comparison: {
@@ -36,20 +35,17 @@ export interface TablesReportResponse {
     manualDelta: number;
     manualPercentage: number;
     manualTrend: TablesReportTrend;
-    googleSheetsDelta: number;
-    googleSheetsPercentage: number;
-    googleSheetsTrend: TablesReportTrend;
     operationsDelta: number;
     operationsPercentage: number;
     operationsTrend: TablesReportTrend;
   };
   timeseries: Array<{ date: string; amount: number }>;
-  sourceSplit: { manual: number; googleSheets: number };
+  sourceSplit: { manual: number };
   aggregatedRows: TablesReportRow[];
   tables: Array<{
     id: string;
     name: string;
-    source: 'manual' | 'google_sheets_import';
+    source: 'manual';
     total: number;
     rows: number;
   }>;
@@ -59,7 +55,7 @@ export interface TablesReportDrillDownItem {
   rowId: string;
   tableId: string;
   tableName: string;
-  source: 'manual' | 'google_sheets_import';
+  source: 'manual';
   date: string | null;
   amount: number;
   category: string | null;
@@ -74,7 +70,7 @@ export interface TablesReportDrillDownResponse {
 export interface AvailableTable {
   id: string;
   name: string;
-  source: 'manual' | 'google_sheets_import';
+  source: 'manual';
   rowCount: number;
 }
 
@@ -130,8 +126,8 @@ export function formatAmount(value: number, currency?: string | null): string {
   return currency ? `${formatted} ${currency}` : formatted;
 }
 
-export function getSourceLabel(source: string): string {
-  return source === 'google_sheets_import' ? 'Google Sheets' : 'Manual';
+export function getSourceLabel(source: string, manualLabel = 'Manual'): string {
+  return source === 'manual' ? manualLabel : source;
 }
 
 export function getComparisonColor(trend: TablesReportTrend): string {

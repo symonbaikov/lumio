@@ -38,11 +38,10 @@ export class GmailReceiptExportService {
     return (receipt.parsedData ?? {}) as ReceiptParsedData;
   }
 
-  async exportToSheets(
+  async exportToXlsx(
     workspaceId: string,
     receiptIds: string[],
-    spreadsheetId?: string,
-  ): Promise<{ spreadsheetId: string; url: string }> {
+  ): Promise<{ fileName: string; url: string }> {
     try {
       // Fetch receipts with parsed data
       const receipts = await this.receiptRepository.find({
@@ -79,24 +78,23 @@ export class GmailReceiptExportService {
         rows.push(this.formatReceiptRow(receipt));
       }
 
-      const finalSpreadsheetId = spreadsheetId || `receipts-${Date.now()}`;
+      const fileName = `receipts-${Date.now()}.xlsx`;
       const exportsDir = path.join(resolveUploadsDir(), 'exports');
       await fs.promises.mkdir(exportsDir, { recursive: true });
       const workbook = xlsx.utils.book_new();
       const worksheet = xlsx.utils.aoa_to_sheet(rows);
       xlsx.utils.book_append_sheet(workbook, worksheet, 'Receipts');
-      const filePath = path.join(exportsDir, `${finalSpreadsheetId}.xlsx`);
+      const filePath = path.join(exportsDir, fileName);
       xlsx.writeFile(workbook, filePath);
-      const sheetUrl = `/uploads/exports/${path.basename(filePath)}`;
 
-      this.logger.log(`Exported ${receipts.length} receipts to spreadsheet ${finalSpreadsheetId}`);
+      this.logger.log(`Exported ${receipts.length} receipts to ${fileName}`);
 
       return {
-        spreadsheetId: finalSpreadsheetId,
-        url: sheetUrl,
+        fileName,
+        url: `/uploads/exports/${fileName}`,
       };
     } catch (error) {
-      this.logger.error('Failed to export receipts to sheets', error);
+      this.logger.error('Failed to export receipts to xlsx', error);
       throw error;
     }
   }

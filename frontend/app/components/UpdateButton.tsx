@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Download } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 
 const REPO = 'symonbaikov/lumio';
 const LATEST_RELEASE_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
@@ -22,6 +23,7 @@ export function isUpdateAvailable(
 }
 
 export function UpdateButton() {
+  const t = useIntlayer('updateButton');
   const [tag, setTag] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,10 +61,10 @@ export function UpdateButton() {
       target="_blank"
       rel="noopener noreferrer"
       className="lumio-topbar__update"
-      title={`Release ${tag} is available. Update with: git pull && docker compose up -d --build`}
+      title={t.releaseAvailable.value.replace('{tag}', tag)}
     >
       <Download size={14} />
-      Update
+      {t.update}
     </a>
   );
 }

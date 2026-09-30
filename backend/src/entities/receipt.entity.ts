@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { StatementStage } from './statement.entity';
 import { Transaction } from './transaction.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
@@ -96,6 +97,19 @@ export class Receipt {
     default: ReceiptStatus.DRAFT,
   })
   status: ReceiptStatus;
+
+  /**
+   * Review-workflow stage, shared with statements (Submit → Approve). Separate
+   * from `status`, which tracks parsing and approval into a transaction. Moves go
+   * through `POST /receipts/stage`.
+   */
+  @Column({
+    type: 'enum',
+    enum: StatementStage,
+    enumName: 'receipts_stage_enum',
+    default: StatementStage.SUBMIT,
+  })
+  stage: StatementStage;
 
   @Column({ type: 'jsonb', nullable: true })
   metadata: {

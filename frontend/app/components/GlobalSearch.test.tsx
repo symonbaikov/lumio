@@ -135,13 +135,13 @@ describe('GlobalSearch', () => {
     await waitFor(() => expect(screen.queryByLabelText('Search everything')).toBeNull());
   });
 
-  it('says the favorites are empty, with an illustration, until something is starred', async () => {
+  it('says the favorites are empty, with a plain star and no illustration, until something is starred', async () => {
     await openPanel();
 
     fireEvent.click(screen.getByRole('tab', { name: 'Favorites' }));
 
     expect(await screen.findByText('No favorites yet')).toBeTruthy();
-    expect(document.querySelector('img[src*="empty-states/favorites.svg"]')).not.toBeNull();
+    expect(document.querySelector('img[src*="empty-states/favorites.svg"]')).toBeNull();
   });
 
   it('stars a statement from the Search tab and lists it under Favorites without leaving the panel', async () => {

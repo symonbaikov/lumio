@@ -4,13 +4,20 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
-import { Plus } from '@/app/components/icons';
+import NextLink from 'next/link';
+import { useEffect } from 'react';
 import { EmptyState } from '@/app/components/ui/EmptyState';
+import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import type { BudgetFormData, BudgetItem } from '../hooks/useBudgetsPage';
+import { useStoicBalance } from '../hooks/useStoicBalance';
 import { BudgetCard } from './BudgetCard';
 import { BudgetFormDrawer } from './BudgetFormDrawer';
+import { StoicBalance } from './StoicBalance';
+
+/** Anchor of the budget list; the dashboard's "View all" links to `/budgets#budget-list`. */
+export const BUDGET_LIST_ID = 'budget-list';
 
 function BudgetCardSkeleton(): React.JSX.Element {
   return (
@@ -74,16 +81,41 @@ export function BudgetsContent({
   handleDelete,
 }: BudgetsContentProps) {
   const t = useIntlayer('budgetsPage');
+  const { hasPermission } = usePermissions();
+  const { balance } = useStoicBalance();
+  const classOf = new Map(
+    (balance?.categories ?? []).map(category => [category.id, category.stoicClass]),
+  );
+  const listReady = !(isPending || error) && budgets.length > 0;
+  // The browser's own jump to the anchor fires before the list has loaded,
+  // so the scroll waits for the cards to render.
+  useEffect(() => {
+    if (listReady && window.location.hash === `#${BUDGET_LIST_ID}`) {
+      document
+        .getElementById(BUDGET_LIST_ID)
+        ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+  }, [listReady]);
   return (
     <Box sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" fontWeight={700}>
-          Budgets
+          {t.pageTitle}
         </Typography>
-        <Button variant="contained" startIcon={<Plus size={18} />} onClick={() => openCreate()}>
-          New Budget
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          {/* Budgets can fund a goal, so the goals page is reached from here. */}
+          {hasPermission('goal.view') && (
+            <Button variant="outlined" component={NextLink} href="/goals">
+              {t.savingsGoals}
+            </Button>
+          )}
+          <Button variant="contained" onClick={() => openCreate()}>
+            {t.newBudget}
+          </Button>
+        </Box>
       </Box>
+
+      <StoicBalance />
 
       {isPending && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -112,10 +144,12 @@ export function BudgetsContent({
         />
       )}
 
-      {!(isPending || error) && budgets.length > 0 && (
+      {listReady && (
         // Удаление и сохранение перезагружают список в фоне, не гася карточки.
         <Box
+          id={BUDGET_LIST_ID}
           sx={{
+            scrollMarginTop: 16,
             display: 'flex',
             flexDirection: 'column',
             gap: 2,
@@ -124,7 +158,13 @@ export function BudgetsContent({
           }}
         >
           {budgets.map(budget => (
-            <BudgetCard key={budget.id} budget={budget} onEdit={openEdit} onDelete={handleDelete} />
+            <BudgetCard
+              key={budget.id}
+              budget={budget}
+              stoicClass={classOf.get(budget.categoryId) ?? null}
+              onEdit={openEdit}
+              onDelete={handleDelete}
+            />
           ))}
         </Box>
       )}

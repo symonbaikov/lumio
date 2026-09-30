@@ -11,8 +11,22 @@ vi.mock('@/app/hooks/usePermissions', () => ({
   usePermissions: () => ({ hasPermission: () => true }),
 }));
 
+// Mirrors react-intlayer's renderIntlayerNode: usable as a JSX child and via `.value`.
+const node = (v: string) =>
+  // biome-ignore lint/complexity/noUselessFragments: Proxy needs an object target — a bare string can't be proxied
+  new Proxy(<>{v}</>, {
+    get(target, prop, receiver) {
+      if (prop === 'value') return v;
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
 vi.mock('@/app/i18n', () => ({
-  useIntlayer: () => ({ nav: new Proxy({}, { get: (_target, key) => String(key) }) }),
+  useIntlayer: () => ({
+    nav: new Proxy({}, { get: (_target, key) => String(key) }),
+    shell: { menu: node('Menu'), closeMenu: node('Close menu'), help: node('Help') },
+    userMenu: { workspace: node('Workspace'), settings: node('Settings') },
+  }),
 }));
 
 let openDrawer: () => void = () => {};

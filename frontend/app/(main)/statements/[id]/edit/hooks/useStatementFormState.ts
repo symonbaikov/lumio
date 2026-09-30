@@ -60,8 +60,8 @@ export type StatementFormStateResult = {
   setMetadataForm: React.Dispatch<React.SetStateAction<MetaForm>>;
   exportConfirmOpen: boolean;
   setExportConfirmOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  parsingDetailsExpanded: boolean;
-  setParsingDetailsExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+  parsingDetailsExpanded: boolean | null;
+  setParsingDetailsExpanded: React.Dispatch<React.SetStateAction<boolean | null>>;
   balanceStartInputRef: React.RefObject<HTMLInputElement | null>;
   balanceEndInputRef: React.RefObject<HTMLInputElement | null>;
 };
@@ -96,7 +96,8 @@ export function useStatementFormState(): StatementFormStateResult {
     statementDateTo: '',
   });
   const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
-  const [parsingDetailsExpanded, setParsingDetailsExpanded] = useState(true);
+  // null = the user hasn't toggled it yet; the page opens it only when parsing flagged something.
+  const [parsingDetailsExpanded, setParsingDetailsExpanded] = useState<boolean | null>(null);
   const balanceStartInputRef = useRef<HTMLInputElement | null>(null);
   const balanceEndInputRef = useRef<HTMLInputElement | null>(null);
   return {
