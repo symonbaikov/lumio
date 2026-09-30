@@ -148,7 +148,11 @@ function PayablesList({
           {items.map(payable => {
             const overdue = isPayableOverdue(payable);
             return (
-              <div key={payable.id} className="lumio-payable-list__mobile-row">
+              <div
+                key={payable.id}
+                data-attention={`payable:${payable.id}`}
+                className="lumio-payable-list__mobile-row"
+              >
                 <div className="lumio-payable-list__mobile-row-top">
                   <div>
                     <div style={{ fontSize: 16, fontWeight: 600, color: c.ink900 }}>
@@ -201,7 +205,7 @@ function PayablesList({
                 const overdue = isPayableOverdue(payable);
 
                 return (
-                  <tr key={payable.id}>
+                  <tr key={payable.id} data-attention={`payable:${payable.id}`}>
                     <td
                       className="lumio-payable-list__td"
                       style={{ fontWeight: 500, color: c.ink900 }}

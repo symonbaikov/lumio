@@ -213,6 +213,7 @@ export class PayablesService {
         entityId: saved.id,
         meta: {
           payableId: saved.id,
+          direction: saved.direction,
         },
       });
     } catch (error) {

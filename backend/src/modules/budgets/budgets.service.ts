@@ -207,6 +207,7 @@ export class BudgetsService {
           entityId: budget.id,
           meta: {
             budgetId: budget.id,
+            categoryId: budget.categoryId,
             categoryName: budget.category?.name,
             limitAmount: budget.limitAmount,
             spentAmount,
@@ -227,6 +228,7 @@ export class BudgetsService {
           entityId: budget.id,
           meta: {
             budgetId: budget.id,
+            categoryId: budget.categoryId,
             categoryName: budget.category?.name,
             limitAmount: budget.limitAmount,
             spentAmount,

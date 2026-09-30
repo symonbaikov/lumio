@@ -39,7 +39,7 @@ export class PayablesScheduler {
             messageParams: { vendor: payable.vendor },
             entityType: EntityType.PAYABLE,
             entityId: payable.id,
-            meta: { payableId: payable.id },
+            meta: { payableId: payable.id, direction: payable.direction },
           });
         } catch (error) {
           this.logger.error(
@@ -61,7 +61,7 @@ export class PayablesScheduler {
             messageParams: { vendor: payable.vendor },
             entityType: EntityType.PAYABLE,
             entityId: payable.id,
-            meta: { payableId: payable.id },
+            meta: { payableId: payable.id, direction: payable.direction },
           });
           await this.payablesService.markDueSoonNotified(payable.id);
         } catch (error) {

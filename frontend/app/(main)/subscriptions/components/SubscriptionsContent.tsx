@@ -466,7 +466,11 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
               </thead>
               <tbody>
                 {visibleSubscriptions.map(subscription => (
-                  <tr key={subscription.id} onClick={() => setSelected(subscription)}>
+                  <tr
+                    key={subscription.id}
+                    data-attention={`subscription:${subscription.id}`}
+                    onClick={() => setSelected(subscription)}
+                  >
                     <td>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <VendorIcon

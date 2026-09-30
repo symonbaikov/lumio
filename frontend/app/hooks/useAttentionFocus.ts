@@ -12,20 +12,30 @@ const ATTENTION_CLASS = 'lumio-attention';
 const FOCUS_PARAM = 'focus';
 
 /**
+ * Some lists render a desktop table and mobile cards side by side and hide one
+ * with CSS, so the first match can be invisible. Prefer a rendered one; fall
+ * back to the first match (which is also what jsdom, with no layout, gets).
+ */
+function findTarget(selector: string): Element | null {
+  const matches = Array.from(document.querySelectorAll(selector));
+  return matches.find(element => element.getClientRects().length > 0) ?? matches[0] ?? null;
+}
+
+/**
  * Runs `onFound` with the first element matching `selector`, now or as soon as
  * it renders — the target of a deep link usually appears only once its data has
  * loaded. Returns a cleanup that stops waiting.
  */
 function whenPresent(selector: string, onFound: (element: Element) => void): () => void {
   const noop = (): void => undefined;
-  const existing = document.querySelector(selector);
+  const existing = findTarget(selector);
   if (existing) {
     onFound(existing);
     return noop;
   }
 
   const observer = new MutationObserver(() => {
-    const element = document.querySelector(selector);
+    const element = findTarget(selector);
     if (element) {
       observer.disconnect();
       window.clearTimeout(timer);
@@ -46,8 +56,9 @@ function whenPresent(selector: string, onFound: (element: Element) => void): () 
  *
  * The link carries `?focus=<id>` and the target marks itself with
  * `data-attention="<id>"`, so pages opt in by tagging one element instead of
- * each one growing its own deep-link plumbing. Insight notifications are the
- * only producer today (see app/components/insights/insight-href.ts).
+ * each one growing its own deep-link plumbing. Producers are insight links
+ * (app/components/insights/insight-href.ts) and the notification bell
+ * (app/components/notifications/notification-href.ts).
  *
  * Call it from the destination page, not from the layout: a layout is not
  * remounted on soft navigation, so arriving at the page you are already on

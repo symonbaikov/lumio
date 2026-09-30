@@ -59,7 +59,11 @@ export function SubscriptionCard({
   };
 
   return (
-    <Card variant="outlined" sx={{ position: 'relative' }}>
+    <Card
+      variant="outlined"
+      data-attention={`subscription:${subscription.id}`}
+      sx={{ position: 'relative' }}
+    >
       <CardContent sx={{ pb: 1.5, '&:last-child': { pb: 1.5 } }}>
         {/* Header */}
         <Box

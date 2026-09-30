@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { Download, RefreshCcw } from '@/app/components/icons';
 import { Button } from '@/app/components/ui/button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
@@ -170,6 +171,7 @@ type PayablesViewProps = {
 // eslint-disable-next-line max-lines-per-function, complexity
 export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}): React.JSX.Element {
   const searchParams = useSearchParams();
+  useAttentionFocus();
   const { user, loading: authLoading } = useAuth();
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const { locale } = useLocale();

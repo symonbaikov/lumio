@@ -4,10 +4,12 @@ import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
+import { useSearchParams } from 'next/navigation';
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BarChart3, CalendarDays, DollarSign, List, PieChart, Scale } from '@/app/components/icons';
 import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
+import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import BalanceSheet from './components/BalanceSheet';
@@ -88,6 +90,15 @@ export default function ReportsPage(): React.JSX.Element {
   ];
 
   const [tab, setTab] = useState<'templates' | 'history' | 'schedules' | 'tax'>('templates');
+  // Only the tax tab is linked to (threshold notifications). Followed on change,
+  // not just read once: the link can be opened while this page is already up.
+  const linkedToTax = useSearchParams().get('tab') === 'tax';
+  useEffect(() => {
+    if (linkedToTax) {
+      setTab('tax');
+    }
+  }, [linkedToTax]);
+  useAttentionFocus();
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplate | null>(null);
   const [showBalanceSheet, setShowBalanceSheet] = useState(false);
 

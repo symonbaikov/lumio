@@ -186,6 +186,7 @@ export function TaxReturnView(): React.ReactElement {
 
       {threshold?.threshold ? (
         <Box
+          data-attention="tax:threshold"
           sx={{
             borderRadius: tokens.radius.lg,
             border: '1px solid',

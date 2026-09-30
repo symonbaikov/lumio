@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Bell, CircleAlert, Info } from '@/app/components/icons';
+import { notificationHref } from '@/app/components/notifications/notification-href';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useNotifications } from '@/app/hooks/useNotifications';
@@ -90,57 +91,6 @@ export function NotificationDropdown({
   const router = useRouter();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-
-  const getNotificationHref = (notification: {
-    type: string;
-    entityType: string | null;
-    entityId: string | null;
-    meta: Record<string, unknown> | null;
-  }): string | null => {
-    if (notification.type === 'receipt.uncategorized' && notification.entityId) {
-      return `/storage/gmail-receipts/${notification.entityId}`;
-    }
-
-    if (
-      [
-        'transaction.uncategorized',
-        'parsing.error',
-        'import.failed',
-        'statement.uploaded',
-        'import.committed',
-      ].includes(notification.type) &&
-      notification.entityId
-    ) {
-      return `/statements/${notification.entityId}/edit`;
-    }
-
-    if (notification.entityType === 'statement' && notification.entityId) {
-      return `/statements/${notification.entityId}/edit`;
-    }
-
-    if (notification.entityType === 'receipt' && notification.entityId) {
-      return '/statements';
-    }
-
-    if (notification.entityType === 'category') {
-      return '/workspaces/categories';
-    }
-
-    if (notification.entityType === 'workspace') {
-      return '/workspaces/overview';
-    }
-
-    if (notification.entityType === 'transaction') {
-      const statementId =
-        typeof notification.meta?.statementId === 'string' ? notification.meta.statementId : null;
-      if (statementId) {
-        return `/statements/${statementId}/edit`;
-      }
-      return '/statements';
-    }
-
-    return null;
-  };
 
   useEffect(() => {
     if (open) {
@@ -293,7 +243,7 @@ export function NotificationDropdown({
           ) : null}
 
           {notifications.map(notification => {
-            const href = getNotificationHref(notification);
+            const href = notificationHref(notification);
             const localizedCopy = getLocalizedNotificationCopy(notification);
             const severityIcon =
               notification.severity === 'error' ? (
