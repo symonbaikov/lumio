@@ -7,14 +7,13 @@ import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Building2,
-  Check,
   ChevronDown,
   ChevronLeft,
   ImageIcon,
   Save,
-  Search,
   Trash2,
 } from '@/app/components/icons';
+import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
@@ -145,8 +144,6 @@ export default function WorkspaceOverviewView() {
   }, [currencyItems, currencyQuery, currency]);
 
   const notSelectedLabel = tc.notSelected.value;
-  const notSelectedMatchesSearch =
-    currencyQuery.length === 0 || notSelectedLabel.toLowerCase().includes(currencyQuery);
 
   const isDirty =
     Boolean(currentWorkspace) &&
@@ -577,238 +574,26 @@ export default function WorkspaceOverviewView() {
       </DrawerShell>
 
       {/* Currency drawer */}
-      <DrawerShell
+      <CurrencyDrawer
         isOpen={currencyDrawerOpen}
         onClose={() => {
           setCurrencyDrawerOpen(false);
           setCurrencySearch('');
         }}
-        position="right"
-        width="lg"
-        showCloseButton={false}
-        title={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <button
-              type="button"
-              onClick={() => {
-                setCurrencyDrawerOpen(false);
-                setCurrencySearch('');
-              }}
-              style={{
-                borderRadius: tokens.radius.full,
-                padding: 8,
-                color: 'var(--muted-foreground)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-              aria-label={tc.closeDrawer.value}
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <Typography variant="h6" fontWeight={600} sx={{ color: 'var(--foreground)' }}>
-              {tc.selectCurrency}
-            </Typography>
-          </Box>
-        }
-      >
-        <Box sx={{ display: 'flex', height: '100%', flexDirection: 'column' }}>
-          <Box sx={{ flex: 1, overflowY: 'auto', pb: 2 }}>
-            {/* Search input */}
-            <Box sx={{ position: 'relative', mb: 1.5 }}>
-              <Search
-                size={16}
-                style={{
-                  position: 'absolute',
-                  left: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--muted-foreground)',
-                  pointerEvents: 'none',
-                }}
-              />
-              <input
-                type="text"
-                value={currencySearch}
-                onChange={event => setCurrencySearch(event.target.value)}
-                placeholder={tc.search.value}
-                style={{
-                  width: '100%',
-                  border: '1px solid var(--border)',
-                  background: 'var(--background)',
-                  padding: '10px 16px 10px 40px',
-                  fontSize: 14,
-                  color: 'var(--foreground)',
-                  borderRadius: tokens.radius.md,
-                  boxSizing: 'border-box',
-                }}
-              />
-            </Box>
-
-            {/* Not-selected option */}
-            {!currency && notSelectedMatchesSearch ? (
-              <button
-                type="button"
-                onClick={() => handleSelectCurrency('')}
-                style={{
-                  display: 'flex',
-                  width: '100%',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'var(--muted)',
-                  border: 'none',
-                  padding: '16px',
-                  cursor: 'pointer',
-                  borderRadius: tokens.radius.md,
-                  marginBottom: 8,
-                }}
-              >
-                <Typography variant="body1" fontWeight={600} sx={{ color: 'var(--foreground)' }}>
-                  {notSelectedLabel}
-                </Typography>
-                <Check size={20} style={{ color: 'var(--primary)' }} />
-              </button>
-            ) : null}
-
-            {/* Selected currency */}
-            {selectedCurrencyItem && selectedMatchesSearch ? (
-              <button
-                type="button"
-                onClick={() => handleSelectCurrency(selectedCurrencyItem.code)}
-                style={{
-                  display: 'flex',
-                  width: '100%',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: 'var(--muted)',
-                  border: 'none',
-                  padding: '16px',
-                  cursor: 'pointer',
-                  borderRadius: tokens.radius.md,
-                  marginBottom: 8,
-                }}
-              >
-                <Typography variant="body1" fontWeight={600} sx={{ color: 'var(--foreground)' }}>
-                  {selectedCurrencyItem.label}
-                </Typography>
-                <Check size={20} style={{ color: 'var(--primary)' }} />
-              </button>
-            ) : null}
-
-            {/* Recents */}
-            {currencyQuery.length === 0 && recentCurrencyItems.length > 0 ? (
-              <Box sx={{ mb: 1.5 }}>
-                <Typography
-                  variant="body2"
-                  sx={{ color: 'var(--muted-foreground)', px: 0.5, mb: 1 }}
-                >
-                  {tc.recents}
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {recentCurrencyItems.map(item => (
-                    <button
-                      key={`recent-${item.code}`}
-                      type="button"
-                      onClick={() => handleSelectCurrency(item.code)}
-                      style={{
-                        display: 'flex',
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: 'none',
-                        border: 'none',
-                        padding: '12px',
-                        cursor: 'pointer',
-                        borderRadius: tokens.radius.md,
-                        textAlign: 'left',
-                      }}
-                    >
-                      <Typography
-                        variant="body1"
-                        fontWeight={600}
-                        sx={{ color: 'var(--foreground)' }}
-                      >
-                        {item.label}
-                      </Typography>
-                    </button>
-                  ))}
-                </Box>
-              </Box>
-            ) : null}
-
-            {/* All currencies */}
-            <Box>
-              <Typography variant="body2" sx={{ color: 'var(--muted-foreground)', px: 0.5, mb: 1 }}>
-                {tc.all}
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {notSelectedMatchesSearch && currency ? (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCurrency('')}
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      background: 'none',
-                      border: 'none',
-                      padding: '12px',
-                      cursor: 'pointer',
-                      borderRadius: tokens.radius.md,
-                      textAlign: 'left',
-                    }}
-                  >
-                    <Typography
-                      variant="body1"
-                      fontWeight={600}
-                      sx={{ color: 'var(--foreground)' }}
-                    >
-                      {notSelectedLabel}
-                    </Typography>
-                  </button>
-                ) : null}
-
-                {allCurrencyItems.length > 0 ? (
-                  allCurrencyItems.map(item => (
-                    <button
-                      key={item.code}
-                      type="button"
-                      onClick={() => handleSelectCurrency(item.code)}
-                      style={{
-                        display: 'flex',
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        background: 'none',
-                        border: 'none',
-                        padding: '12px',
-                        cursor: 'pointer',
-                        borderRadius: tokens.radius.md,
-                        textAlign: 'left',
-                      }}
-                    >
-                      <Typography
-                        variant="body1"
-                        fontWeight={600}
-                        sx={{ color: 'var(--foreground)' }}
-                      >
-                        {item.label}
-                      </Typography>
-                    </button>
-                  ))
-                ) : (
-                  <Box sx={{ bgcolor: 'var(--muted)', borderRadius: tokens.radius.md, p: 1.5 }}>
-                    <Typography variant="body2" sx={{ color: 'var(--muted-foreground)' }}>
-                      {tc.noCurrencies}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </DrawerShell>
+        currencySearch={currencySearch}
+        setCurrencySearch={setCurrencySearch}
+        selectedCurrencyItem={selectedCurrencyItem}
+        selectedMatchesSearch={selectedMatchesSearch}
+        currencyQuery={currencyQuery}
+        recentCurrencyItems={recentCurrencyItems}
+        allCurrencyItems={allCurrencyItems}
+        handleSelectCurrency={handleSelectCurrency}
+        noneOption={{
+          label: notSelectedLabel,
+          selected: !currency,
+          onSelect: () => handleSelectCurrency(''),
+        }}
+      />
 
       {/* Delete modal */}
       <ModalShell
