@@ -305,6 +305,43 @@ describe('InsightsService', () => {
     expect(items[2].title).toBe('Hand-written');
   });
 
+  it('credits the expert by their name in the reader language', async () => {
+    const listQb = createQueryBuilderMock();
+    listQb.getManyAndCount.mockResolvedValueOnce([
+      [
+        {
+          id: 'insight-1',
+          messageKey: 'expert.rule_50_30_20',
+          // Уже на языке читателя: текст не перерисовывается, а подпись обязана.
+          messageParams: { locale: 'ru', variant: 0 },
+          title: 'Формула сбалансированных денег',
+          message: 'unchanged',
+          data: {
+            expert: 'Elizabeth Warren & Amelia Warren Tyagi',
+            work: 'All Your Worth (2005)',
+            target: 'budgets',
+          },
+        },
+      ],
+      1,
+    ]);
+    insightRepository.createQueryBuilder.mockReturnValueOnce(listQb);
+
+    const { items } = await service.list({
+      userId: 'user-1',
+      workspaceId: 'workspace-1',
+      locale: 'ru',
+    });
+
+    expect(items[0].data).toEqual({
+      expert: 'Элизабет Уоррен и Амелия Уоррен Тьяги',
+      // Название книги остаётся как издано — так же цитирует источник баннер.
+      work: 'All Your Worth (2005)',
+      target: 'budgets',
+    });
+    expect(items[0].title).toBe('Формула сбалансированных денег');
+  });
+
   it('leaves the stored text alone when no locale is asked for', async () => {
     const listQb = createQueryBuilderMock();
     listQb.getManyAndCount.mockResolvedValueOnce([

@@ -1,4 +1,4 @@
-import { renderInsight } from '@/modules/insights/insight-translations';
+import { INSIGHT_TRANSLATIONS, renderInsight } from '@/modules/insights/insight-translations';
 import { STOIC_TEXTS } from '@/modules/insights/stoic-texts';
 
 const placeholders = (text: string) =>
@@ -9,6 +9,24 @@ describe('Stoic texts', () => {
 
   it('has all 21 locales', () => {
     expect(Object.keys(STOIC_TEXTS)).toHaveLength(21);
+  });
+
+  // Советы без стоических ключей (operational.*, trend.*, pattern.*) живут
+  // в другой карте — её никто не сторожил, хотя рисуется она тем же renderInsight.
+  it.each(Object.keys(STOIC_TEXTS))('%s: non-stoic advice is translated too', locale => {
+    const map = INSIGHT_TRANSLATIONS[locale];
+    expect(map).toBeDefined();
+    for (const key of Object.keys(INSIGHT_TRANSLATIONS.en)) {
+      const entry = map[key as keyof typeof map];
+      expect({ key, has: Boolean(entry?.title && entry?.message) }).toEqual({ key, has: true });
+      expect({ key, got: placeholders(entry.title + entry.message) }).toEqual({
+        key,
+        got: placeholders(
+          INSIGHT_TRANSLATIONS.en[key as keyof typeof map].title +
+            INSIGHT_TRANSLATIONS.en[key as keyof typeof map].message,
+        ),
+      });
+    }
   });
 
   it.each(Object.keys(STOIC_TEXTS))(
