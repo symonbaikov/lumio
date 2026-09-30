@@ -4,18 +4,45 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Intlayer renders its own nodes; plain strings and a `.value` holder are
 // enough to stand in for them here.
-vi.mock('@/app/i18n', () => ({
-  useIntlayer: () => ({
+// The catalog dictionary is resolved to its English strings, each wrapped the
+// way the catalog reads it (`.value`).
+vi.mock('@/app/i18n', async () => {
+  const { default: catalog } = await import('./integration-catalog.content');
+  const toEnglish = (node: unknown): unknown => {
+    if (node && typeof node === 'object') {
+      const translation = (node as { translation?: { en: string } }).translation;
+      if (translation) return { value: translation.en };
+      return Object.fromEntries(
+        Object.entries(node).map(([key, child]) => [key, toEnglish(child)]),
+      );
+    }
+    return node;
+  };
+  const catalogText = toEnglish(catalog.content);
+  const pageText = {
     title: 'Integrations',
     searchPlaceholder: { value: 'Search integrations...' },
+    sections: { connected: { value: 'Connected' } },
+    setUp: { value: 'Set up' },
+    nothingMatches: { value: 'Nothing matches "{query}".' },
     categories: {
+      ai: 'AI',
+      application: 'Application',
       storage: 'Storage',
       email: 'Email',
-      spreadsheets: 'Spreadsheets',
       messaging: 'Messaging',
     },
-  }),
-}));
+  };
+  // Any other dictionary (the drawer shell's own) only needs `.value` strings.
+  const otherText = new Proxy({}, { get: (_target, prop) => ({ value: String(prop) }) });
+  const byKey: Record<string, unknown> = {
+    integrationCatalog: catalogText,
+    integrationsPage: pageText,
+  };
+  return {
+    useIntlayer: (key: string) => byKey[key] ?? otherText,
+  };
+});
 
 import { IntegrationsListDrawer } from './IntegrationsListDrawer';
 

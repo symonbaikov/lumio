@@ -41,7 +41,7 @@
   }
 
   &:focus-visible {
-    outline: 2px solid $lumio-color-primary;
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
 
     @include dark {
@@ -54,8 +54,8 @@
   }
 
   &--active {
-    background: $lumio-color-primary;
-    border-color: $lumio-color-primary;
+    background: var(--primary-fill);
+    border-color: var(--primary-fill);
     color: $lumio-color-primary-contrast;
 
     @include dark {
@@ -190,7 +190,7 @@
       transition: color 120ms;
 
       &:hover .lumio-dashboard__row-primary {
-        color: $lumio-color-primary;
+        color: var(--primary);
 
         @include dark {
           color: $lumio-color-primary-dk;

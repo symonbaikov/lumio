@@ -145,8 +145,8 @@
     }
 
     &--active {
-      background: $lumio-color-primary-50;
-      color: $lumio-color-primary;
+      background: var(--primary-50);
+      color: var(--primary);
       font-weight: 600;
 
       @include dark {

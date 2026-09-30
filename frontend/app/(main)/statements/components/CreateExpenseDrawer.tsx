@@ -14,11 +14,10 @@ import {
   FileText,
   ImageIcon,
   PencilLine,
-  Plus,
   Receipt,
   ScanLine,
-  Search,
 } from '@/app/components/icons';
+import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { ReceiptLocationConsent } from '@/app/components/receipts/location/ReceiptLocationConsent';
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
@@ -59,98 +58,89 @@ type Props = {
 };
 
 /**
- * One row of the "Confirm details" list. Every field uses the same label /
- * value / divider rhythm; the chevron marks the rows that open a sub-drawer,
- * so it stays an honest navigation affordance instead of decoration.
+ * One field of the "Confirm details" form: a label above a flat control, and a
+ * validation message under it. Picker fields render a button styled as the same
+ * control; its chevron marks that it opens a sub-drawer.
  */
-const DETAIL_VALUE_STYLE = {
-  marginTop: 4,
-  fontSize: 17,
-  lineHeight: 1.4,
-  color: 'var(--foreground)',
-} as const;
-
-const DETAIL_INPUT_STYLE = {
-  ...DETAIL_VALUE_STYLE,
-  width: '100%',
-  border: 0,
-  background: 'transparent',
-  padding: 0,
-  outline: 'none',
-} as const;
-
-function DetailRow({
+function DetailField({
+  id,
   label,
-  htmlFor,
   error,
-  onClick,
-  isLast,
   children,
 }: {
+  id: string;
   label: string;
-  htmlFor?: string;
   error?: string | null;
-  onClick?: () => void;
-  isLast?: boolean;
   children: React.ReactNode;
 }): React.ReactElement {
-  // Rows that own an input get a real <label>; the rest are buttons or
-  // self-labelled controls, where a <label> would be dangling or nested.
-  const LabelTag = htmlFor ? 'label' : 'span';
-  const body = (
-    <>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <LabelTag
-          htmlFor={htmlFor}
-          style={{ fontSize: 13, color: 'var(--muted-foreground)', display: 'block' }}
-        >
-          {label}
-        </LabelTag>
-        {children}
-        {error ? (
-          <p style={{ marginTop: 4, fontSize: 12, color: 'var(--destructive)' }}>{error}</p>
-        ) : null}
-      </div>
-      {onClick ? (
-        <ChevronRight size={20} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
+  return (
+    <div className="lumio-expense-drawer__field">
+      <label id={`${id}-label`} htmlFor={id} className="lumio-expense-drawer__label">
+        {label}
+      </label>
+      {children}
+      {error ? (
+        <p id={`${id}-error`} className="lumio-expense-drawer__error">
+          {error}
+        </p>
       ) : null}
-    </>
+    </div>
   );
+}
 
-  const rowStyle = {
-    display: 'flex',
-    width: '100%',
-    alignItems: 'center',
-    gap: 12,
-    padding: '14px 16px',
-    textAlign: 'left' as const,
-    borderBottom: isLast ? 'none' : '1px solid var(--border-color, var(--border-color))',
-  };
+/** "25.5%", not "26%": a rate rounded for display reads as a different rate. */
+function formatTaxPercent(rate: number | string | null | undefined): string {
+  return `${Number(rate || 0)}%`;
+}
 
-  if (!onClick) {
-    return <div style={rowStyle}>{body}</div>;
-  }
+function controlClass(invalid: boolean, button = false): string {
+  return [
+    'lumio-expense-drawer__control',
+    button ? 'lumio-expense-drawer__control--button' : '',
+    invalid ? 'lumio-expense-drawer__control--invalid' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
 
+function PickerButton({
+  id,
+  invalid = false,
+  placeholder = false,
+  amount = false,
+  onClick,
+  children,
+}: {
+  id: string;
+  invalid?: boolean;
+  /** The value is a hint ("Optional", "Select category…"), not a chosen value. */
+  placeholder?: boolean;
+  amount?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}): React.ReactElement {
+  const valueClass = [
+    'lumio-expense-drawer__value',
+    placeholder ? 'lumio-expense-drawer__value--placeholder' : '',
+    amount ? 'lumio-expense-drawer__value--amount' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
     <button
       type="button"
+      id={id}
       onClick={onClick}
-      style={{
-        ...rowStyle,
-        cursor: 'pointer',
-        background: 'none',
-        border: 'none',
-        borderBottom: rowStyle.borderBottom,
-        transition: 'background-color 0.15s',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.background = 'var(--muted)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.background = 'none';
-      }}
+      // Named by label + current value, e.g. "Tax Optional", like the list row it replaced.
+      aria-labelledby={`${id}-label ${id}-value`}
+      aria-invalid={invalid || undefined}
+      aria-describedby={invalid ? `${id}-error` : undefined}
+      className={controlClass(invalid, true)}
     >
-      {body}
+      <span id={`${id}-value`} className={valueClass}>
+        {children}
+      </span>
+      <ChevronRight size={20} style={{ color: 'var(--muted-foreground)', flexShrink: 0 }} />
     </button>
   );
 }
@@ -245,6 +235,17 @@ export default function CreateExpenseDrawer({
     onSubmitScan,
     onSubmitManual,
   });
+  // Field errors wait for the first "Create" press; an untouched form is not wrong yet.
+  const [showFieldErrors, setShowFieldErrors] = useState(false);
+  useEffect(() => {
+    if (!open) {
+      setShowFieldErrors(false);
+    }
+  }, [open]);
+  const merchantError =
+    showFieldErrors && !manualValidation.merchant ? t.fieldRequired.value : null;
+  const categoryError =
+    showFieldErrors && !manualValidation.category ? t.fieldRequired.value : null;
   const [taxRateName, setTaxRateName] = useState('');
   const [taxRateValue, setTaxRateValue] = useState('');
   const [taxRateSaving, setTaxRateSaving] = useState(false);
@@ -332,118 +333,40 @@ export default function CreateExpenseDrawer({
               <ChevronLeft size={20} />
             </button>
             <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--foreground)' }}>
-              {currencyPickerOpen
-                ? t.selectCurrency
-                : mode === 'manual' && manualStep === 'details'
-                  ? t.confirmDetails
-                  : t.createExpense}
+              {mode === 'manual' && manualStep === 'details' ? t.confirmDetails : t.createExpense}
             </span>
           </div>
         }
       >
         <div className="lumio-expense-drawer">
-          {!currencyPickerOpen ? (
-            <div className="lumio-expense-drawer__tabs">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('manual');
-                  setManualStep('amount');
-                  setCurrencyPickerOpen(false);
-                }}
-                className={`lumio-expense-drawer__tab${mode === 'manual' ? ' lumio-expense-drawer__tab--active' : ''}`}
-              >
-                <PencilLine size={16} />
-                {t.manualTab}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('scan');
-                  setCurrencyPickerOpen(false);
-                }}
-                className={`lumio-expense-drawer__tab${mode === 'scan' ? ' lumio-expense-drawer__tab--active' : ''}`}
-              >
-                <ScanLine size={16} />
-                {t.scanTab}
-              </button>
-            </div>
-          ) : null}
+          <div className="lumio-expense-drawer__tabs">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('manual');
+                setManualStep('amount');
+                setCurrencyPickerOpen(false);
+              }}
+              className={`lumio-expense-drawer__tab${mode === 'manual' ? ' lumio-expense-drawer__tab--active' : ''}`}
+            >
+              <PencilLine size={16} />
+              {t.manualTab}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('scan');
+                setCurrencyPickerOpen(false);
+              }}
+              className={`lumio-expense-drawer__tab${mode === 'scan' ? ' lumio-expense-drawer__tab--active' : ''}`}
+            >
+              <ScanLine size={16} />
+              {t.scanTab}
+            </button>
+          </div>
 
           <div className="lumio-expense-drawer__content">
-            {currencyPickerOpen ? (
-              <>
-                <div className="lumio-expense-drawer__search">
-                  <Search size={16} className="lumio-expense-drawer__search-icon" />
-                  <input
-                    type="text"
-                    value={currencySearch}
-                    onChange={event => setCurrencySearch(event.target.value)}
-                    placeholder={t.searchPlaceholder.value}
-                    className="lumio-expense-drawer__search-input"
-                  />
-                </div>
-
-                {selectedCurrencyItem && selectedMatchesSearch ? (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectCurrency(selectedCurrencyItem.code)}
-                    className="lumio-expense-drawer__currency-selected"
-                  >
-                    <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--foreground)' }}>
-                      {selectedCurrencyItem.label}
-                    </span>
-                    <Check size={20} style={{ color: 'var(--primary)' }} />
-                  </button>
-                ) : null}
-
-                {currencyQuery.length === 0 && recentCurrencyItems.length > 0 ? (
-                  <div className="lumio-expense-drawer__section">
-                    <p className="lumio-expense-drawer__label">{t.recents}</p>
-                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {recentCurrencyItems.map(item => (
-                        <button
-                          key={`recent-${item.code}`}
-                          type="button"
-                          onClick={() => handleSelectCurrency(item.code)}
-                          className="lumio-expense-drawer__currency-item"
-                        >
-                          <span
-                            style={{ fontSize: 16, fontWeight: 600, color: 'var(--foreground)' }}
-                          >
-                            {item.label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="lumio-expense-drawer__section">
-                  <p className="lumio-expense-drawer__label">{t.all}</p>
-                  <div className="lumio-expense-drawer__all-list">
-                    {allCurrencyItems.length > 0 ? (
-                      allCurrencyItems.map(item => (
-                        <button
-                          key={item.code}
-                          type="button"
-                          onClick={() => handleSelectCurrency(item.code)}
-                          className="lumio-expense-drawer__currency-item"
-                        >
-                          <span
-                            style={{ fontSize: 16, fontWeight: 600, color: 'var(--foreground)' }}
-                          >
-                            {item.label}
-                          </span>
-                        </button>
-                      ))
-                    ) : (
-                      <p className="lumio-expense-drawer__no-result">{t.noCurrencies}</p>
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : mode === 'scan' ? (
+            {mode === 'scan' ? (
               isMobile ? (
                 <div
                   style={{
@@ -682,70 +605,33 @@ export default function CreateExpenseDrawer({
               </div>
             ) : (
               <>
-                <label
-                  style={{
-                    position: 'relative',
-                    display: 'flex',
-                    cursor: 'pointer',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: tokens.radius.lg,
-                    border: '1px solid var(--border-color, var(--border-color))',
-                    background: 'rgba(0,0,0,0.04)',
-                    padding: '32px 24px',
-                    textAlign: 'center',
-                  }}
-                >
-                  <FileText
-                    size={56}
-                    style={{
-                      color: 'color-mix(in srgb, var(--muted-foreground) 60%, transparent)',
-                    }}
-                  />
-                  <span
-                    style={{
-                      position: 'absolute',
-                      left: '50%',
-                      top: '50%',
-                      display: 'flex',
-                      height: 40,
-                      width: 40,
-                      transform: 'translate(8px, 4px)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: tokens.radius.full,
-                      background: 'var(--primary-fill)',
-                      color: '#fff',
-                    }}
-                  >
-                    <Plus size={20} />
-                  </span>
+                <label className="lumio-expense-drawer__attach">
+                  <FileText size={18} style={{ flexShrink: 0, color: 'var(--muted-foreground)' }} />
+                  <span>{t.attachFile}</span>
+                  <span className="lumio-expense-drawer__attach-hint">{t.attachFileHint}</span>
                   <input
                     type="file"
                     accept="image/*,.pdf,.csv,.xlsx,.xls"
                     capture="environment"
-                    style={{ display: 'none' }}
+                    className="lumio-expense-drawer__attach-input"
                     multiple
                     onChange={event => handleFilesSelected(event.target.files)}
                   />
                 </label>
 
-                <div
-                  style={{
-                    overflow: 'hidden',
-                    borderRadius: tokens.radius.lg,
-                    border: '1px solid var(--border-color, var(--border-color))',
-                    background: 'var(--card-bg, #fff)',
-                  }}
-                >
-                  <DetailRow label={t.amount.value} onClick={() => setManualStep('amount')}>
-                    <span style={{ ...DETAIL_VALUE_STYLE, fontSize: 28, fontWeight: 600 }}>
+                <div className="lumio-expense-drawer__fields">
+                  <DetailField id="expense-manual-amount-edit" label={t.amount.value}>
+                    <PickerButton
+                      id="expense-manual-amount-edit"
+                      amount
+                      onClick={() => setManualStep('amount')}
+                    >
                       {selectedCurrencySymbol}
                       {manualDraft.amount || '0.00'}
-                    </span>
-                  </DetailRow>
+                    </PickerButton>
+                  </DetailField>
 
-                  <DetailRow label={t.description.value} htmlFor="expense-manual-description">
+                  <DetailField id="expense-manual-description" label={t.description.value}>
                     <input
                       id="expense-manual-description"
                       value={manualDraft.description}
@@ -756,14 +642,14 @@ export default function CreateExpenseDrawer({
                         }))
                       }
                       placeholder={t.optional.value}
-                      style={DETAIL_INPUT_STYLE}
+                      className={controlClass(false)}
                     />
-                  </DetailRow>
+                  </DetailField>
 
-                  <DetailRow
+                  <DetailField
+                    id="expense-manual-merchant"
                     label={t.merchant.value}
-                    htmlFor="expense-manual-merchant"
-                    error={!manualValidation.merchant ? t.fieldRequired.value : null}
+                    error={merchantError}
                   >
                     <input
                       id="expense-manual-merchant"
@@ -774,78 +660,71 @@ export default function CreateExpenseDrawer({
                           merchant: event.target.value,
                         }))
                       }
-                      placeholder={t.required.value}
-                      style={DETAIL_INPUT_STYLE}
+                      placeholder={t.merchantPlaceholder.value}
+                      aria-invalid={merchantError !== null || undefined}
+                      aria-describedby={merchantError ? 'expense-manual-merchant-error' : undefined}
+                      className={controlClass(merchantError !== null)}
                     />
-                  </DetailRow>
+                  </DetailField>
 
-                  <DetailRow
+                  <DetailField
+                    id="expense-manual-category"
                     label={t.category.value}
-                    onClick={() => setCategoryDrawerOpen(true)}
-                    error={!manualValidation.category ? t.fieldRequired.value : null}
+                    error={categoryError}
                   >
-                    <span
-                      style={{
-                        ...DETAIL_VALUE_STYLE,
-                        display: 'block',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        color: selectedCategoryName
-                          ? 'var(--foreground)'
-                          : 'var(--muted-foreground)',
-                      }}
+                    <PickerButton
+                      id="expense-manual-category"
+                      invalid={categoryError !== null}
+                      placeholder={!selectedCategoryName}
+                      onClick={() => setCategoryDrawerOpen(true)}
                     >
-                      {selectedCategoryName || t.required}
-                    </span>
-                  </DetailRow>
+                      {selectedCategoryName || t.selectCategory}
+                    </PickerButton>
+                  </DetailField>
 
-                  <DetailRow label={t.date.value}>
-                    <DatePicker
-                      value={manualDate ? parseISO(manualDate) : null}
-                      onChange={(d: Date | null) =>
-                        setManualDate(d && isValid(d) ? format(d, 'yyyy-MM-dd') : '')
-                      }
-                      slotProps={{
-                        textField: {
-                          fullWidth: true,
-                          variant: 'standard',
-                          InputProps: { disableUnderline: true },
-                          inputProps: { 'aria-label': t.date.value },
-                          sx: {
-                            '& .MuiInputBase-input': {
-                              p: 0,
-                              fontSize: 17,
-                              lineHeight: 1.4,
-                              color: 'var(--foreground)',
+                  <DetailField id="expense-manual-date" label={t.date.value}>
+                    <div className={controlClass(false)}>
+                      <DatePicker
+                        value={manualDate ? parseISO(manualDate) : null}
+                        onChange={(d: Date | null) =>
+                          setManualDate(d && isValid(d) ? format(d, 'yyyy-MM-dd') : '')
+                        }
+                        slotProps={{
+                          textField: {
+                            id: 'expense-manual-date',
+                            fullWidth: true,
+                            variant: 'standard',
+                            InputProps: { disableUnderline: true },
+                            inputProps: { 'aria-label': t.date.value },
+                            sx: {
+                              '& .MuiInputBase-input': {
+                                p: 0,
+                                fontSize: 16,
+                                color: 'var(--foreground)',
+                              },
                             },
-                          },
-                        } as never,
-                      }}
-                    />
-                  </DetailRow>
+                          } as never,
+                        }}
+                      />
+                    </div>
+                  </DetailField>
 
-                  <DetailRow label={t.tax.value} onClick={() => setTaxRateDrawerOpen(true)} isLast>
-                    <span
-                      style={{
-                        ...DETAIL_VALUE_STYLE,
-                        display: 'block',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        color: selectedTaxRate ? 'var(--foreground)' : 'var(--muted-foreground)',
-                      }}
+                  <DetailField id="expense-manual-tax" label={t.tax.value}>
+                    <PickerButton
+                      id="expense-manual-tax"
+                      placeholder={!selectedTaxRate}
+                      onClick={() => setTaxRateDrawerOpen(true)}
                     >
                       {selectedTaxRate
-                        ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate || 0).toFixed(0)}%)${selectedTaxRate.isDefault ? t.defaultSuffix.value : ''}`
+                        ? `${selectedTaxRate.name} (${formatTaxPercent(selectedTaxRate.rate)})${selectedTaxRate.isDefault ? t.defaultSuffix.value : ''}`
                         : t.optional}
-                    </span>
-                  </DetailRow>
+                    </PickerButton>
+                  </DetailField>
                 </div>
               </>
             )}
 
-            {files.length > 0 && !currencyPickerOpen ? (
+            {files.length > 0 ? (
               <div
                 style={{
                   borderRadius: tokens.radius.lg,
@@ -932,7 +811,10 @@ export default function CreateExpenseDrawer({
                   ? handleSubmitScan
                   : manualStep === 'amount'
                     ? handleManualNext
-                    : handleSubmitManual
+                    : () => {
+                        setShowFieldErrors(true);
+                        void handleSubmitManual();
+                      }
               }
             >
               {submitting
@@ -949,6 +831,23 @@ export default function CreateExpenseDrawer({
           </div>
         </div>
       </DrawerShell>
+
+      <CurrencyDrawer
+        isOpen={open && currencyPickerOpen}
+        onClose={() => {
+          setCurrencyPickerOpen(false);
+          setCurrencySearch('');
+        }}
+        currencySearch={currencySearch}
+        setCurrencySearch={setCurrencySearch}
+        selectedCurrencyItem={selectedCurrencyItem}
+        selectedMatchesSearch={selectedMatchesSearch}
+        currencyQuery={currencyQuery}
+        recentCurrencyItems={recentCurrencyItems}
+        allCurrencyItems={allCurrencyItems}
+        handleSelectCurrency={handleSelectCurrency}
+        zIndex={1400}
+      />
 
       <StatementCategoryDrawer
         open={open && mode === 'manual' && manualStep === 'details' && categoryDrawerOpen}
@@ -996,67 +895,46 @@ export default function CreateExpenseDrawer({
           </div>
         }
       >
-        <div className="lumio-cat-drawer">
-          <div
-            style={{
-              padding: '16px',
-              borderBottom: '1px solid var(--border-color, var(--border-color))',
-            }}
-          >
-            <div style={{ display: 'grid', gap: 12 }}>
-              <label
-                style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--muted-foreground)' }}
-              >
-                <span>{t.taxRateName}</span>
+        <div className="lumio-tax-drawer">
+          <div className="lumio-tax-drawer__form">
+            <div className="lumio-tax-drawer__form-row">
+              <DetailField id="expense-tax-rate-name" label={t.taxRateName.value}>
                 <input
+                  id="expense-tax-rate-name"
                   value={taxRateName}
                   onChange={event => setTaxRateName(event.target.value)}
                   placeholder={t.taxRateNamePlaceholder.value}
-                  style={{
-                    height: 42,
-                    borderRadius: tokens.radius.sm,
-                    border: '1px solid var(--border-color, var(--border-color))',
-                    background: 'var(--card-bg, #fff)',
-                    padding: '0 12px',
-                    fontSize: 16,
-                    color: 'var(--foreground)',
-                  }}
+                  className={controlClass(false)}
                 />
-              </label>
-              <label
-                style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--muted-foreground)' }}
-              >
-                <span>{t.taxPercentage}</span>
-                <input
-                  value={taxRateValue}
-                  onChange={event => setTaxRateValue(event.target.value)}
-                  inputMode="decimal"
-                  placeholder="12"
-                  style={{
-                    height: 42,
-                    borderRadius: tokens.radius.sm,
-                    border: '1px solid var(--border-color, var(--border-color))',
-                    background: 'var(--card-bg, #fff)',
-                    padding: '0 12px',
-                    fontSize: 16,
-                    color: 'var(--foreground)',
-                  }}
-                />
-              </label>
-              {taxRateError ? (
-                <p style={{ fontSize: 12, color: 'var(--destructive)' }}>{taxRateError}</p>
-              ) : null}
-              <Button
-                type="button"
-                disabled={taxRateSaving}
-                onClick={() => void handleCreateTaxRate()}
-                style={{ width: '100%', borderRadius: tokens.radius.md }}
-              >
-                {taxRateSaving ? t.saving : t.saveTaxRate}
-              </Button>
+              </DetailField>
+              <DetailField id="expense-tax-rate-percentage" label={t.taxPercentage.value}>
+                <div className={controlClass(false)}>
+                  <input
+                    id="expense-tax-rate-percentage"
+                    value={taxRateValue}
+                    onChange={event => setTaxRateValue(event.target.value)}
+                    inputMode="decimal"
+                    placeholder="12"
+                    className="lumio-tax-drawer__percent-input"
+                  />
+                  <span aria-hidden className="lumio-tax-drawer__percent-sign">
+                    %
+                  </span>
+                </div>
+              </DetailField>
             </div>
+            {taxRateError ? <p className="lumio-expense-drawer__error">{taxRateError}</p> : null}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={taxRateSaving}
+              onClick={() => void handleCreateTaxRate()}
+              style={{ width: '100%', borderRadius: 8 }}
+            >
+              {taxRateSaving ? t.saving : t.saveTaxRate}
+            </Button>
           </div>
-          <div className="lumio-cat-drawer__list">
+          <div className="lumio-tax-drawer__list">
             {enabledTaxRates.map(taxRate => {
               const isSelected = manualDraft.taxRateId
                 ? manualDraft.taxRateId === taxRate.id
@@ -1066,6 +944,7 @@ export default function CreateExpenseDrawer({
                 <button
                   key={taxRate.id}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() => {
                     setManualDraft(prev => ({
                       ...prev,
@@ -1073,18 +952,23 @@ export default function CreateExpenseDrawer({
                     }));
                     setTaxRateDrawerOpen(false);
                   }}
-                  className={`lumio-cat-drawer__option${isSelected ? ' lumio-cat-drawer__option--selected' : ''}`}
+                  className={`lumio-tax-drawer__option${isSelected ? ' lumio-tax-drawer__option--selected' : ''}`}
                 >
-                  <span>
-                    {taxRate.name} ({Number(taxRate.rate || 0).toFixed(0)}%)
-                    {taxRate.isDefault ? t.defaultSuffix : ''}
+                  <span className="lumio-tax-drawer__option-name">{taxRate.name}</span>
+                  {taxRate.isDefault ? (
+                    <span className="lumio-tax-drawer__tag">{t.defaultTag}</span>
+                  ) : null}
+                  <span className="lumio-tax-drawer__option-rate">
+                    {formatTaxPercent(taxRate.rate)}
                   </span>
-                  {isSelected ? <Check size={24} style={{ color: 'var(--primary)' }} /> : null}
+                  <span className="lumio-tax-drawer__option-check">
+                    {isSelected ? <Check size={18} /> : null}
+                  </span>
                 </button>
               );
             })}
             {enabledTaxRates.length === 0 ? (
-              <div className="lumio-cat-drawer__no-results">{t.noTaxRates}</div>
+              <div className="lumio-tax-drawer__empty">{t.noTaxRates}</div>
             ) : null}
           </div>
         </div>

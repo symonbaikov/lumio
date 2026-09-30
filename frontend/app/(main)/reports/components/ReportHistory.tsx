@@ -55,6 +55,8 @@ function ReportHistorySkeleton(): React.JSX.Element {
           flexDirection: 'column',
           border: '1px solid var(--border)',
           bgcolor: 'var(--card)',
+          borderRadius: tokens.radius.lg,
+          overflow: 'hidden',
         }}
       >
         {HISTORY_SKELETON_KEYS.map((key, idx) => (
@@ -87,6 +89,7 @@ function ReportHistorySkeleton(): React.JSX.Element {
           overflowX: 'auto',
           border: '1px solid var(--border)',
           bgcolor: 'var(--card)',
+          borderRadius: tokens.radius.lg,
         }}
       >
         <Table size="small" sx={{ minWidth: 480 }}>
@@ -229,6 +232,8 @@ export function ReportHistory(): React.JSX.Element {
           flexDirection: 'column',
           border: '1px solid var(--border)',
           bgcolor: 'var(--card)',
+          borderRadius: tokens.radius.lg,
+          overflow: 'hidden',
         }}
       >
         {history.map((item, idx) => {
@@ -296,6 +301,7 @@ export function ReportHistory(): React.JSX.Element {
           overflowX: 'auto',
           border: '1px solid var(--border)',
           bgcolor: 'var(--card)',
+          borderRadius: tokens.radius.lg,
         }}
       >
         <Table size="small" sx={{ minWidth: 480 }}>

@@ -28,6 +28,11 @@ vi.mock('@/app/i18n', () => ({
       defaultLanguageNote: { value: 'Default' },
       savedToastPrefix: { value: 'Saved' },
     },
+    shell: {
+      closeLanguageDrawer: { value: 'Close language drawer' },
+      search: { value: 'Search' },
+      noLanguagesFound: 'No languages found',
+    },
   }),
 }));
 

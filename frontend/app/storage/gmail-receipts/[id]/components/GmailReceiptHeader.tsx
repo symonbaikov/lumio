@@ -48,7 +48,7 @@ interface GmailReceiptHeaderProps {
   onSubmit: () => Promise<void>;
   onOpenPayable: () => void;
   onExportToGmailDraft: () => Promise<void>;
-  onExportToSheets: () => Promise<void>;
+  onExportToXlsx: () => Promise<void>;
 }
 
 function CategoryButton({
@@ -139,7 +139,7 @@ export function GmailReceiptHeader({
   onSubmit,
   onOpenPayable,
   onExportToGmailDraft,
-  onExportToSheets,
+  onExportToXlsx,
 }: GmailReceiptHeaderProps): React.ReactElement {
   const router = useRouter();
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -301,13 +301,13 @@ export function GmailReceiptHeader({
               <MenuItem
                 onClick={() => {
                   setExportMenuOpen(false);
-                  onExportToSheets();
+                  onExportToXlsx();
                 }}
               >
                 <ListItemIcon>
                   <Table size={16} />
                 </ListItemIcon>
-                <ListItemText>Export to Sheets</ListItemText>
+                <ListItemText>Export to Excel</ListItemText>
               </MenuItem>
             </Menu>
 

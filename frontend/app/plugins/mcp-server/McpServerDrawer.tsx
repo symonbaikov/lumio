@@ -12,9 +12,10 @@ import {
 import { alpha } from '@mui/material/styles';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Copy, Lock, Plus, Trash2 } from '@/app/components/icons';
+import { Copy, Lock, Trash2 } from '@/app/components/icons';
 import { PanelBackTitle } from '@/app/components/panels/panel-ui';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
 import { useApiKeys } from './useApiKeys';
@@ -46,9 +47,12 @@ const codeBlockStyle = {
   position: 'relative' as const,
 };
 
+type McpServerText = ReturnType<typeof useIntlayer<'mcpServerDrawer'>>;
+
 function CopyButton({ text }: { text: string }) {
+  const t = useIntlayer('mcpServerDrawer');
   const handle = () => {
-    void navigator.clipboard.writeText(text).then(() => toast.success('Copied'));
+    void navigator.clipboard.writeText(text).then(() => toast.success(t.copied.value));
   };
   return (
     <button
@@ -66,7 +70,7 @@ function CopyButton({ text }: { text: string }) {
         display: 'flex',
         alignItems: 'center',
       }}
-      title="Copy"
+      title={t.copy.value}
     >
       <Copy size={14} />
     </button>
@@ -87,17 +91,18 @@ const MCP_JSON = `{
   }
 }`;
 
-function timeAgo(dateStr: string | null): string {
-  if (!dateStr) return 'Never used';
+function timeAgo(dateStr: string | null, t: McpServerText): string {
+  if (!dateStr) return t.neverUsed.value;
   const diff = Date.now() - new Date(dateStr).getTime();
   const d = Math.floor(diff / 86400000);
-  if (d === 0) return 'Today';
-  if (d === 1) return '1 day ago';
-  if (d < 30) return `${d} days ago`;
+  if (d === 0) return t.today.value;
+  if (d === 1) return t.oneDayAgo.value;
+  if (d < 30) return t.daysAgo.value.replace('{count}', String(d));
   return formatStoredDate(dateStr);
 }
 
 export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDrawerProps) {
+  const t = useIntlayer('mcpServerDrawer');
   const { keys, loading, newKey, isActive, create, revoke, clearNewKey } = useApiKeys();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [keyName, setKeyName] = useState('');
@@ -121,14 +126,14 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
       <DrawerShell
         isOpen={isOpen}
         onClose={onClose}
-        title={onBack ? <PanelBackTitle title="MCP Server" onBack={onBack} /> : 'MCP Server'}
+        title={onBack ? <PanelBackTitle title={t.title} onBack={onBack} /> : t.title}
         width="md"
         zIndex={zIndex}
       >
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, overflowY: 'auto', flex: 1 }}>
           {/* ── Status ── */}
           <Box>
-            <Typography sx={sectionLabelStyle}>Status</Typography>
+            <Typography sx={sectionLabelStyle}>{t.status}</Typography>
             <Box
               sx={theme => ({
                 display: 'flex',
@@ -160,18 +165,18 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                 }}
               >
                 {isActive
-                  ? `Connected — ${keys.length} active key${keys.length !== 1 ? 's' : ''}`
-                  : 'Not configured — create an API key to get started'}
+                  ? t.connectedKeys.value.replace('{count}', String(keys.length))
+                  : t.notConfigured}
               </Typography>
             </Box>
           </Box>
 
           {/* ── Setup ── */}
           <Box>
-            <Typography sx={sectionLabelStyle}>Setup</Typography>
+            <Typography sx={sectionLabelStyle}>{t.setup}</Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                1. Build the MCP server
+                {t.step1}
               </Typography>
               <Box sx={codeBlockStyle}>
                 cd mcp-server && npm install && npm run build
@@ -179,7 +184,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
               </Box>
 
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                2. Add to{' '}
+                {t.step2Prefix}{' '}
                 <code
                   style={{
                     background: 'var(--muted)',
@@ -189,7 +194,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                 >
                   .mcp.json
                 </code>{' '}
-                in your project root
+                {t.step2Suffix}
               </Typography>
               <Box sx={codeBlockStyle}>
                 {MCP_JSON}
@@ -197,7 +202,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
               </Box>
 
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
-                3. Restart Claude Code — Lumio tools will appear automatically
+                {t.step3}
               </Typography>
             </Box>
           </Box>
@@ -212,7 +217,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                 mb: 1.5,
               }}
             >
-              <Typography sx={sectionLabelStyle}>API Keys</Typography>
+              <Typography sx={sectionLabelStyle}>{t.apiKeys}</Typography>
               {!showCreateForm && (
                 <button
                   type="button"
@@ -231,8 +236,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                     cursor: 'pointer',
                   }}
                 >
-                  <Plus size={13} />
-                  Create key
+                  {t.createKey}
                 </button>
               )}
             </Box>
@@ -242,7 +246,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
               <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                 <TextField
                   size="small"
-                  placeholder="Key name (e.g. Claude Code)"
+                  placeholder={t.keyNamePlaceholder.value}
                   value={keyName}
                   onChange={e => setKeyName(e.target.value)}
                   onKeyDown={e => {
@@ -269,7 +273,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Create
+                  {t.create}
                 </button>
                 <button
                   type="button"
@@ -287,7 +291,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                     color: 'var(--text-secondary)',
                   }}
                 >
-                  Cancel
+                  {t.cancel}
                 </button>
               </Box>
             )}
@@ -295,12 +299,12 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
             {/* Keys list */}
             {loading ? (
               <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                Loading...
+                {t.loading}
               </Typography>
             ) : keys.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 3, color: 'var(--text-secondary)' }}>
                 <Lock size={24} style={{ opacity: 0.3, marginBottom: 6 }} />
-                <Typography sx={{ fontSize: 13 }}>No API keys yet</Typography>
+                <Typography sx={{ fontSize: 13 }}>{t.noKeys}</Typography>
               </Box>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -325,7 +329,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                           fontFamily: 'monospace',
                         }}
                       >
-                        lum_{key.prefix}•••• · {timeAgo(key.lastUsedAt)}
+                        lum_{key.prefix}•••• · {timeAgo(key.lastUsedAt, t)}
                       </Typography>
                     </Box>
                     <button
@@ -340,7 +344,7 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                         display: 'flex',
                         alignItems: 'center',
                       }}
-                      title="Revoke key"
+                      title={t.revokeKey.value}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -354,10 +358,10 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
 
       {/* New key dialog — shown only once */}
       <Dialog open={Boolean(newKey)} onClose={clearNewKey} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700 }}>Save your API key</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{t.saveKeyTitle}</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)', mb: 2 }}>
-            Copy this key now — it won't be shown again.
+            {t.saveKeyHint}
           </Typography>
           <Box sx={{ ...codeBlockStyle, wordBreak: 'break-all', whiteSpace: 'normal' }}>
             {newKey?.key}
@@ -369,12 +373,12 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
             variant="contained"
             onClick={() => {
               void navigator.clipboard.writeText(newKey?.key ?? '').then(() => {
-                toast.success('Copied to clipboard');
+                toast.success(t.copiedToClipboard.value);
                 clearNewKey();
               });
             }}
           >
-            Copy & Close
+            {t.copyAndClose}
           </Button>
         </DialogActions>
       </Dialog>
@@ -386,18 +390,18 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
         maxWidth="xs"
         fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Revoke API key?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{t.revokeTitle}</DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            Any agents using this key will lose access immediately.
+            {t.revokeHint}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setConfirmRevokeId(null)} sx={{ color: 'var(--text-secondary)' }}>
-            Cancel
+            {t.cancel}
           </Button>
           <Button variant="contained" color="error" onClick={() => void handleRevoke()}>
-            Revoke
+            {t.revoke}
           </Button>
         </DialogActions>
       </Dialog>

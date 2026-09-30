@@ -312,6 +312,53 @@ describe('CreateExpenseDrawer mobile uploads', () => {
     });
   });
 
+  it('flags missing merchant and category only after Create is pressed', async () => {
+    const container = document.createElement('div');
+    document.body.innerHTML = '';
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const onSubmitManual = vi.fn(async () => undefined);
+
+    await act(async () => {
+      root.render(
+        <CreateExpenseDrawer
+          open
+          initialMode="manual"
+          categories={[]}
+          taxRates={[]}
+          onClose={() => undefined}
+          onSubmitScan={async () => undefined}
+          onSubmitManual={onSubmitManual}
+        />,
+      );
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/amount/i), { target: { value: '20' } });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /next/i }));
+    });
+
+    expect(screen.queryByText('This field is required')).toBeNull();
+    expect(screen.getByLabelText('Merchant')).not.toHaveAttribute('aria-invalid');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /create .* expense/i }));
+    });
+
+    expect(screen.getAllByText('This field is required')).toHaveLength(2);
+    expect(screen.getByLabelText('Merchant')).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: /category select category/i })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+    expect(onSubmitManual).not.toHaveBeenCalled();
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
   const renderMobileScan = async (onSubmitScan: (payload: unknown) => Promise<void>) => {
     isMobileMock.mockReturnValue(true);
     const container = document.createElement('div');

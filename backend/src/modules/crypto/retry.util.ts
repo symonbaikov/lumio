@@ -35,3 +35,31 @@ export function isTransient(response: Response | null): boolean {
 export function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+/**
+ * GETs (or POSTs) JSON with the shared retry policy. `name` goes into the error so
+ * a failed sync says which provider let it down.
+ */
+export async function fetchJsonWithRetry<T>(
+  url: string,
+  init: RequestInit,
+  name: string,
+  onRetry: (message: string) => void,
+): Promise<T> {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    const response = await fetch(url, init).catch(() => null);
+    if (response?.ok) {
+      return (await response.json()) as T;
+    }
+
+    const wait = isTransient(response) ? retryWaitMs(response, attempt) : null;
+    if (wait === null || attempt === MAX_ATTEMPTS - 1) {
+      throw new Error(
+        response ? `${name} returned HTTP ${response.status}` : `${name} is unreachable`,
+      );
+    }
+    onRetry(`${name} returned ${response?.status}, retrying in ${wait}ms`);
+    await sleep(wait);
+  }
+  throw new Error(`${name} is unreachable`);
+}

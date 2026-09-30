@@ -2,7 +2,7 @@
 
 import { Alert, AlertTitle, Dialog, DialogTitle, Typography } from '@mui/material';
 import { useMemo } from 'react';
-import { CurrencyPickerDrawer } from '@/app/components/ui/currency-picker-drawer';
+import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { useIntlayer } from '@/app/i18n';
 import { DroppedSampleForm } from './DroppedSampleForm';
 import {
@@ -228,18 +228,20 @@ export function ParsingWarningsPanel({
         />
         <ConvertDialog panel={panel} />
       </Alert>
-      <CurrencyPickerDrawer
+      <CurrencyDrawer
         isOpen={
           panel.currencyPickerOpen && panel.selectedEntry !== null && panel.selectedDraft !== null
         }
         onClose={panel.handleCloseCurrencyPicker}
         currencySearch={panel.currencySearch}
-        onSearchChange={panel.setCurrencySearch}
+        setCurrencySearch={panel.setCurrencySearch}
         selectedCurrencyItem={panel.selectedCurrencyItem}
         selectedMatchesSearch={panel.selectedMatchesSearch}
+        currencyQuery={panel.currencyQuery}
         recentCurrencyItems={panel.recentCurrencyItems}
         allCurrencyItems={panel.allCurrencyItems}
-        onSelect={panel.handleSelectCurrency}
+        handleSelectCurrency={panel.handleSelectCurrency}
+        zIndex={1400}
       />
     </>
   );

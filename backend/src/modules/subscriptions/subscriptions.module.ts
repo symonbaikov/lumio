@@ -6,6 +6,7 @@ import { SubscriptionDecision } from '../../entities/subscription-decision.entit
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
+import { AuditModule } from '../audit/audit.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionDetectionService } from './subscription-detection.service';
@@ -25,6 +26,7 @@ import { SubscriptionsService } from './subscriptions.service';
     ]),
     NotificationsModule,
     ExchangeRatesModule,
+    AuditModule,
   ],
   controllers: [SubscriptionsController],
   providers: [SubscriptionsService, SubscriptionDetectionService, SubscriptionEventsListener],

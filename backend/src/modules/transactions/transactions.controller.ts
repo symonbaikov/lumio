@@ -114,7 +114,6 @@ export class TransactionsController {
 
   @Put(':id')
   @WorkspaceAuth(Permission.TRANSACTION_EDIT)
-  @Audit({ entityType: EntityType.TRANSACTION, includeDiff: true, isUndoable: true })
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateTransactionDto,
@@ -186,7 +185,6 @@ export class TransactionsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @WorkspaceAuth(Permission.TRANSACTION_DELETE)
-  @Audit({ entityType: EntityType.TRANSACTION, includeDiff: true, isUndoable: true })
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: User,

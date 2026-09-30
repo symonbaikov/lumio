@@ -133,7 +133,7 @@ function LoginPageContent(): React.JSX.Element {
           }}
         >
           <Typography variant="subtitle2" fontWeight="bold">
-            Real-time Analytics
+            {t.featureRealtime}
           </Typography>
         </Box>
         <Box
@@ -146,7 +146,7 @@ function LoginPageContent(): React.JSX.Element {
           }}
         >
           <Typography variant="subtitle2" fontWeight="bold">
-            Seamless Expense
+            {t.featureExpense}
           </Typography>
         </Box>
       </Box>

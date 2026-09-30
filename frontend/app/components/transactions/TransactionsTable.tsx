@@ -20,6 +20,7 @@ interface TransactionsTableProps {
   onUpdateCategory?: UpdateCategoryFn;
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
+  toolbarExtra?: React.ReactNode;
 }
 
 export default function TransactionsTable({
@@ -31,6 +32,7 @@ export default function TransactionsTable({
   onUpdateCategory,
   filters,
   onFilterChange,
+  toolbarExtra,
 }: TransactionsTableProps): React.ReactElement {
   const { locale } = useLocale();
   const t = useIntlayer('transactionsTable');
@@ -79,6 +81,7 @@ export default function TransactionsTable({
         onToggleFilters={() => state.setShowFilters(!state.showFilters)}
         onClearFilters={state.clearFilters}
         t={t}
+        toolbarExtra={toolbarExtra}
       />
       {isMobile ? (
         <TransactionMobileList

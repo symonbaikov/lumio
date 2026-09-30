@@ -139,8 +139,10 @@ export default function SupportedBanksPage(): React.JSX.Element {
             <Box
               sx={{
                 mt: 2,
-                border: '1px solid var(--muted)',
-                bgcolor: 'rgba(249,250,251,0.7)',
+                border: '1px solid var(--border-color)',
+                // A hardcoded near-white fill left white text on a light box in
+                // dark mode; the muted token follows the theme.
+                bgcolor: 'var(--muted)',
                 px: 1.5,
                 py: 1,
                 fontSize: 14,

@@ -28,17 +28,29 @@
 
   th,
   td {
-    padding: 8px 12px;
+    padding: 10px 12px;
     text-align: right;
     white-space: nowrap;
     border-top: 1px solid var(--border);
   }
 
+  // Month headers carry the timeline, so they read brighter than the column labels
+  // of other tables, and a heavier rule separates them from the first amounts.
   thead th {
     border-top: 0;
+    border-bottom: 1px solid var(--border);
     font-size: 12px;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  thead th.lumio-charge-calendar__vendor {
     font-weight: 500;
     color: var(--muted-foreground);
+  }
+
+  tbody tr:hover > * {
+    background: var(--muted);
   }
 
   &__vendor {
@@ -59,6 +71,11 @@
 
   &__empty {
     color: var(--muted-foreground);
+    opacity: 0.5;
+  }
+
+  &__peak {
+    font-weight: 700;
   }
 
   tfoot th,

@@ -7,8 +7,11 @@ import {
   createVerificationToken,
   hashVerificationToken,
 } from '../../../common/utils/verification-token.util';
+import { AuditAction, EntityType, Severity } from '../../../entities/audit-event.entity';
 import { EmailChangeToken } from '../../../entities/email-change-token.entity';
 import { User } from '../../../entities/user.entity';
+import { AuditService } from '../../audit/audit.service';
+import { recordSecurityEvent } from '../../auth/security-audit.util';
 import { MailerService } from '../../mailer/mailer.service';
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -24,6 +27,7 @@ export class EmailChangeService {
     private readonly tokenRepository: Repository<EmailChangeToken>,
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   /**
@@ -61,6 +65,16 @@ export class EmailChangeService {
         usedAt: null,
       }),
     );
+
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      entityType: EntityType.USER,
+      entityId: user.id,
+      action: AuditAction.UPDATE,
+      severity: Severity.WARN,
+      meta: { emailChange: 'requested', oldEmail: user.email, newEmail: normalized },
+    });
 
     const confirmUrl = `${this.frontendBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
 
@@ -116,11 +130,23 @@ export class EmailChangeService {
       throw new BadRequestException('Confirmation link is invalid or has expired');
     }
 
+    const oldEmail = user.email;
     user.email = record.newEmail;
     await this.userRepository.save(user);
 
     record.usedAt = new Date();
     await this.tokenRepository.save(record);
+
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      entityType: EntityType.USER,
+      entityId: user.id,
+      action: AuditAction.UPDATE,
+      severity: Severity.WARN,
+      diff: { before: { email: oldEmail }, after: { email: user.email } },
+      meta: { emailChange: 'confirmed', oldEmail, newEmail: user.email },
+    });
 
     return { email: user.email };
   }

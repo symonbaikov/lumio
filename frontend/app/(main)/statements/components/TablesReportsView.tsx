@@ -625,7 +625,9 @@ export default function TablesReportsView() {
             <div
               style={{
                 marginTop: 16,
-                overflow: 'hidden',
+                // Seven columns do not fit a phone: `hidden` cut the last four
+                // off with no way to reach them, so the wrapper scrolls instead.
+                overflowX: 'auto',
                 border: `1px solid ${c.ink150}`,
                 background: 'var(--card-bg)',
                 borderRadius: tokens.radius.lg,

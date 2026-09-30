@@ -11,15 +11,22 @@ import {
   Tab,
   Tabs,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 
-import { Pencil, Plus, Trash2 } from '@/app/components/icons';
+import { Pencil, Trash2 } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { VendorIcon } from '@/app/components/VendorIcon';
-import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
+import { useIntlayer } from '@/app/i18n';
+import { resolveLocaleTag } from '@/app/lib/user-format';
+import {
+  formatStoredDateWithOptions,
+  readStoredFormatPreferences,
+} from '@/app/lib/user-format-store';
 import type {
   SubscriptionChargeCalendar,
   SubscriptionFormData,
@@ -27,7 +34,7 @@ import type {
   SubscriptionSummary,
   SubscriptionWorkspaceMember,
 } from '../hooks/useSubscriptionsPage';
-import { SubscriptionCard } from './SubscriptionCard';
+import { RISK_LABELS, STATUS_LABELS, SubscriptionCard } from './SubscriptionCard';
 import { SubscriptionDetailsDrawer } from './SubscriptionDetailsDrawer';
 import { SubscriptionFormDrawer } from './SubscriptionFormDrawer';
 import { filterSubscriptions } from './subscription-filter.utils';
@@ -127,20 +134,20 @@ function SubscriptionCardSkeleton(): React.JSX.Element {
 }
 
 const formatAmount = (amount: number, currency: string) =>
-  `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
-// Same helper and locale as the dates below, so the calendar header and the
-// table read alike until the page gets its translations.
+  `${new Intl.NumberFormat(resolveLocaleTag(readStoredFormatPreferences().locale), { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
 const formatMonthLabel = (month: string) =>
-  formatStoredDateWithOptions(`${month}-01`, { month: 'short', year: '2-digit' }, 'ru-RU');
+  formatStoredDateWithOptions(`${month}-01`, { month: 'short', year: '2-digit' });
 const formatDate = (date: string | null) =>
-  date ? formatStoredDateWithOptions(date, { day: 'numeric', month: 'short' }, 'ru-RU') : '—';
+  date ? formatStoredDateWithOptions(date, { day: 'numeric', month: 'short' }) : '—';
 
 export function SubscriptionsContent(props: SubscriptionsContentProps) {
+  const t = useIntlayer('subscriptionsPage');
   const [search, setSearch] = useState('');
   const [ownerId, setOwnerId] = useState('');
   const [category, setCategory] = useState('');
   const [riskStatus, setRiskStatus] = useState('');
   const [selected, setSelected] = useState<SubscriptionItem | null>(null);
+  const [view, setView] = useState<'list' | 'matrix'>('list');
   const visibleSubscriptions = useMemo(
     () =>
       filterSubscriptions(props.subscriptions, {
@@ -170,6 +177,20 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
     !props.isPending &&
     props.summary.activeCount >= CALENDAR_MIN_SUBSCRIPTIONS &&
     props.chargeCalendar.rows.length > 0;
+  const matrixView = showCalendar && view === 'matrix';
+  // The toolbar filters both views, so the matrix keeps only visible
+  // subscriptions and totals what is left.
+  const visibleCalendar = useMemo(() => {
+    const visibleIds = new Set(visibleSubscriptions.map(item => item.id));
+    const rows = props.chargeCalendar.rows.filter(row => visibleIds.has(row.subscriptionId));
+    return {
+      ...props.chargeCalendar,
+      rows,
+      monthTotals: props.chargeCalendar.months.map((_, index) =>
+        rows.reduce((sum, row) => sum + (row.amounts[index] ?? 0), 0),
+      ),
+    };
+  }, [props.chargeCalendar, visibleSubscriptions]);
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, flex: 1 }}>
@@ -184,14 +205,14 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
       >
         <Box>
           <Typography variant="h5" fontWeight={700}>
-            Subscriptions
+            {t.title}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Control recurring SaaS spend and ownership.
+            {t.subtitle}
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Plus size={18} />} onClick={props.openCreate}>
-          Add subscription
+        <Button variant="contained" onClick={props.openCreate}>
+          {t.addSubscription}
         </Button>
       </Box>
       <Box
@@ -203,82 +224,89 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
         }}
       >
         {[
-          ['Monthly cost', formatAmount(props.summary.totalMonthlyCost, props.workspaceCurrency)],
-          ['Forecast (30 days)', String(props.summary.upcoming30DaysCount)],
-          ['Price changes', String(props.summary.priceChangeCount)],
-          ['Reviews overdue', String(props.summary.overdueReviewCount)],
-          [
-            'Realized annual savings',
-            formatAmount(props.summary.realizedAnnualSavings, props.workspaceCurrency),
-          ],
-        ].map(([label, value]) => (
+          {
+            label: t.kpiMonthlyCost.value,
+            value: formatAmount(props.summary.totalMonthlyCost, props.workspaceCurrency),
+          },
+          { label: t.kpiForecast.value, value: String(props.summary.upcoming30DaysCount) },
+          {
+            label: t.kpiPriceChanges.value,
+            value: String(props.summary.priceChangeCount),
+            // Only a count that needs attention gets a colour.
+            accent: props.summary.priceChangeCount > 0 ? 'warning.main' : undefined,
+          },
+          {
+            label: t.kpiReviewsOverdue.value,
+            value: String(props.summary.overdueReviewCount),
+            accent: props.summary.overdueReviewCount > 0 ? 'error.main' : undefined,
+          },
+          {
+            label: t.realizedAnnualSavings.value,
+            value: formatAmount(props.summary.realizedAnnualSavings, props.workspaceCurrency),
+          },
+        ].map(({ label, value, accent }) => (
           <Card key={label} variant="outlined">
-            <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
-              <Typography variant="body2" color="text.secondary">
+            <CardContent sx={{ py: 1.75, '&:last-child': { pb: 1.75 } }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                 {label}
               </Typography>
-              <Typography variant="h6" fontWeight={700}>
+              <Typography
+                sx={{
+                  mt: 0.5,
+                  fontSize: 26,
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  fontVariantNumeric: 'tabular-nums',
+                  color: accent ?? 'text.primary',
+                }}
+              >
                 {value}
               </Typography>
             </CardContent>
           </Card>
         ))}
       </Box>
-      {showCalendar && (
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
-            Upcoming charges
-          </Typography>
-          <LazyChargeCalendar
-            calendar={props.chargeCalendar}
-            monthLabels={monthLabels}
-            formatAmount={amount =>
-              formatAmount(amount, props.chargeCalendar.currency ?? props.workspaceCurrency)
-            }
-            renderVendor={row => (
-              <VendorIcon vendorName={row.vendorName} vendorDomain={row.vendorDomain} size={18} />
-            )}
-          />
-        </Box>
-      )}
-      <Tabs
-        value={props.statusFilter}
-        onChange={(_, value) => props.setStatusFilter(value)}
-        // 12px + the theme's 4px focus-ring room around scrollable tabs.
-        sx={{ mb: 1.5 }}
-        variant="scrollable"
-        allowScrollButtonsMobile
-      >
-        <Tab value="all" label="All" />
-        <Tab value="detected" label="Detected" />
-        <Tab value="active" label="Active" />
-        <Tab value="paused" label="Paused" />
-        <Tab value="cancelled" label="Cancelled" />
-      </Tabs>
+      {/* The MuiTabs root itself gets a negative margin from the theme's
+          scrollable-tabs focus-ring override, which cancels an sx margin
+          set directly on it — so the spacing lives on this wrapper instead. */}
+      <Box sx={{ mt: 3, mb: 4 }}>
+        <Tabs
+          value={props.statusFilter}
+          onChange={(_, value) => props.setStatusFilter(value)}
+          variant="scrollable"
+          allowScrollButtonsMobile
+        >
+          <Tab value="all" label={t.tabAll.value} />
+          <Tab value="detected" label={t.tabDetected.value} />
+          <Tab value="active" label={t.tabActive.value} />
+          <Tab value="paused" label={t.tabPaused.value} />
+          <Tab value="cancelled" label={t.tabCancelled.value} />
+        </Tabs>
+      </Box>
       <Box
         sx={{
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            md: 'minmax(200px, 2fr) repeat(3, minmax(140px, 1fr))',
-          },
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
           gap: 1.5,
           mb: 2,
         }}
       >
         <TextField
           size="small"
-          label="Search subscriptions"
+          label={t.searchLabel.value}
           value={search}
           onChange={event => setSearch(event.target.value)}
+          sx={{ width: { xs: '100%', md: 280 } }}
         />
         <Select
           size="small"
           displayEmpty
           value={ownerId}
+          sx={{ minWidth: 160, flex: { xs: '1 1 140px', md: '0 0 auto' } }}
           onChange={event => setOwnerId(event.target.value)}
         >
-          <MenuItem value="">All owners</MenuItem>
+          <MenuItem value="">{t.allOwners}</MenuItem>
           {props.workspaceMembers.map(member => (
             <MenuItem key={member.id} value={member.id}>
               {member.name || member.email || member.id}
@@ -289,9 +317,10 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           size="small"
           displayEmpty
           value={category}
+          sx={{ minWidth: 160, flex: { xs: '1 1 140px', md: '0 0 auto' } }}
           onChange={event => setCategory(event.target.value)}
         >
-          <MenuItem value="">All categories</MenuItem>
+          <MenuItem value="">{t.allCategories}</MenuItem>
           {categories.map(name => (
             <MenuItem key={name} value={name}>
               {name}
@@ -302,13 +331,31 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           size="small"
           displayEmpty
           value={riskStatus}
+          sx={{ minWidth: 160, flex: { xs: '1 1 140px', md: '0 0 auto' } }}
           onChange={event => setRiskStatus(event.target.value)}
         >
-          <MenuItem value="">All risks</MenuItem>
-          <MenuItem value="price_changed">Price changed</MenuItem>
-          <MenuItem value="date_shifted">Date shifted</MenuItem>
-          <MenuItem value="missing_charge">Missing charge</MenuItem>
+          <MenuItem value="">{t.allRisks}</MenuItem>
+          <MenuItem value="price_changed">{t.riskPriceChanged}</MenuItem>
+          <MenuItem value="date_shifted">{t.riskDateShifted}</MenuItem>
+          <MenuItem value="missing_charge">{t.riskMissingCharge}</MenuItem>
         </Select>
+        {showCalendar && (
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={view}
+            onChange={(_event, next: 'list' | 'matrix' | null) => next && setView(next)}
+            aria-label={t.viewToggleLabel.value}
+            sx={{ ml: { md: 'auto' } }}
+          >
+            <ToggleButton value="list" sx={{ px: 1.5, textTransform: 'none' }}>
+              {t.viewList}
+            </ToggleButton>
+            <ToggleButton value="matrix" sx={{ px: 1.5, textTransform: 'none' }}>
+              {t.upcomingCharges}
+            </ToggleButton>
+          </ToggleButtonGroup>
+        )}
       </Box>
       {props.isPending ? (
         <>
@@ -334,12 +381,12 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
             >
               <thead>
                 <tr>
-                  <th>Vendor</th>
-                  <th>Spend</th>
-                  <th>Next charge</th>
-                  <th>Owner</th>
-                  <th>Risk</th>
-                  <th>Review</th>
+                  <th>{t.colVendor}</th>
+                  <th>{t.colSpend}</th>
+                  <th>{t.colNextCharge}</th>
+                  <th>{t.colOwner}</th>
+                  <th>{t.colRisk}</th>
+                  <th>{t.colReview}</th>
                 </tr>
               </thead>
               <tbody>
@@ -361,15 +408,26 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
         <Typography color="error" sx={{ py: 4, textAlign: 'center' }}>
           {props.error}
         </Typography>
-      ) : visibleSubscriptions.length === 0 ? (
+      ) : visibleSubscriptions.length === 0 || (matrixView && visibleCalendar.rows.length === 0) ? (
         <EmptyState
           illustration="subscriptions"
-          description="No subscriptions match these filters"
+          description={t.emptyFiltered}
           action={
             <Button variant="outlined" onClick={props.openCreate}>
-              Add subscription
+              {t.addSubscription}
             </Button>
           }
+        />
+      ) : matrixView ? (
+        <LazyChargeCalendar
+          calendar={visibleCalendar}
+          monthLabels={monthLabels}
+          formatAmount={amount =>
+            formatAmount(amount, props.chargeCalendar.currency ?? props.workspaceCurrency)
+          }
+          renderVendor={row => (
+            <VendorIcon vendorName={row.vendorName} vendorDomain={row.vendorDomain} size={18} />
+          )}
         />
       ) : (
         // Фоновое обновление после действия в строке не гасит список скелетоном.
@@ -397,13 +455,13 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
             >
               <thead>
                 <tr>
-                  <th>Vendor</th>
-                  <th>Spend</th>
-                  <th>Next charge</th>
-                  <th>Owner</th>
-                  <th>Risk</th>
-                  <th>Review</th>
-                  <th aria-label="Actions" />
+                  <th>{t.colVendor}</th>
+                  <th>{t.colSpend}</th>
+                  <th>{t.colNextCharge}</th>
+                  <th>{t.colOwner}</th>
+                  <th>{t.colRisk}</th>
+                  <th>{t.colReview}</th>
+                  <th aria-label={t.colActions.value} />
                 </tr>
               </thead>
               <tbody>
@@ -418,18 +476,18 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                         <Box>
                           <Typography fontWeight={600}>{subscription.vendorName}</Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {subscription.status}
+                            {t[STATUS_LABELS[subscription.status]]}
                           </Typography>
                         </Box>
                       </Box>
                     </td>
                     <td>{formatAmount(subscription.amount, subscription.currency)}</td>
                     <td>{formatDate(subscription.nextChargeDate)}</td>
-                    <td>{subscription.owner?.name || subscription.owner?.email || 'Unassigned'}</td>
+                    <td>{subscription.owner?.name || subscription.owner?.email || t.unassigned}</td>
                     <td>
                       {subscription.riskStatus === 'none'
                         ? '—'
-                        : subscription.riskStatus.replace('_', ' ')}
+                        : t[RISK_LABELS[subscription.riskStatus]]}
                     </td>
                     <td>{formatDate(subscription.reviewAt)}</td>
                     <td onClick={event => event.stopPropagation()}>

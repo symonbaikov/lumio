@@ -35,8 +35,12 @@ export function ReactScan(): null {
       window.__reactScanReset = () => counts.clear();
       void import('react-scan').then(({ scan }) => {
         scan({
-          enabled: true,
-          showToolbar: true,
+          // Scanning draws a flashing outline overlay on every re-rendered
+          // component (there is no separate toggle for the outlines alone),
+          // which fires on essentially every click. Leave it off by default;
+          // flip to true for a one-off re-render audit.
+          enabled: false,
+          showToolbar: false,
           // Exposed so automated checks can read per-component render counts.
           onRender: fiber => {
             const name = fiberName(fiber.type as FiberType);

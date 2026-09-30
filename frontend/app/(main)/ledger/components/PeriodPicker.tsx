@@ -1,8 +1,9 @@
 'use client';
 
+import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import TextField from '@mui/material/TextField';
 import type React from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { useIntlayer } from '@/app/i18n';
 import { isDateOnly } from '../ledger.helpers';
 
@@ -27,24 +28,22 @@ export function PeriodPicker({
   };
   return (
     <Stack direction="row" spacing={2}>
-      <TextField
-        type="date"
-        size="small"
-        label={t.dateFrom.value}
-        value={value.dateFrom}
-        onChange={event => set({ dateFrom: event.target.value })}
-        error={value.dateFrom > value.dateTo}
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
-      <TextField
-        type="date"
-        size="small"
-        label={t.dateTo.value}
-        value={value.dateTo}
-        onChange={event => set({ dateTo: event.target.value })}
-        error={value.dateFrom > value.dateTo}
-        slotProps={{ inputLabel: { shrink: true } }}
-      />
+      <Box sx={{ width: 180 }}>
+        <CustomDatePicker
+          label={t.dateFrom.value}
+          value={value.dateFrom}
+          onChange={dateFrom => set({ dateFrom })}
+          error={value.dateFrom > value.dateTo}
+        />
+      </Box>
+      <Box sx={{ width: 180 }}>
+        <CustomDatePicker
+          label={t.dateTo.value}
+          value={value.dateTo}
+          onChange={dateTo => set({ dateTo })}
+          error={value.dateFrom > value.dateTo}
+        />
+      </Box>
     </Stack>
   );
 }

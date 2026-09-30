@@ -1,10 +1,12 @@
 'use client';
 
 import Box from '@mui/material/Box';
+import { alpha } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import React from 'react';
 import { Plus } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 import { WorkspaceCard } from './WorkspaceCard';
 
@@ -28,6 +30,7 @@ function EmptyWorkspacesState({
   noWorkspacesLabel,
   onCreateClick,
 }: EmptyStateProps): React.JSX.Element {
+  const t = useIntlayer('workspacesListView');
   return (
     <Box sx={{ textAlign: 'center', py: 6 }}>
       <EmptyStateIllustration name="workspaces" size="lg" />
@@ -35,7 +38,7 @@ function EmptyWorkspacesState({
         {noWorkspacesLabel}
       </Typography>
       <Typography variant="body2" sx={{ mb: 3, color: 'var(--text-secondary)' }}>
-        Create your first workspace to get started
+        {t.empty.subtitle}
       </Typography>
       <button
         type="button"
@@ -58,14 +61,15 @@ function EmptyWorkspacesState({
 }
 
 function NoResultsState(): React.JSX.Element {
+  const t = useIntlayer('workspacesListView');
   return (
     <Box sx={{ textAlign: 'center', py: 6 }}>
       <EmptyStateIllustration name="no-results" size="md" />
       <Typography variant="h6" fontWeight={600} sx={{ mb: 1, color: 'var(--foreground)' }}>
-        No workspaces found
+        {t.noResults.title}
       </Typography>
       <Typography variant="body2" sx={{ mb: 3, color: 'var(--text-secondary)' }}>
-        Try adjusting your search query
+        {t.noResults.subtitle}
       </Typography>
     </Box>
   );
@@ -126,34 +130,36 @@ export function WorkspaceGridView({
           onFavoriteToggle={onFavoriteToggle}
         />
       ))}
-      <button
+      {/* An outlined dashed slot, not a filled card: an action, not content. */}
+      <Box
+        component="button"
         type="button"
         onClick={onCreateClick}
-        style={{
+        sx={{
           display: 'flex',
-          height: '100%',
-          width: '100%',
-          aspectRatio: '16/9',
-          cursor: 'pointer',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          border: '1px solid var(--border-color)',
-          background: 'var(--card-bg)',
-          padding: 24,
-          borderRadius: tokens.radius.xl,
-          transition: 'border-color 0.2s',
+          gap: 1,
+          width: '100%',
+          height: '100%',
+          minHeight: 160,
+          p: 3,
+          cursor: 'pointer',
+          border: '1px dashed',
+          borderColor: theme => alpha(theme.palette.text.primary, 0.15),
+          borderRadius: tokens.radius.lg,
+          bgcolor: 'transparent',
+          color: 'var(--muted-foreground)',
+          transition: 'border-color 150ms ease, color 150ms ease',
+          '&:hover': { borderColor: 'var(--primary)', color: 'var(--foreground)' },
         }}
       >
-        <Plus size={30} strokeWidth={2.25} style={{ marginBottom: 12, color: 'var(--primary)' }} />
-        <Typography
-          variant="h6"
-          fontWeight={600}
-          style={{ textAlign: 'center', color: 'var(--foreground)' }}
-        >
+        <Plus size={22} style={{ color: 'var(--primary)' }} />
+        <Typography sx={{ fontSize: 14, fontWeight: 500, color: 'inherit' }}>
           {createLabel}
         </Typography>
-      </button>
+      </Box>
     </Box>
   );
 }

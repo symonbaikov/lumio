@@ -68,6 +68,16 @@ const ENTITY_LABELS_EN: Record<EntityType, string> = {
   [EntityType.SUBSCRIPTION]: 'subscription',
   [EntityType.LEDGER_ACCOUNT]: 'ledger account',
   [EntityType.JOURNAL_ENTRY]: 'journal entry',
+  [EntityType.GOAL]: 'goal',
+  [EntityType.CRYPTO_WALLET]: 'crypto wallet',
+  [EntityType.TAX_RATE]: 'tax rate',
+  [EntityType.TAX_RULE]: 'tax rule',
+  [EntityType.TAX_RETURN]: 'tax return',
+  [EntityType.WORKSPACE_MEMBER]: 'workspace member',
+  [EntityType.API_KEY]: 'API key',
+  [EntityType.WEBHOOK]: 'webhook',
+  [EntityType.BACKUP]: 'backup',
+  [EntityType.USER]: 'user account',
 };
 
 const FIELD_LABELS_EN: Partial<Record<EntityType, Record<string, string>>> = {

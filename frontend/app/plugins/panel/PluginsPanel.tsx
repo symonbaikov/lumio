@@ -23,7 +23,7 @@ import { WebhooksDrawer } from '../webhooks/WebhooksDrawer';
 
 type PluginRowItem = {
   key: PluginKey;
-  name: React.ReactNode;
+  name: string;
   description: React.ReactNode;
   icon: React.ReactNode;
   /** Whether the plugin has settings of its own in the second layer. */
@@ -32,26 +32,28 @@ type PluginRowItem = {
 
 function usePlugins(): PluginRowItem[] {
   const t = useIntlayer('pluginsPage');
+  const webhooksText = useIntlayer('webhooksDrawer');
+  const mcpText = useIntlayer('mcpServerDrawer');
 
   return [
     {
       key: 'ai-assistant',
-      name: t.cards.aiAssistant.name,
+      name: t.cards.aiAssistant.name.value,
       description: t.cards.aiAssistant.description,
       icon: <SmartToyIcon sx={{ fontSize: 22 }} />,
       configurable: false,
     },
     {
       key: 'webhooks',
-      name: 'Webhooks',
-      description: 'Inbound webhooks for uploads and outbound notifications for events.',
+      name: webhooksText.title.value,
+      description: t.cards.webhooks.description,
       icon: <WebhookIcon sx={{ fontSize: 22 }} />,
       configurable: true,
     },
     {
       key: 'mcp-server',
-      name: 'MCP Server',
-      description: 'Let AI agents work with Lumio over the Model Context Protocol.',
+      name: mcpText.title.value,
+      description: t.cards.mcpServer.description,
       icon: <Cpu size={22} />,
       configurable: true,
     },
@@ -69,6 +71,8 @@ function PluginRow({
   onToggle: () => void;
   onOpen: () => void;
 }): React.JSX.Element {
+  const t = useIntlayer('pluginsPage');
+
   return (
     <Box
       sx={{
@@ -135,7 +139,7 @@ function PluginRow({
         checked={active}
         onChange={onToggle}
         size="small"
-        inputProps={{ 'aria-label': `Toggle ${String(plugin.name)}` }}
+        inputProps={{ 'aria-label': t.toggle.value.replace('{name}', plugin.name) }}
         sx={{ mr: 0.5 }}
       />
     </Box>

@@ -1,4 +1,5 @@
 import { BackupDestinationKind, BackupRunStatus, BackupRunTrigger } from '../../../../src/entities';
+import { AuditAction, EntityType, Severity } from '../../../../src/entities/audit-event.entity';
 import { BackupsService } from '../../../../src/modules/backups/backups.service';
 
 describe('BackupsService', () => {
@@ -65,6 +66,76 @@ describe('BackupsService', () => {
     );
     expect(run.status).toBe(BackupRunStatus.SUCCEEDED);
     expect(run.trigger).toBe(BackupRunTrigger.MANUAL);
+  });
+
+  describe('audit events', () => {
+    const configInput = {
+      destinationKind: BackupDestinationKind.LOCAL,
+      destinationPath: 'nightly',
+      password: 'backup password',
+    };
+
+    it('logs configure as BACKUP UPDATE without the password or wrapped keys', async () => {
+      const auditService = { createEvent: jest.fn().mockResolvedValue({}) };
+      const service = createService({ auditService });
+
+      await service.configure(user, 'workspace-1', configInput);
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-1',
+          actorId: 'user-1',
+          entityType: EntityType.BACKUP,
+          entityId: 'saved-1',
+          action: AuditAction.UPDATE,
+          severity: Severity.INFO,
+          meta: expect.objectContaining({ passwordChanged: true, firstConfiguration: true }),
+        }),
+      );
+      const payload = JSON.stringify(auditService.createEvent.mock.calls);
+      for (const leaked of ['backup password', 'server-wrapped-data-key', 'wrapped', 'salt']) {
+        expect(payload).not.toContain(leaked);
+      }
+      expect(payload).not.toMatch(/encryptedDataKey|passwordEnvelope/);
+    });
+
+    it('logs a manual run as BACKUP CREATE', async () => {
+      const auditService = { createEvent: jest.fn().mockResolvedValue({}) };
+      const configurationRepository = repository({
+        id: 'config-1',
+        workspaceId: 'workspace-1',
+        destinationKind: BackupDestinationKind.LOCAL,
+        destinationPath: 'nightly',
+        encryptedDataKey: 'server-wrapped-data-key',
+        passwordEnvelope: { kdf: {}, wrappedDataKey: {} },
+      });
+      const destination = { store: jest.fn().mockResolvedValue('nightly/backup.lumio-backup') };
+      const archive = { create: jest.fn().mockResolvedValue(Buffer.from('encrypted archive')) };
+      const service = createService({ configurationRepository, destination, archive, auditService });
+
+      const run = await service.createRun(user, 'workspace-1', BackupRunTrigger.MANUAL);
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-1',
+          entityType: EntityType.BACKUP,
+          entityId: run.id,
+          action: AuditAction.CREATE,
+          severity: Severity.INFO,
+          meta: { trigger: BackupRunTrigger.MANUAL, status: BackupRunStatus.SUCCEEDED },
+        }),
+      );
+      expect(JSON.stringify(auditService.createEvent.mock.calls)).not.toContain('server-wrapped');
+    });
+
+    it('still saves the configuration when the audit write fails', async () => {
+      const auditService = { createEvent: jest.fn().mockRejectedValue(new Error('audit down')) };
+      const configurationRepository = repository();
+      const service = createService({ configurationRepository, auditService });
+
+      await expect(service.configure(user, 'workspace-1', configInput)).resolves.toBeDefined();
+      expect(configurationRepository.save).toHaveBeenCalled();
+    });
   });
 
   it('loads a completed run only from the owner workspace destination', async () => {
@@ -160,6 +231,7 @@ function createService(overrides: Record<string, unknown> = {}) {
   };
   const dataService = { collect: jest.fn().mockResolvedValue({ collections: { categories: [{ id: 'category-1' }] }, files: [] }) };
   const destination = overrides.destination ?? { store: jest.fn() };
+  const auditService = overrides.auditService ?? { createEvent: jest.fn().mockResolvedValue({}) };
 
   return new BackupsService(
     configurationRepository as never,
@@ -169,5 +241,6 @@ function createService(overrides: Record<string, unknown> = {}) {
     keyService as never,
     dataService as never,
     destination as never,
+    auditService as never,
   );
 }

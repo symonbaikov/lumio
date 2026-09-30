@@ -392,6 +392,17 @@ describe('CategoriesService', () => {
       );
     });
 
+    it('writes no audit event when the save changes nothing', async () => {
+      jest.spyOn(categoryRepository, 'findOne').mockResolvedValue(mockCategory as Category);
+      jest.spyOn(categoryRepository, 'save').mockResolvedValue(mockCategory as Category);
+      (auditService.createEvent as jest.Mock).mockClear();
+
+      await service.update('cat-1', '1', '1', { type: CategoryType.EXPENSE });
+
+      expect(categoryRepository.save).toHaveBeenCalled();
+      expect(auditService.createEvent).not.toHaveBeenCalled();
+    });
+
     it('should check permissions before update', async () => {
       const restrictedMember = {
         role: WorkspaceRole.MEMBER,

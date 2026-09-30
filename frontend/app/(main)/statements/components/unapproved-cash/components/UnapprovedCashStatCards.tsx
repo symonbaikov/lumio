@@ -39,7 +39,7 @@ export function UnapprovedCashStatCards({
   labels,
 }: UnapprovedCashStatCardsProps): React.ReactElement {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+    <div className="lumio-stat-tiles">
       <div style={CARD_STYLE}>
         <p style={LABEL_STYLE}>{labels.total}</p>
         <p style={VALUE_STYLE}>{totalCount}</p>

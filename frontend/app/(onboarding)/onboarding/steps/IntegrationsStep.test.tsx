@@ -30,7 +30,6 @@ const LEGACY_CARD_TITLES = [
   'Drop' + 'box',
   `Google ${'Drive'}`,
   'G' + 'mail',
-  `Google ${'Sheets'}`,
 ];
 
 function makeCards(): OnboardingIntegrationCard[] {

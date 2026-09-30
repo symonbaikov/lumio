@@ -34,12 +34,7 @@ export function CompletionStep({
   const text = (path: string[], fallback = '') =>
     resolveOnboardingText(getNestedOnboardingValue(t, path), fallback, locale);
 
-  const localeLabel =
-    locale === 'ru'
-      ? text(['language', 'localeOptions', 'ru'], 'Russian')
-      : locale === 'kk'
-        ? text(['language', 'localeOptions', 'kk'], 'Kazakh')
-        : text(['language', 'localeOptions', 'en'], 'English');
+  const localeLabel = text(['language', 'localeOptions', locale], locale);
 
   return (
     <Box component="section">

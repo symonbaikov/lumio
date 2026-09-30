@@ -54,6 +54,10 @@ export class UpdateMyPreferencesDto {
   reduceMotion?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  showDailyQuote?: boolean;
+
+  @IsOptional()
   @IsString()
   @MaxLength(64)
   mapStylePreference?: string | null;
