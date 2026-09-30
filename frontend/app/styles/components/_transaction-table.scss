@@ -80,8 +80,8 @@
     }
 
     &--expand {
-      width: 32px;
-      padding: 12px 8px;
+      width: 40px;
+      padding: 12px 8px 12px 16px;
     }
   }
 
@@ -132,7 +132,7 @@
     }
 
     &--center {
-      padding: 8px;
+      padding: 8px 8px 8px 16px;
       text-align: center;
     }
   }
@@ -158,9 +158,17 @@
     border: none;
     cursor: pointer;
     padding: 0;
+    // Secondary to the date beside it until the row is pointed at.
+    opacity: 0.6;
 
     @include dark {
       color: $lumio-color-ink-300-dk;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &[aria-expanded='true'] {
+      opacity: 1;
     }
 
     &:hover {
@@ -187,8 +195,8 @@
     }
 
     &--selected {
-      background-color: rgba($color-primary, 0.05);
-      border-left-color: $color-primary;
+      background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+      border-left-color: var(--primary);
 
       @include dark {
         background-color: rgba($color-primary-dk, 0.08);
@@ -343,8 +351,8 @@
   }
 
   &--selected {
-    border-color: $color-primary;
-    background-color: rgba($color-primary, 0.05);
+    border-color: var(--primary);
+    background-color: color-mix(in srgb, var(--primary) 5%, transparent);
 
     @include dark {
       border-color: $color-primary-dk;
@@ -552,6 +560,14 @@
     max-width: 448px;
   }
 
+  // Currency toggle and the Filters button share the search row, pushed right.
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
   &__search-icon {
     position: absolute;
     left: 12px;
@@ -580,7 +596,7 @@
     }
 
     &:focus {
-      border-color: $color-primary;
+      border-color: var(--primary);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -633,9 +649,9 @@
     }
 
     &--active {
-      border-color: $color-primary;
-      background-color: rgba($color-primary, 0.1);
-      color: $color-primary;
+      border-color: var(--primary);
+      background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+      color: var(--primary);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -645,8 +661,8 @@
     }
 
     &:hover {
-      border-color: $color-primary;
-      color: $color-primary;
+      border-color: var(--primary);
+      color: var(--primary);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -662,7 +678,7 @@
     align-items: center;
     justify-content: center;
     border-radius: $lumio-radius-full;
-    background-color: $color-primary;
+    background-color: var(--primary-fill);
     font-size: 12px;
     color: white;
 
@@ -727,8 +743,8 @@
     }
 
     &:hover {
-      border-color: $color-primary;
-      color: $color-primary;
+      border-color: var(--primary);
+      color: var(--primary);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -996,9 +1012,9 @@
   display: inline-flex;
   max-width: 100%;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   border-radius: $lumio-radius-md;
-  padding: 4px 10px;
+  padding: 4px 8px 4px 10px;
   font-size: 12px;
   font-weight: 600;
   transition: opacity 150ms;
@@ -1051,8 +1067,8 @@
     }
 
     &--active {
-      border-bottom-color: $color-primary;
-      color: $color-primary;
+      border-bottom-color: var(--primary);
+      color: var(--primary);
 
       @include dark {
         border-bottom-color: $color-primary-dk;
@@ -1083,6 +1099,7 @@
   &__icon {
     background-color: $lumio-color-ink-100;
     padding: 8px;
+    border-radius: $lumio-radius-sm;
 
     @include dark {
       background-color: $lumio-color-ink-100-dk;
@@ -1091,6 +1108,7 @@
     &--white {
       background-color: $lumio-color-surface;
       padding: 8px;
+      border-radius: $lumio-radius-sm;
       border: 1px solid $lumio-color-ink-100;
 
       @include dark {
@@ -1129,6 +1147,7 @@
 
   &__card {
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
     background-color: rgba($lumio-color-ink-50, 0.6);
     padding: 16px;
 
@@ -1156,6 +1175,7 @@
 
   &__amount-card {
     border: 1px solid;
+    border-radius: $lumio-radius-md;
     padding: 16px;
 
     &--debit {
@@ -1253,6 +1273,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 12px;
+    border-radius: $lumio-radius-sm;
     font-size: 14px;
     font-weight: 600;
   }
@@ -1260,6 +1281,7 @@
   &__ignore-btn {
     width: 100%;
     border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-md;
     background-color: $lumio-color-surface;
     padding: 8px 16px;
     font-size: 14px;
@@ -1275,8 +1297,8 @@
     }
 
     &:hover {
-      border-color: $color-primary;
-      color: $color-primary;
+      border-color: var(--primary);
+      color: var(--primary);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -1286,8 +1308,9 @@
   }
 
   &__apply-btn {
-    background-color: $color-primary;
+    background-color: var(--primary-fill);
     padding: 8px 16px;
+    border-radius: $lumio-radius-md;
     font-size: 14px;
     font-weight: 600;
     color: white;
@@ -1321,7 +1344,7 @@
     padding: 16px;
 
     &--selected {
-      border-color: $color-primary;
+      border-color: var(--primary);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -1380,8 +1403,8 @@
     }
 
     &--selected {
-      border-color: $color-primary;
-      background-color: $color-primary;
+      border-color: var(--primary);
+      background-color: var(--primary-fill);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -1416,8 +1439,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  border: 1px solid rgba($color-primary, 0.3);
-  background-color: rgba($color-primary, 0.05);
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  background-color: color-mix(in srgb, var(--primary) 5%, transparent);
   padding: 16px;
 
   @include dark {
@@ -1438,7 +1461,7 @@
     align-items: center;
     justify-content: center;
     border-radius: $lumio-radius-full;
-    background-color: $color-primary;
+    background-color: var(--primary-fill);
     font-size: 12px;
     font-weight: 700;
     color: white;
@@ -1457,7 +1480,7 @@
   }
 
   &__apply-btn {
-    background-color: $color-primary;
+    background-color: var(--primary-fill);
     padding: 8px 16px;
     font-size: 14px;
     font-weight: 600;

@@ -160,7 +160,7 @@
     }
 
     a {
-      color: $lumio-color-primary;
+      color: var(--primary);
       text-decoration: none;
       font-weight: $lumio-font-weight-medium;
 
@@ -182,7 +182,7 @@
     height: 42px;
     pointer-events: none;
     opacity: 0.9;
-    color: $lumio-color-primary;
+    color: var(--primary);
 
     @include dark {
       color: $lumio-color-primary-dk;
@@ -355,7 +355,7 @@
     gap: 4px;
     font-size: 12.5px;
     font-weight: 500;
-    color: $lumio-color-primary;
+    color: var(--primary);
     text-decoration: none;
     background: none;
     border: none;
@@ -371,7 +371,7 @@
     }
 
     &:hover {
-      background-color: $lumio-color-primary-50;
+      background-color: var(--primary-50);
 
       @include dark {
         background-color: $lumio-color-primary-50-dk;
@@ -683,8 +683,8 @@
     }
 
     &:hover {
-      border-color: $lumio-color-primary;
-      background: $lumio-color-primary-50;
+      border-color: var(--primary);
+      background: var(--primary-50);
 
       @include dark {
         border-color: $lumio-color-primary-dk;
@@ -701,8 +701,8 @@
     align-items: center;
     justify-content: center;
     border-radius: $lumio-radius-md;
-    background: $lumio-color-primary-50;
-    color: $lumio-color-primary;
+    background: var(--primary-50);
+    color: var(--primary);
 
     @include dark {
       background: $lumio-color-primary-50-dk;
@@ -810,7 +810,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background-color: $lumio-color-primary;
+    background-color: var(--primary-fill);
     color: #fff;
     padding: 12px 24px;
     font-size: 14px;
@@ -824,7 +824,7 @@
     }
 
     &:hover {
-      background-color: $lumio-color-primary-hover;
+      background-color: var(--primary-fill-hover);
 
       @include dark {
         background-color: $lumio-color-primary-fill-hover-dk;
@@ -908,7 +908,7 @@
     }
 
     &:focus-visible {
-      outline: 2px solid $lumio-color-primary;
+      outline: 2px solid var(--primary);
       outline-offset: 1px;
     }
   }
@@ -1010,7 +1010,7 @@
     }
     border: none;
     border-radius: 50%;
-    background: $lumio-color-primary;
+    background: var(--primary-fill);
     color: #fff;
     cursor: pointer;
     transition: background 150ms ease, transform 150ms ease;
@@ -1020,7 +1020,7 @@
     }
 
     &:hover {
-      background: $lumio-color-primary-hover;
+      background: var(--primary-fill-hover);
 
       @include dark {
         background: $lumio-color-primary-fill-hover-dk;
