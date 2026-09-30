@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: AI, mail, storage, inbox, sheets and Telegram
+description: AI, mail, storage, inbox and Telegram
 ---
 
 Integrations are configured in the app under **Integrations**, per workspace. Secrets are stored
@@ -17,7 +17,6 @@ encrypted. Env variables with the same purpose are only temporary fallback defau
 | S3-compatible storage | Syncs statements with a bucket such as MinIO |
 | WebDAV storage | Imports and syncs files from Nextcloud or another WebDAV server |
 | IMAP inbox | Polls a mailbox for receipts and invoice attachments |
-| Workbook / Google Sheets | Imports a sheet from a link into custom tables |
 | Telegram | Scheduled reports to a chat or channel; set up in **Settings → Telegram** |
 
 ## Notes

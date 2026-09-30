@@ -104,7 +104,7 @@ export function ReportGenerator({
   };
 
   const availableFormats = FORMAT_OPTIONS.filter(opt =>
-    template.formats.includes(opt.value as 'pdf' | 'excel' | 'csv' | 'google-sheets'),
+    template.formats.includes(opt.value as 'pdf' | 'excel' | 'csv'),
   );
 
   /** Single source of truth, so the preview can never describe a different file. */

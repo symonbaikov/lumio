@@ -28,13 +28,6 @@ const INTEGRATIONS = [
     icon: '/icons/gmail.png',
     path: '/integrations/gmail',
   },
-  {
-    id: 'google-sheets',
-    name: 'Google Sheets',
-    description: 'Export your financial data to Google Sheets',
-    icon: '/icons/icons8-google-sheets-48.png',
-    path: '/integrations/google-sheets',
-  },
 ];
 
 export function ServiceIntegrationSuggestions({

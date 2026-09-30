@@ -7,10 +7,10 @@ import type React from 'react';
 import { ExternalLink } from '@/app/components/icons';
 import { PanelBackTitle } from '@/app/components/panels/panel-ui';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import { LocalCategorizationPanel } from '../local-categorization/LocalCategorizationPanel';
 import { ProtocolIntegrationPage } from '../open-protocol-page';
 import type { IntegrationEntry } from './integration-catalog';
-import { WorkbookImportPanel } from './WorkbookImportPanel';
 
 interface IntegrationDetailDrawerProps {
   entry: IntegrationEntry | undefined;
@@ -23,18 +23,12 @@ interface IntegrationDetailDrawerProps {
 function DetailBody({
   entry,
   onConnectionChange,
-  onClose,
 }: {
   entry: IntegrationEntry;
   onConnectionChange: () => void;
-  onClose: () => void;
 }): React.JSX.Element {
   if (entry.detail.kind === 'local-categorization') {
     return <LocalCategorizationPanel />;
-  }
-
-  if (entry.detail.kind === 'workbook-import') {
-    return <WorkbookImportPanel onNavigate={onClose} />;
   }
 
   const { config, secondary } = entry.detail;
@@ -71,6 +65,8 @@ export function IntegrationDetailDrawer({
   onClose,
   onConnectionChange,
 }: IntegrationDetailDrawerProps): React.JSX.Element {
+  const t = useIntlayer('integrationsPage');
+
   return (
     <DrawerShell
       isOpen={Boolean(entry)}
@@ -86,7 +82,7 @@ export function IntegrationDetailDrawer({
             {entry.description}
           </Typography>
 
-          <DetailBody entry={entry} onConnectionChange={onConnectionChange} onClose={onClose} />
+          <DetailBody entry={entry} onConnectionChange={onConnectionChange} />
 
           {entry.docsUrl ? (
             <Box
@@ -106,7 +102,7 @@ export function IntegrationDetailDrawer({
                 '&:hover': { color: 'text.primary' },
               }}
             >
-              Docs
+              {t.docs}
               <ExternalLink size={14} />
             </Box>
           ) : null}

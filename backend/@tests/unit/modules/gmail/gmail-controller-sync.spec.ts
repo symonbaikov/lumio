@@ -6,6 +6,7 @@ import { PermissionsGuard } from '../../../../src/common/guards/permissions.guar
 import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-context.guard';
 import { GmailController } from '../../../../src/modules/gmail/gmail.controller';
 import { GmailMerchantReparseService } from '../../../../src/modules/gmail/services/gmail-merchant-reparse.service';
+import { ReceiptsService } from '../../../../src/modules/receipts/receipts.service';
 import { GmailOAuthService } from '../../../../src/modules/gmail/services/gmail-oauth.service';
 import { GmailReceiptCategoryService } from '../../../../src/modules/gmail/services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from '../../../../src/modules/gmail/services/gmail-receipt-duplicate.service';
@@ -45,6 +46,7 @@ describe('GmailController - Sync Endpoint', () => {
         { provide: GmailReceiptCategoryService, useValue: {} },
         { provide: GmailReceiptExportService, useValue: {} },
         { provide: GmailMerchantReparseService, useValue: {} },
+        { provide: ReceiptsService, useValue: {} },
         {
           provide: CACHE_MANAGER,
           useValue: {

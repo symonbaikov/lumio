@@ -90,8 +90,6 @@ export interface AuditEventMeta {
   provider?: string;
   fileId?: string;
   rowsCount?: number;
-  sheetId?: string;
-  spreadsheetId?: string;
   cell?: {
     row?: number;
     column?: string;

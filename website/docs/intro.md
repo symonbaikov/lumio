@@ -31,8 +31,8 @@ exports into reliable, queryable financial data.
 - Backend: NestJS 11 with TypeORM and PostgreSQL
 - Frontend: Next.js 16 with React 19, UI in 21 languages
 - Data services: PostgreSQL 14 + Redis 7 (Docker Compose)
-- Integrations: OpenAI-compatible AI endpoint, SMTP, IMAP, S3-compatible and WebDAV storage, workbook and Google
-  Sheets import, Telegram, webhooks, and API keys
+- Integrations: OpenAI-compatible AI endpoint, SMTP, IMAP, S3-compatible and WebDAV storage, Telegram,
+  webhooks, and API keys
 - Optional: self-hosted map tiles (tileserver-gl) and geocoding (Nominatim)
 - Observability: Prometheus-format metrics at `/api/v1/metrics` and structured JSON logs
 - Also in the repository: an MCP server (`mcp-server/`)

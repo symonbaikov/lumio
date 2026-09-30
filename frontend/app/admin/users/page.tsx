@@ -110,12 +110,6 @@ export default function UsersManagementPage() {
     { value: 'wallet.delete', label: t.permissions.walletDelete.value },
     { value: 'report.view', label: t.permissions.reportView.value },
     { value: 'report.export', label: t.permissions.reportExport.value },
-    { value: 'google_sheet.view', label: t.permissions.googleSheetView.value },
-    {
-      value: 'google_sheet.connect',
-      label: t.permissions.googleSheetConnect.value,
-    },
-    { value: 'google_sheet.sync', label: t.permissions.googleSheetSync.value },
   ];
 
   const [error, setError] = useState<string | null>(null);

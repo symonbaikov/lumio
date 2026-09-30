@@ -6,12 +6,6 @@
     "frontend/intlayer.config.ts"
   ],
   "ignoreIssues": {
-    "backend/src/modules/custom-tables/dto/google-sheets-import-commit.dto.ts": [
-      "exports"
-    ],
-    "backend/src/modules/google-sheets/dto/sheets-update.dto.ts": [
-      "exports"
-    ],
     "backend/src/modules/import/errors/import-errors.ts": [
       "exports"
     ],
@@ -58,9 +52,6 @@
       "types"
     ],
     "backend/src/modules/classification/helpers/ai-category-classifier.helper.ts": [
-      "types"
-    ],
-    "backend/src/modules/custom-tables/custom-tables-import.service.ts": [
       "types"
     ],
     "backend/src/modules/insights/analyzers/analyzer.interface.ts": [
@@ -133,9 +124,6 @@
       "types"
     ],
     "backend/src/modules/gmail/services/gmail-sync.service.ts": [
-      "types"
-    ],
-    "backend/src/modules/google-sheets/services/google-sheets-updates.service.ts": [
       "types"
     ],
     "backend/src/modules/import/services/import-session.service.ts": [

@@ -76,10 +76,8 @@ describe('createCustomTablesTour', () => {
 
     expect(source).not.toContain('tabsAll: {');
     expect(source).not.toContain('tabsManual: {');
-    expect(source).not.toContain('tabsGoogleSheets: {');
     expect(source).not.toContain('createOptionEmpty: {');
     expect(source).not.toContain('createOptionFromStatement: {');
-    expect(source).not.toContain('createOptionGoogleSheets: {');
     expect(source).toContain('ru:');
     expect(source).toContain('en:');
     expect(source).toContain('kk:');

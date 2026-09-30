@@ -188,7 +188,6 @@ describe('DropboxService', () => {
       }),
       undefined,
       undefined,
-      undefined,
       false,
     );
   });

@@ -56,11 +56,6 @@ export enum Permission {
   TELEGRAM_CONNECT = 'telegram.connect',
   TELEGRAM_SEND = 'telegram.send',
 
-  // Google Sheets
-  GOOGLE_SHEET_VIEW = 'google_sheet.view',
-  GOOGLE_SHEET_CONNECT = 'google_sheet.connect',
-  GOOGLE_SHEET_SYNC = 'google_sheet.sync',
-
   // Admin
   USER_MANAGE = 'user.manage',
   USER_VIEW_ALL = 'user.view_all',
@@ -113,7 +108,6 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     Permission.INVOICE_VIEW,
     Permission.CLIENT_VIEW,
     Permission.REPORT_VIEW,
-    Permission.GOOGLE_SHEET_VIEW,
     Permission.TELEGRAM_VIEW,
     Permission.TELEGRAM_CONNECT,
     Permission.TELEGRAM_SEND,

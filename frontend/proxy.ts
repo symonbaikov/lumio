@@ -6,9 +6,8 @@ const REFRESH_TOKEN_COOKIE = 'refresh_token';
 
 /**
  * Routes that must stay reachable without a session: the auth screens
- * themselves, invitation links (which decide what to show based on whether the
- * visitor is signed in), and OAuth callbacks, which land here before the
- * session cookie is necessarily present.
+ * themselves and invitation links (which decide what to show based on whether
+ * the visitor is signed in).
  */
 const PUBLIC_PREFIXES = [
   '/login',
@@ -17,7 +16,6 @@ const PUBLIC_PREFIXES = [
   '/reset-password',
   '/verify-email',
   '/invite',
-  '/google-sheets/callback',
 ];
 
 const isPublicPath = (pathname: string): boolean =>

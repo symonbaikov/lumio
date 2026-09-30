@@ -383,15 +383,7 @@ export class GoogleDriveService extends CloudStorageBaseService<DriveSettings> {
         };
       },
       importFile: (user, file) =>
-        this.statementsService.create(
-          user,
-          workspaceId,
-          file,
-          undefined,
-          undefined,
-          undefined,
-          false,
-        ),
+        this.statementsService.create(user, workspaceId, file, undefined, undefined, false),
       getErrorMessage: error => this.getImportErrorMessage(error),
     });
   }

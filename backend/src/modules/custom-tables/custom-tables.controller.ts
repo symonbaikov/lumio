@@ -26,10 +26,8 @@ import { EntityType } from '../../entities/audit-event.entity';
 import type { User } from '../../entities/user.entity';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { CustomTableImportJobsService } from './custom-table-import-jobs.service';
 import { CustomTablesService } from './custom-tables.service';
 import { CustomTablesCacheService } from './custom-tables-cache.service';
-import { CustomTablesImportService } from './custom-tables-import.service';
 import { BatchCreateCustomTableRowsDto } from './dto/batch-create-custom-table-rows.dto';
 import { ClassifyPaidStatusDto } from './dto/classify-paid-status.dto';
 import { CreateCustomTableDto } from './dto/create-custom-table.dto';
@@ -39,8 +37,6 @@ import { CreateCustomTableFromDataEntryCustomTabDto } from './dto/create-custom-
 import { CreateCustomTableFromStatementsDto } from './dto/create-custom-table-from-statements.dto';
 import { CreateCustomTableRowDto } from './dto/create-custom-table-row.dto';
 import { FillAiColumnDto } from './dto/fill-ai-column.dto';
-import { GoogleSheetsImportCommitDto } from './dto/google-sheets-import-commit.dto';
-import { GoogleSheetsImportPreviewDto } from './dto/google-sheets-import-preview.dto';
 import {
   CUSTOM_TABLE_AGGREGATE_FNS,
   type CustomTableAggregateDto,
@@ -58,8 +54,6 @@ import {
   UpdateCustomTableRulesDto,
   UpdateCustomTableViewsDto,
 } from './dto/update-custom-table-views.dto';
-
-type GoogleSheetsCommitJobPayload = GoogleSheetsImportCommitDto;
 
 function parseRowFiltersParam(filtersRaw?: string): CustomTableRowFilterDto[] | undefined {
   if (!filtersRaw) {
@@ -133,8 +127,6 @@ function parseRowSortParam(sortRaw?: string): CustomTableRowSortDto | undefined 
 export class CustomTablesController {
   constructor(
     private readonly customTablesService: CustomTablesService,
-    private readonly customTablesImportService: CustomTablesImportService,
-    private readonly importJobsService: CustomTableImportJobsService,
     private readonly customTablesCache: CustomTablesCacheService,
   ) {}
 
@@ -159,52 +151,6 @@ export class CustomTablesController {
       const items = await this.customTablesService.listTables(workspaceId);
       return { items };
     });
-  }
-
-  @Post('import/google-sheets/preview')
-  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  async previewGoogleSheets(
-    @CurrentUser() _user: User,
-    @WorkspaceId() workspaceId: string,
-    @Body() dto: GoogleSheetsImportPreviewDto,
-  ) {
-    return this.customTablesImportService.previewGoogleSheets(workspaceId, dto);
-  }
-
-  @Post('import/google-sheets/commit')
-  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  async commitGoogleSheets(
-    @CurrentUser() user: User,
-    @WorkspaceId() workspaceId: string,
-    @Body() dto: GoogleSheetsImportCommitDto,
-  ) {
-    const job = await this.importJobsService.createGoogleSheetsJob(user.id, workspaceId, {
-      ...dto,
-      importUserId: user.id,
-    } as GoogleSheetsCommitJobPayload);
-    return { jobId: job.id };
-  }
-
-  @Get('import/jobs/:jobId')
-  @UseGuards(JwtAuthGuard, WorkspaceContextGuard)
-  async getImportJob(
-    @CurrentUser() _user: User,
-    @WorkspaceId() workspaceId: string,
-    @Param('jobId', new ParseUUIDPipe()) jobId: string,
-  ) {
-    const job = await this.importJobsService.getJobForWorkspace(workspaceId, jobId);
-    return {
-      id: job.id,
-      type: job.type,
-      status: job.status,
-      progress: job.progress,
-      stage: job.stage,
-      result: job.result,
-      error: job.error,
-      createdAt: job.createdAt,
-      startedAt: job.startedAt,
-      finishedAt: job.finishedAt,
-    };
   }
 
   @Post('from-data-entry')

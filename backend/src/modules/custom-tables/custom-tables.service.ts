@@ -1,7 +1,13 @@
 import { createHash, randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, QueryFailedError, type Repository, type SelectQueryBuilder } from 'typeorm';
 import * as xlsx from 'xlsx';
@@ -34,6 +40,7 @@ import { Transaction, TransactionType } from '../../entities/transaction.entity'
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
+import { ClassificationService } from '../classification/services/classification.service';
 import type { BatchCreateCustomTableRowsDto } from './dto/batch-create-custom-table-rows.dto';
 import type { ClassifyPaidStatusDto } from './dto/classify-paid-status.dto';
 import type { CreateCustomTableDto } from './dto/create-custom-table.dto';
@@ -140,6 +147,8 @@ export class CustomTablesService {
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly auditService: AuditService,
+    // Optional: the classifier needs AI settings; unit tests build the service without it.
+    @Optional() private readonly classificationService?: ClassificationService,
   ) {}
 
   private getDriverErrorCode(error: unknown): string | undefined {
@@ -279,6 +288,47 @@ export class CustomTablesService {
     })?.key;
   }
 
+  /**
+   * Runs the workspace classifier over freshly converted rows so the statement
+   * lands on the dashboard already categorised. Enrichment is best effort:
+   * a classifier failure must not undo the conversion itself.
+   */
+  private async categorizeConvertedTransactions(
+    workspaceId: string,
+    userId: string,
+    transactions: Transaction[],
+  ): Promise<void> {
+    const pending = transactions.filter(transaction => !transaction.categoryId);
+    if (!(this.classificationService && pending.length)) {
+      return;
+    }
+    try {
+      const results = await this.classificationService.classifyTransactionsBatch(
+        pending.map((transaction, index) => ({
+          index,
+          counterpartyName: transaction.counterpartyName ?? '',
+          paymentPurpose: transaction.paymentPurpose ?? '',
+          transactionType: transaction.transactionType,
+        })),
+        workspaceId,
+        userId,
+      );
+      for (const [index, transaction] of pending.entries()) {
+        // Batch (AI) result first; otherwise rules, learned patterns and history.
+        const categoryId =
+          results.get(index)?.categoryId ??
+          (await this.classificationService.classifyTransaction(transaction, userId)).categoryId;
+        if (categoryId) {
+          await this.transactionRepository.update({ id: transaction.id }, { categoryId });
+        }
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Categorization after table conversion failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   private buildConversionMapping(columns: CustomTableColumn[]): ConversionMapping {
     return {
       date: this.findConversionColumnKey(columns, ['date', 'дата']),
@@ -286,8 +336,13 @@ export class CustomTablesService {
       merchant: this.findConversionColumnKey(columns, [
         'merchant',
         'counterparty',
+        'payee',
+        'vendor',
+        'client',
         'контрагент',
         'поставщик',
+        'клиент',
+        'магазин',
       ]),
       purpose: this.findConversionColumnKey(columns, [
         'purpose',
@@ -1713,6 +1768,12 @@ export class CustomTablesService {
       );
     }
 
+    // A money column already knows its currency; rows without an explicit one inherit it.
+    const amountColumn = columns.find(column => column.key === mapping.amount);
+    const amountCurrency = amountColumn?.config?.currency;
+    const defaultCurrency =
+      typeof amountCurrency === 'string' && amountCurrency ? amountCurrency : 'KZT';
+
     const converted: ConvertedTransactionInput[] = [];
     const warnings: string[] = [];
 
@@ -1736,7 +1797,7 @@ export class CustomTablesService {
 
       const merchant = this.readScalarString(data, mapping.merchant) || table.name;
       const purpose = this.readScalarString(data, mapping.purpose) || merchant;
-      const currency = (this.readScalarString(data, mapping.currency) || 'KZT')
+      const currency = (this.readScalarString(data, mapping.currency) || defaultCurrency)
         .trim()
         .toUpperCase();
       const article = this.readScalarString(data, mapping.article) || null;
@@ -1859,7 +1920,8 @@ export class CustomTablesService {
       }),
     );
 
-    await this.transactionRepository.save(transactions);
+    const savedTransactions = await this.transactionRepository.save(transactions);
+    await this.categorizeConvertedTransactions(workspaceId, userId, savedTransactions);
 
     await this.logEvent({
       userId,

@@ -13,7 +13,6 @@ import { AuthSession } from './auth-session.entity';
 import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import type { DataEntryType } from './data-entry.entity';
-import { GoogleSheet } from './google-sheet.entity';
 import { Statement } from './statement.entity';
 import { TelegramReport } from './telegram-report.entity';
 import { Wallet } from './wallet.entity';
@@ -233,12 +232,6 @@ export class User {
     statement => statement.user,
   )
   statements: Statement[];
-
-  @OneToMany(
-    () => GoogleSheet,
-    sheet => sheet.user,
-  )
-  googleSheets: GoogleSheet[];
 
   @OneToMany(
     () => TelegramReport,

@@ -91,32 +91,4 @@ describe('AuthController', () => {
     expect(authService.logout).toHaveBeenCalledWith('u1', 's1');
     expect(authService.getSessions).toHaveBeenCalledWith('u1', 's1');
   });
-
-  it('redirects legacy google callback for google sheets integrations', async () => {
-    // The redirect target comes from FRONTEND_URL, so the test has to pin it.
-    // Reading whatever the machine happens to export made this fail on any
-    // setup that does not serve the frontend on :3000 — the dev container
-    // serves it on :3002.
-    const previousFrontendUrl = process.env.FRONTEND_URL;
-    const previousAppUrl = process.env.APP_URL;
-    process.env.FRONTEND_URL = 'http://localhost:3000';
-    process.env.APP_URL = undefined;
-
-    const authService = {};
-    const controller = new AuthController(authService as any, {} as any, {} as any);
-
-    const result = controller.handleGoogleCallback(
-      'integrations/google-sheets',
-      'code-123',
-      undefined,
-    );
-
-    expect(result.statusCode).toBe(302);
-    expect(result.url).toBe(
-      'http://localhost:3000/google-sheets/callback?code=code-123&state=integrations%2Fgoogle-sheets',
-    );
-
-    process.env.FRONTEND_URL = previousFrontendUrl;
-    process.env.APP_URL = previousAppUrl;
-  });
 });
