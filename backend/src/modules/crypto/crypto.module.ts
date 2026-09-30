@@ -5,10 +5,13 @@ import { ExchangeRate } from '../../entities/exchange-rate.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
+import { BitcoinClient } from './bitcoin.client';
 import { CryptoController } from './crypto.controller';
 import { CryptoService } from './crypto.service';
 import { CryptoPriceService } from './crypto-price.service';
 import { CryptoSyncService } from './crypto-sync.service';
+import { SolanaRpcClient } from './solana-rpc.client';
+import { TronGridClient } from './tron-grid.client';
 
 @Module({
   imports: [
@@ -16,7 +19,14 @@ import { CryptoSyncService } from './crypto-sync.service';
     ExchangeRatesModule,
   ],
   controllers: [CryptoController],
-  providers: [CryptoService, CryptoSyncService, CryptoPriceService],
+  providers: [
+    CryptoService,
+    CryptoSyncService,
+    CryptoPriceService,
+    TronGridClient,
+    BitcoinClient,
+    SolanaRpcClient,
+  ],
   exports: [CryptoService],
 })
 export class CryptoModule {}

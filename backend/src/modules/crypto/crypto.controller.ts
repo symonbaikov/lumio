@@ -18,6 +18,12 @@ export class CryptoController {
     return this.cryptoService.findAll(workspaceId);
   }
 
+  @Get('networks')
+  @WorkspaceAuth(Permission.WALLET_VIEW)
+  getNetworks() {
+    return this.cryptoService.getNetworks();
+  }
+
   @Get('summary')
   @WorkspaceAuth(Permission.WALLET_VIEW)
   async getSummary(@WorkspaceId() workspaceId: string, @Query('days') days?: string) {
@@ -25,6 +31,16 @@ export class CryptoController {
     return this.cryptoService.getSummary(
       workspaceId,
       Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 365) : 30,
+    );
+  }
+
+  @Get('transactions')
+  @WorkspaceAuth(Permission.WALLET_VIEW)
+  async getRecentTransactions(@WorkspaceId() workspaceId: string, @Query('limit') limit?: string) {
+    const parsed = Number.parseInt(limit ?? '', 10);
+    return this.cryptoService.getRecentTransactions(
+      workspaceId,
+      Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 100) : 20,
     );
   }
 

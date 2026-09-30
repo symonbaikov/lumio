@@ -1,11 +1,24 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { CryptoWallet } from '../../entities/crypto-wallet.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
-import { CHAIN_NAMES, DEFAULT_CHAIN_ID } from './crypto.constants';
+import {
+  CHAIN_NAMES,
+  CHAINS,
+  type ChainFamily,
+  chainIdForAddress,
+  familyForAddress,
+  normalizeAddress,
+  SUPPORTED_CHAIN_IDS,
+} from './crypto.constants';
 import { CryptoPriceService } from './crypto-price.service';
 import type { WalletSyncResult } from './crypto-sync.service';
 import { CryptoSyncService } from './crypto-sync.service';
@@ -27,6 +40,8 @@ export interface CryptoHolding {
   asset: string;
   /** Amount held on-chain, as a decimal string. */
   amount: string;
+  /** Current price of one unit, in the workspace currency. */
+  price: number;
   /** Current value in the workspace currency. */
   value: number;
 }
@@ -41,6 +56,29 @@ export interface CryptoSummary {
   expense: number;
   walletCount: number;
   holdings: CryptoHolding[];
+  /**
+   * Percent change of the portfolio against yesterday's daily prices, holding
+   * today's amounts fixed — the price move only. Null when yesterday's price is
+   * missing for any holding, so a partial figure is never shown as the whole.
+   */
+  portfolioChangeSinceYesterday: number | null;
+}
+
+export interface CryptoTransactionView {
+  id: string;
+  date: string;
+  walletId: string;
+  walletLabel: string | null;
+  walletAddress: string | null;
+  walletChainName: string | null;
+  direction: 'in' | 'out';
+  asset: string | null;
+  cryptoAmount: string | null;
+  /** Booked value in `currency`. */
+  amount: number;
+  currency: string;
+  counterparty: string | null;
+  txHash: string | null;
 }
 
 @Injectable()
@@ -86,39 +124,67 @@ export class CryptoService {
     }));
   }
 
+  /**
+   * Connects one address on one or more networks and returns the wallets created.
+   * Networks where the address is already connected are skipped; only when every
+   * requested network is taken is that a conflict.
+   */
   async connect(
     workspaceId: string,
     userId: string,
     dto: ConnectCryptoWalletDto,
-  ): Promise<CryptoWalletView> {
-    const address = dto.address.toLowerCase();
-    const chainId = dto.chainId ?? DEFAULT_CHAIN_ID;
+  ): Promise<CryptoWalletView[]> {
+    const family = familyForAddress(dto.address);
+    const defaultChainId = chainIdForAddress(dto.address);
+    const chainIds = [...new Set(dto.chainIds ?? [dto.chainId ?? defaultChainId])];
+    // An address of one family on another family's chain would sync nothing, or
+    // another address's history if the formats ever collided.
+    if (!family || chainIds.some(id => id === null || CHAINS[id]?.family !== family)) {
+      throw new BadRequestException('The address does not belong to the selected network');
+    }
 
-    const existing = await this.walletRepo.findOne({ where: { workspaceId, chainId, address } });
-    if (existing) {
+    const created: CryptoWallet[] = [];
+    for (const chainId of chainIds as number[]) {
+      const address = normalizeAddress(dto.address, chainId);
+      const existing = await this.walletRepo.findOne({ where: { workspaceId, chainId, address } });
+      if (existing) {
+        continue;
+      }
+      created.push(
+        await this.walletRepo.save(
+          this.walletRepo.create({
+            workspaceId,
+            address,
+            chainId,
+            label: dto.label ?? null,
+            connectedByUserId: userId,
+          }),
+        ),
+      );
+    }
+    if (created.length === 0) {
       throw new ConflictException('This address is already connected to the workspace');
     }
 
-    const wallet = await this.walletRepo.save(
-      this.walletRepo.create({
-        workspaceId,
-        address,
-        chainId,
-        label: dto.label ?? null,
-        connectedByUserId: userId,
-      }),
+    // A freshly connected wallet with no history looks broken, so pull it now —
+    // every chain at once, since each has its own provider. A sync failure must
+    // not lose the connection the user just made.
+    await Promise.all(
+      created.map(wallet => this.syncService.syncWallet(wallet).catch(() => undefined)),
     );
 
-    // A freshly connected wallet with no history looks broken, so pull it now.
-    // A sync failure must not lose the connection the user just made.
-    await this.syncService.syncWallet(wallet).catch(() => undefined);
+    const createdIds = new Set(created.map(wallet => wallet.id));
+    return (await this.findAll(workspaceId)).filter(view => createdIds.has(view.id));
+  }
 
-    const views = await this.findAll(workspaceId);
-    const view = views.find(item => item.id === wallet.id);
-    if (!view) {
-      throw new NotFoundException('Crypto wallet not found');
-    }
-    return view;
+  /** The networks a wallet can be connected on, for the connect form. */
+  getNetworks(): { chainId: number; name: string; family: ChainFamily; nativeAsset: string }[] {
+    return SUPPORTED_CHAIN_IDS.map(chainId => ({
+      chainId,
+      name: CHAINS[chainId].name,
+      family: CHAINS[chainId].family,
+      nativeAsset: CHAINS[chainId].nativeAsset,
+    }));
   }
 
   async sync(workspaceId: string, walletId: string): Promise<WalletSyncResult> {
@@ -150,7 +216,81 @@ export class CryptoService {
       expense: flows.expense,
       walletCount,
       holdings,
+      portfolioChangeSinceYesterday: await this.getPortfolioChangeSinceYesterday(
+        holdings,
+        currency,
+      ),
     };
+  }
+
+  /** The most recent booked transfers across the workspace's wallets, newest first. */
+  async getRecentTransactions(workspaceId: string, limit = 20): Promise<CryptoTransactionView[]> {
+    const [transactions, wallets] = await Promise.all([
+      this.transactionRepo
+        .createQueryBuilder('t')
+        .where('t.workspace_id = :workspaceId', { workspaceId })
+        .andWhere('t.crypto_wallet_id IS NOT NULL')
+        .orderBy('t.transaction_date', 'DESC')
+        .addOrderBy('t.id', 'DESC')
+        .take(limit)
+        .getMany(),
+      this.walletRepo.find({
+        where: { workspaceId },
+        select: ['id', 'label', 'address', 'chainId'],
+      }),
+    ]);
+    const walletById = new Map(wallets.map(wallet => [wallet.id, wallet]));
+
+    return transactions.map(transaction => {
+      const wallet = walletById.get(transaction.cryptoWalletId as string);
+      return {
+        id: transaction.id,
+        date: new Date(transaction.transactionDate).toISOString(),
+        walletId: transaction.cryptoWalletId as string,
+        walletLabel: wallet?.label ?? null,
+        walletAddress: wallet?.address ?? null,
+        walletChainName: wallet ? (CHAIN_NAMES[wallet.chainId] ?? null) : null,
+        direction: transaction.transactionType === TransactionType.INCOME ? 'in' : 'out',
+        asset: transaction.cryptoAsset,
+        cryptoAmount: transaction.cryptoAmount,
+        amount: Number(transaction.amount),
+        currency: transaction.currency,
+        counterparty: transaction.counterpartyAccount ?? transaction.counterpartyName ?? null,
+        txHash: transaction.cryptoTxHash,
+      };
+    });
+  }
+
+  /**
+   * Yesterday's daily price is fetched once and then read from the cache the sync
+   * fills. It is converted at today's rate, the same rate the current values use,
+   * so the ratio is the price move alone. A price that cannot be fetched right now
+   * (rate limit) hides the figure instead of failing the whole summary.
+   */
+  private async getPortfolioChangeSinceYesterday(
+    holdings: CryptoHolding[],
+    currency: string,
+  ): Promise<number | null> {
+    if (holdings.length === 0) {
+      return null;
+    }
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const usdToCurrency = await this.exchangeRatesService.getRate('USD', currency);
+
+    let now = 0;
+    let before = 0;
+    for (const holding of holdings) {
+      const pastUsd = await this.priceService.getUsdPrice(holding.asset, dayAgo).catch(() => null);
+      if (pastUsd === null) {
+        return null;
+      }
+      now += holding.value;
+      before += Number(holding.amount) * pastUsd * usdToCurrency;
+    }
+    if (before === 0) {
+      return null;
+    }
+    return Math.round(((now - before) / before) * 10000) / 100;
   }
 
   private async getFlows(
@@ -215,6 +355,7 @@ export class CryptoService {
       .map(([asset, amount]) => ({
         asset,
         amount,
+        price: round2(usdPrices[asset] * usdToCurrency),
         value: round2(Number(amount) * usdPrices[asset] * usdToCurrency),
       }))
       .sort((a, b) => b.value - a.value);

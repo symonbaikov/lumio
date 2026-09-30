@@ -83,6 +83,9 @@ export const queryKeys = {
     ['net-worth', o.workspaceId, o.range] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,
   cryptoSummary: (workspaceId: string | null) => ['crypto', 'summary', workspaceId] as const,
+  cryptoTransactions: (workspaceId: string | null) =>
+    ['crypto', 'transactions', workspaceId] as const,
+  cryptoNetworks: (workspaceId: string | null) => ['crypto', 'networks', workspaceId] as const,
   notifications: (workspaceId: string | null) => ['notifications', workspaceId] as const,
   searchRecent: (workspaceId: string | null) => ['search', workspaceId, 'recent'] as const,
   searchFavorites: (workspaceId: string | null) => ['search', workspaceId, 'favorites'] as const,
