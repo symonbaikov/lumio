@@ -4393,3 +4393,70 @@
     }
   }
 }
+
+/* ── Analytics stat tiles ─────────────────────────────────
+   Four tiles per row. A fixed `repeat(4, 1fr)` kept every track at its own
+   content width, so on phones the row grew past the screen and the last
+   tiles were cut off; two tracks that may shrink to zero fit instead. */
+.lumio-stat-tiles {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  @include respond-to('sm') {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ── Unapproved-cash filter row ───────────────────────────
+   Seven tracks beside each other on desktop; the same row wrapped to three
+   and then two on narrower screens, where seven inputs could not fit. */
+.lumio-filter-grid {
+  display: grid;
+  gap: 8px;
+  /* Seven `1fr` tracks, as before: on a wide row they size to their contents,
+     which keeps the two selects' labels whole. */
+  grid-template-columns: repeat(7, 1fr);
+
+  @include respond-to('md') {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @include respond-to('sm') {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  &__search {
+    position: relative;
+    grid-column: span 2;
+  }
+}
+
+/* ── Spend-over-time calendar ─────────────────────────────
+   A day cell needs about 100px to show a merchant and an amount. Narrower
+   than that the cells' contents ran across their neighbours, so the month
+   grid keeps a workable width and the wrapper scrolls sideways instead. */
+.lumio-spend-calendar {
+  &__scroll {
+    @include respond-to('md') {
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+    }
+  }
+
+  &__grid {
+    @include respond-to('md') {
+      min-width: 700px;
+    }
+  }
+
+  /* The day number and the day's total share one line while there is room for
+     both; on the narrower cells the total drops under the number instead of
+     running over the cell's edge. */
+  &__day-head {
+    @include respond-to('md') {
+      flex-wrap: wrap;
+      gap: 2px;
+    }
+  }
+}

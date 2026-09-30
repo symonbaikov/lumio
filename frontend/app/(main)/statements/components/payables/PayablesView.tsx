@@ -99,7 +99,7 @@ function PayablesRowSkeleton(): React.JSX.Element {
 function PayablesViewSkeleton(): React.JSX.Element {
   return (
     <div className="container-shared lumio-stmt-list">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div className="lumio-stat-tiles">
         {SUMMARY_CARD_KEYS.map(key => (
           <PayablesSummaryCardSkeleton key={key} />
         ))}

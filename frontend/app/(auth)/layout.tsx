@@ -13,7 +13,9 @@ export default function AuthRootLayout({ children }: { children: React.ReactNode
     <Box
       sx={{
         minHeight: '100vh',
-        width: '100vw',
+        // Not 100vw: that counts the scrollbar gutter, so the page sat 11px
+        // wider than the viewport and shifted under its own overflow.
+        width: '100%',
         background: `linear-gradient(180deg, ${darkGreen} 0%, #0a3d20 100%)`,
         position: 'relative',
         overflow: 'hidden',

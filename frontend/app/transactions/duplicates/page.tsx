@@ -228,8 +228,18 @@ export default function TransactionDuplicatesPage() {
         <Box
           sx={{ border: '1px solid var(--border-color)', bgcolor: 'background.paper', p: 3, mb: 3 }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              // Counters and buttons in one unbreakable row made the whole page
+              // wider than a phone screen; they wrap onto their own lines now.
+              flexWrap: 'wrap',
+              gap: 2,
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   {t.totalGroups}
@@ -259,7 +269,7 @@ export default function TransactionDuplicatesPage() {
                 </Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
               <Button variant="outlined" onClick={handleSelectAll}>
                 {selectedGroups.size === duplicateGroups.length ? t.deselectAll : t.selectAll}
               </Button>

@@ -116,7 +116,9 @@ export function EditTransactionsTable({
       component={Paper}
       elevation={0}
       className="lumio-stmt-edit-table"
-      sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}
+      // `overflow: hidden` clipped the right-hand columns on phones; the
+      // container scrolls sideways again, the way TableContainer does by default.
+      sx={{ border: '1px solid', borderColor: 'divider', overflowX: 'auto' }}
     >
       <Table size="small">
         <TableHead>
