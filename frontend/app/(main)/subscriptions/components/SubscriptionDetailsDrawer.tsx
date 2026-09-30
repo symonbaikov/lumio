@@ -12,6 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { VendorIcon } from '@/app/components/VendorIcon';
 import { useIntlayer } from '@/app/i18n';
@@ -163,14 +164,10 @@ export function SubscriptionDetailsDrawer({
         >
           {t.assignOwner}
         </Button>
-        <TextField
+        <CustomDatePicker
           label={t.reviewDate.value}
-          type="date"
           value={reviewAt || subscription.reviewAt?.slice(0, 10) || ''}
-          onChange={event => setReviewAt(event.target.value)}
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          size="small"
+          onChange={setReviewAt}
         />
         <Stack direction="row" spacing={1}>
           <Button

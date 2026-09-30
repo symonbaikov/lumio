@@ -1,6 +1,7 @@
 'use client';
 
 import TextField from '@mui/material/TextField';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import type { GoalFormData } from '../hooks/useGoals';
 import { GoalSideDrawer } from './GoalSideDrawer';
 
@@ -52,13 +53,11 @@ export function GoalFormDrawer({
         onChange={event => onChange({ ...form, targetAmount: Number(event.target.value) })}
         slotProps={{ htmlInput: { min: 0, step: '0.01' } }}
       />
-      <TextField
+      <CustomDatePicker
         label={labels.date}
-        type="date"
-        fullWidth
+        size="medium"
         value={form.targetDate}
-        onChange={event => onChange({ ...form, targetDate: event.target.value })}
-        slotProps={{ inputLabel: { shrink: true } }}
+        onChange={targetDate => onChange({ ...form, targetDate })}
       />
     </GoalSideDrawer>
   );

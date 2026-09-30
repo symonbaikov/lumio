@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import NextLink from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { ChevronLeft } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { useIntlayer } from '@/app/i18n';
@@ -251,13 +252,11 @@ function StartsOnField({
 }): React.JSX.Element {
   const t = useIntlayer('budgetsPage');
   return (
-    <TextField
+    <CustomDatePicker
       label={t.fieldStartsOn.value}
-      type="date"
       value={value}
-      onChange={event => onChange(event.target.value)}
-      fullWidth
-      slotProps={{ inputLabel: { shrink: true } }}
+      onChange={onChange}
+      size="medium"
     />
   );
 }
@@ -273,15 +272,13 @@ function EndsOnField({
 }): React.JSX.Element {
   const t = useIntlayer('budgetsPage');
   return (
-    <TextField
+    <CustomDatePicker
       label={t.fieldEndsOn.value}
-      type="date"
       value={value}
-      onChange={event => onChange(event.target.value)}
-      fullWidth
-      slotProps={{ inputLabel: { shrink: true } }}
+      onChange={onChange}
+      size="medium"
       error={invalid}
-      helperText={invalid ? t.endBeforeStart : undefined}
+      helperText={invalid ? t.endBeforeStart.value : undefined}
     />
   );
 }

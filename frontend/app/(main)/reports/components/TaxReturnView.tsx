@@ -13,12 +13,12 @@ import {
   TableCell,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
@@ -164,24 +164,20 @@ export function TaxReturnView(): React.ReactElement {
             {t[preset.label]}
           </Button>
         ))}
-        <TextField
-          size="small"
-          type="date"
-          label={t.from.value}
-          value={period.periodStart}
-          onChange={event => setPeriod(p => ({ ...p, periodStart: event.target.value }))}
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ flex: { xs: '1 1 140px', sm: '0 0 auto' } }}
-        />
-        <TextField
-          size="small"
-          type="date"
-          label={t.to.value}
-          value={period.periodEnd}
-          onChange={event => setPeriod(p => ({ ...p, periodEnd: event.target.value }))}
-          slotProps={{ inputLabel: { shrink: true } }}
-          sx={{ flex: { xs: '1 1 140px', sm: '0 0 auto' } }}
-        />
+        <Box sx={{ flex: { xs: '1 1 140px', sm: '0 0 180px' } }}>
+          <CustomDatePicker
+            label={t.from.value}
+            value={period.periodStart}
+            onChange={periodStart => setPeriod(p => ({ ...p, periodStart }))}
+          />
+        </Box>
+        <Box sx={{ flex: { xs: '1 1 140px', sm: '0 0 180px' } }}>
+          <CustomDatePicker
+            label={t.to.value}
+            value={period.periodEnd}
+            onChange={periodEnd => setPeriod(p => ({ ...p, periodEnd }))}
+          />
+        </Box>
       </Stack>
 
       {error || returnQuery.isError ? (

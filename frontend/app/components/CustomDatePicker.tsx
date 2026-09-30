@@ -14,8 +14,16 @@ interface CustomDatePickerProps {
   placeholder?: string;
   helperText?: string;
   containerTestId?: string;
+  /** Id of the text input, for an external `<label htmlFor>`. */
+  id?: string;
   /** Match the tall form-control sizing used by Input/Select. */
   large?: boolean;
+  /** Field size when not `large`; defaults to small. */
+  size?: 'small' | 'medium';
+  error?: boolean;
+  /** Earliest and latest selectable days, as `yyyy-MM-dd`. */
+  minDate?: string;
+  maxDate?: string;
 }
 
 const DATE_VALUE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -46,7 +54,12 @@ export default function CustomDatePicker({
   placeholder,
   helperText,
   containerTestId,
+  id,
   large,
+  size = 'small',
+  error,
+  minDate,
+  maxDate,
 }: CustomDatePickerProps) {
   const dateValue = normalizeToDate(value);
   const { preferences } = useUserFormat();
@@ -68,10 +81,14 @@ export default function CustomDatePicker({
         value={dateValue}
         onChange={handleChange}
         format={displayFormat}
+        minDate={normalizeToDate(minDate) ?? undefined}
+        maxDate={normalizeToDate(maxDate) ?? undefined}
         slotProps={{
           textField: {
             fullWidth: true,
-            size: large ? 'medium' : 'small',
+            id,
+            size: large ? 'medium' : size,
+            error,
             sx: large ? { '& .MuiInputBase-root': FORM_CONTROL_SX } : undefined,
             helperText: helperText,
             placeholder: placeholder,
