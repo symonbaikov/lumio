@@ -1,4 +1,4 @@
-import type { CustomTableGridRow, CustomTableRowPatch, CustomTableRowStyles } from './stylingUtils';
+import type { CustomTableGridRow, CustomTableRowPatch } from './types';
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -50,13 +50,11 @@ export const getCreatedRowResponse = (value: unknown): CustomTableGridRow | null
   const id = typeof idCandidate === 'string' ? idCandidate : null;
   const rowNumber = typeof rowNumberCandidate === 'number' ? rowNumberCandidate : null;
   const data = getRecord(record.data) as CustomTableRowPatch | null;
-  const styles = getRecord(record.styles) as CustomTableRowStyles | null;
 
   return {
     id: id ?? `temp-${Date.now()}`,
     rowNumber: rowNumber ?? 1,
     data: data ?? {},
-    styles: styles ?? null,
   };
 };
 
@@ -68,7 +66,6 @@ export const getResponseItems = (value: unknown): CustomTableGridRow[] => {
     id: typeof item.id === 'string' ? item.id : String(item.rowNumber ?? ''),
     rowNumber: typeof item.rowNumber === 'number' ? item.rowNumber : 0,
     data: (getRecord(item.data) as CustomTableRowPatch | null) ?? {},
-    styles: (getRecord(item.styles) as CustomTableRowStyles | null) ?? null,
   }));
 };
 

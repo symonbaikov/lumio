@@ -1,36 +1,25 @@
-import type { CustomTableColumn, CustomTableColumnConfig, SheetStyle } from './stylingUtils';
+import type { AggregateFn, CustomTableColumn } from './types';
 
 export interface CustomTablePageColumn extends CustomTableColumn {
   isRequired: boolean;
   isUnique: boolean;
-  width?: number;
-  config: CustomTableColumnConfig | null;
-  style?: {
-    header?: SheetStyle;
-    cell?: SheetStyle;
-  } | null;
 }
 
 export interface CustomTableViewColumnSettings {
   width?: number;
-  aggregate?: 'sum' | 'avg' | 'min' | 'max' | 'count';
-}
-
-export interface CustomTableSavedView {
-  id: string;
-  name: string;
-  columnFilters?: Record<string, unknown>;
-  sort?: { col: string; dir: 'asc' | 'desc' } | null;
-  columnOrder?: string[];
-  hiddenColumnKeys?: string[];
-  aggregates?: Record<string, 'sum' | 'avg' | 'min' | 'max' | 'count'>;
+  aggregate?: AggregateFn;
 }
 
 export interface CustomTableViewSettings {
   columns?: Record<string, CustomTableViewColumnSettings>;
-  views?: CustomTableSavedView[];
-  activeViewId?: string | null;
-  conditionalRules?: unknown[];
+  [key: string]: unknown;
+}
+
+export interface CustomTableCategory {
+  id: string;
+  name: string;
+  color?: string | null;
+  icon?: string | null;
 }
 
 export interface CustomTable {
@@ -39,12 +28,7 @@ export interface CustomTable {
   description: string | null;
   source: string;
   categoryId?: string | null;
-  category?: {
-    id: string;
-    name: string;
-    color?: string | null;
-    icon?: string | null;
-  } | null;
+  category?: CustomTableCategory | null;
   columns: CustomTablePageColumn[];
   viewSettings?: CustomTableViewSettings | null;
 }
