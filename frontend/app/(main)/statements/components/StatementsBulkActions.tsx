@@ -2,6 +2,7 @@
 
 import { useTheme } from 'next-themes';
 import {
+  Check,
   ChevronDown,
   ChevronRight,
   Copy,
@@ -10,6 +11,7 @@ import {
   Trash2,
   X,
 } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 
 interface Props {
@@ -25,6 +27,8 @@ interface Props {
   onMarkDuplicate: () => void;
   onExport: () => void;
   onDelete: () => void;
+  /** Moves the selection to the next (or previous) review stage; absent on stages without a bulk move. */
+  stageMove?: { label: string; onMove: () => void };
 }
 
 function DesktopDuplicateActions({
@@ -111,7 +115,10 @@ export function StatementsBulkActions({
   onMarkDuplicate,
   onExport,
   onDelete,
+  stageMove,
 }: Props): React.JSX.Element {
+  const listText = useIntlayer('statementsListUi');
+  const selectedLabel = listText.selectedCount.value.replace('{count}', String(selectedCount));
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   return (
@@ -122,12 +129,35 @@ export function StatementsBulkActions({
           onClick={onToggleActionsOpen}
           className="lumio-stmt-list-view__bulk-trigger"
         >
-          {selectedCount} selected
+          {selectedLabel}
           <ChevronDown size={14} />
         </button>
 
         {selectedActionsOpen && (
           <div className="lumio-stmt-list-view__bulk-menu">
+            {stageMove ? (
+              <button
+                type="button"
+                onClick={stageMove.onMove}
+                className="lumio-stmt-list-view__bulk-menu-btn"
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Check size={16} style={{ color: 'var(--primary)' }} />
+                  <span
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 600,
+                      lineHeight: 1,
+                      color: 'var(--primary)',
+                    }}
+                  >
+                    {stageMove.label}
+                  </span>
+                </span>
+                <ChevronRight size={16} style={{ color: c.ink300 }} />
+              </button>
+            ) : null}
+
             {hasSelectedDuplicates ? (
               <DesktopDuplicateActions
                 mergeDuplicatesLabel={mergeDuplicatesLabel}
@@ -161,7 +191,7 @@ export function StatementsBulkActions({
               <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Download size={16} style={{ color: c.ink400 }} />
                 <span style={{ fontSize: 16, fontWeight: 600, lineHeight: 1, color: c.ink900 }}>
-                  Export
+                  {listText.export}
                 </span>
               </span>
               <ChevronRight size={16} style={{ color: c.ink300 }} />
@@ -175,7 +205,7 @@ export function StatementsBulkActions({
               <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Trash2 size={16} style={{ color: c.danger }} />
                 <span style={{ fontSize: 16, fontWeight: 600, lineHeight: 1, color: c.danger }}>
-                  Delete
+                  {listText.delete}
                 </span>
               </span>
               <ChevronRight size={16} style={{ color: c.danger }} />
@@ -185,10 +215,17 @@ export function StatementsBulkActions({
       </div>
 
       <div className="lumio-stmt-list-view__mobile-bulk">
-        <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>
-          {selectedCount} selected
-        </span>
+        <span style={{ fontSize: 14, fontWeight: 500, color: c.ink800 }}>{selectedLabel}</span>
         <div className="lumio-stmt-list-view__mobile-bulk-actions">
+          {stageMove ? (
+            <button
+              type="button"
+              onClick={stageMove.onMove}
+              className="lumio-stmt-list-view__mobile-action-btn lumio-stmt-list-view__mobile-action-btn--filled"
+            >
+              {stageMove.label}
+            </button>
+          ) : null}
           {hasSelectedDuplicates ? (
             <MobileDuplicateActions
               mergeDuplicatesLabel={mergeDuplicatesLabel}
@@ -211,7 +248,7 @@ export function StatementsBulkActions({
             className="lumio-stmt-list-view__mobile-action-btn lumio-stmt-list-view__mobile-action-btn--secondary"
           >
             <Download size={14} />
-            Export
+            {listText.export}
           </button>
           <button
             type="button"
@@ -219,7 +256,7 @@ export function StatementsBulkActions({
             className="lumio-stmt-list-view__mobile-action-btn lumio-stmt-list-view__mobile-action-btn--danger"
           >
             <Trash2 size={14} />
-            Delete
+            {listText.delete}
           </button>
         </div>
       </div>

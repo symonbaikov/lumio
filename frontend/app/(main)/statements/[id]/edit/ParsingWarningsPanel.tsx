@@ -3,6 +3,7 @@
 import { Alert, AlertTitle, Dialog, DialogTitle, Typography } from '@mui/material';
 import { useMemo } from 'react';
 import { CurrencyPickerDrawer } from '@/app/components/ui/currency-picker-drawer';
+import { useIntlayer } from '@/app/i18n';
 import { DroppedSampleForm } from './DroppedSampleForm';
 import {
   extractTxKey,
@@ -147,6 +148,7 @@ type ConvertDialogProps = {
 
 function ConvertDialog({ panel }: ConvertDialogProps): React.JSX.Element {
   const { isDialogOpen, selectedEntry, selectedDraft, selectedWarning } = panel;
+  const t = useIntlayer('statementDroppedSampleForm');
   return (
     <Dialog
       open={isDialogOpen}
@@ -154,7 +156,7 @@ function ConvertDialog({ panel }: ConvertDialogProps): React.JSX.Element {
       fullWidth
       maxWidth="md"
     >
-      <DialogTitle>Convert dropped row</DialogTitle>
+      <DialogTitle>{t.dialogTitle}</DialogTitle>
       {isDialogOpen &&
       selectedEntry !== null &&
       selectedDraft !== null &&

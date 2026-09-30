@@ -6,6 +6,7 @@ import { WorkspaceContextGuard } from '../../../../src/common/guards/workspace-c
 import { ReceiptsController } from '../../../../src/modules/receipts/receipts.controller';
 import { ReceiptsService } from '../../../../src/modules/receipts/receipts.service';
 import { ReceiptLocationService } from '../../../../src/modules/receipts/services/receipt-location.service';
+import { ReceiptStageService } from '../../../../src/modules/receipts/services/receipt-stage.service';
 
 describe('ReceiptsController', () => {
   let controller: ReceiptsController;
@@ -52,6 +53,7 @@ describe('ReceiptsController', () => {
       providers: [
         { provide: ReceiptsService, useValue: service },
         { provide: ReceiptLocationService, useValue: locationService },
+        { provide: ReceiptStageService, useValue: {} },
       ],
     });
 

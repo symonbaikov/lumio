@@ -20,6 +20,7 @@ import type {
   StatementMeta,
   Transaction,
 } from '@/app/(main)/statements/types/statement-types';
+import { useIntlayer } from '@/app/i18n';
 
 type StatementWithWorkspace = StatementMeta & StatementFilterItem;
 
@@ -62,22 +63,25 @@ const filterByQuery = (records: TopCategoryRecord[], searchInput: string): TopCa
   return records.filter(r => matchesQuery(r, query));
 };
 
-const getUserLabel = (user: TopCategoryRecord['user']): string =>
-  user?.name ?? user?.email ?? 'User';
+const getUserLabel = (user: TopCategoryRecord['user'], userFallback: string): string =>
+  user?.name ?? user?.email ?? userFallback;
 
 const getUserDescription = (user: TopCategoryRecord['user']): string | null => {
   const email = user?.email;
   return email ? `@${email.split('@')[0]}` : null;
 };
 
-const buildUserOption = (record: TopCategoryRecord): CategoryFromOption | null => {
+const buildUserOption = (
+  record: TopCategoryRecord,
+  userFallback: string,
+): CategoryFromOption | null => {
   const uid = record.user?.id;
   if (!uid) {
     return null;
   }
   return {
     id: `user:${uid}`,
-    label: getUserLabel(record.user),
+    label: getUserLabel(record.user, userFallback),
     description: getUserDescription(record.user),
   };
 };
@@ -89,10 +93,13 @@ const buildBankOption = (bank: string): CategoryFromOption => ({
   bankName: bank,
 });
 
-const buildFromOptions = (allRecords: TopCategoryRecord[]): CategoryFromOption[] => {
+const buildFromOptions = (
+  allRecords: TopCategoryRecord[],
+  userFallback: string,
+): CategoryFromOption[] => {
   const seen = new Map<string, CategoryFromOption>();
   allRecords.forEach(record => {
-    const userOpt = buildUserOption(record);
+    const userOpt = buildUserOption(record, userFallback);
     if (userOpt && !seen.has(userOpt.id)) {
       seen.set(userOpt.id, userOpt);
     }
@@ -180,7 +187,11 @@ export const useTopCategoriesRecords = ({
     [recordsWithoutDateFilter, activeFlowType],
   );
 
-  const fromOptions = useMemo(() => buildFromOptions(allRecords), [allRecords]);
+  const userFallback = useIntlayer('statementsAnalyticsRecords').userFallback.value;
+  const fromOptions = useMemo(
+    () => buildFromOptions(allRecords, userFallback),
+    [allRecords, userFallback],
+  );
 
   const currencyOptions = useMemo(
     () => Array.from(new Set(allRecords.map(r => r.currencyValue).filter(Boolean))),

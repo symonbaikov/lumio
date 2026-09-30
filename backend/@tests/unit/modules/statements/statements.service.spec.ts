@@ -344,22 +344,6 @@ describe('StatementsService', () => {
       expect(statementRepository.save).toHaveBeenCalled();
     });
 
-    it('should handle optional googleSheetId', async () => {
-      jest.spyOn(statementRepository, 'findOne').mockResolvedValue(null);
-      const createSpy = jest
-        .spyOn(statementRepository, 'create')
-        .mockReturnValue(mockStatement as Statement);
-      jest.spyOn(statementRepository, 'save').mockResolvedValue(mockStatement as Statement);
-
-      await service.create(mockUser as User, mockUser.workspaceId as string, mockFile, 'sheet-123');
-
-      expect(createSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          googleSheetId: 'sheet-123',
-        }),
-      );
-    });
-
     it('should cleanup temp file after upload', async () => {
       jest.spyOn(statementRepository, 'findOne').mockResolvedValue(null);
       jest.spyOn(statementRepository, 'create').mockReturnValue(mockStatement as Statement);

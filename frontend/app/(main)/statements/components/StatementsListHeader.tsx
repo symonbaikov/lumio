@@ -131,6 +131,7 @@ interface Props {
   onMarkDuplicate: () => void;
   onExport: () => void;
   onDelete: () => void;
+  stageMove?: { label: string; onMove: () => void };
   onSelectDetectedDuplicates: () => void;
   onTypeDropdownChange: (open: boolean) => void;
   onStatusDropdownChange: (open: boolean) => void;
@@ -255,6 +256,7 @@ export function StatementsListHeader({
   onMarkDuplicate,
   onExport,
   onDelete,
+  stageMove,
   onSelectDetectedDuplicates,
   onTypeDropdownChange,
   onStatusDropdownChange,
@@ -348,6 +350,7 @@ export function StatementsListHeader({
           onMarkDuplicate={onMarkDuplicate}
           onExport={onExport}
           onDelete={onDelete}
+          stageMove={stageMove}
         />
       ) : (
         <div

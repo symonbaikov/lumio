@@ -3,6 +3,7 @@
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import type { StatementStage } from '@/app/lib/statement-workflow';
 import type { StatementFilters } from '../filters/statement-filters';
 import type { GmailReceipt } from '../gmail-receipt-mapping';
 import { useAutoOpenParsedStatement } from './useAutoOpenParsedStatement';
@@ -22,7 +23,7 @@ interface UseStatementsListDataParams {
   categoryId?: string | null;
   receiptStatus?: string | null;
   search: string;
-  stage: string;
+  stage: StatementStage;
   user: unknown;
   page: number;
   pageSize: number;
@@ -59,7 +60,8 @@ export function useStatementsListData<T extends StatementRecord = StatementRecor
   loadListErrorLabel,
   refreshFailedLabel,
 }: UseStatementsListDataParams): UseStatementsListDataResult<T> {
-  const isSubmitStage = stage === 'submit';
+  // Receipts take part in Submit and Approve; Pay lists payables.
+  const listsReceipts = stage === 'submit' || stage === 'approve';
 
   const statementsQuery = useStatementsQuery<T>({
     appliedFilters,
@@ -73,7 +75,8 @@ export function useStatementsListData<T extends StatementRecord = StatementRecor
     receiptStatus,
     page,
     pageSize,
-    enabled: Boolean(user) && isSubmitStage,
+    stage,
+    enabled: Boolean(user) && listsReceipts,
   });
 
   const { gmailSyncSkeletonKeys, setGmailSyncSkeletonKeys } = useGmailSyncSkeletons({
@@ -106,12 +109,12 @@ export function useStatementsListData<T extends StatementRecord = StatementRecor
   const refreshActiveStatements = useCallback(async (): Promise<void> => {
     const results = await Promise.all([
       statementsQuery.refetch(),
-      isSubmitStage ? gmailQuery.refetch() : Promise.resolve(null),
+      listsReceipts ? gmailQuery.refetch() : Promise.resolve(null),
     ]);
     if (results[0]?.isError) {
       toast.error(refreshFailedLabel);
     }
-  }, [statementsQuery.refetch, gmailQuery.refetch, isSubmitStage, refreshFailedLabel]);
+  }, [statementsQuery.refetch, gmailQuery.refetch, listsReceipts, refreshFailedLabel]);
 
   return {
     statements,

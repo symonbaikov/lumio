@@ -19,6 +19,7 @@ import type {
   StatementMeta,
   Transaction,
 } from '@/app/(main)/statements/types/statement-types';
+import { useIntlayer } from '@/app/i18n';
 
 type StatementWithWorkspace = StatementMeta & StatementFilterItem;
 
@@ -68,22 +69,25 @@ const filterByQuery = (
   return records.filter(r => matchesQuery(r, query));
 };
 
-const getUserLabel = (user: SpendOverTimeRecord['user']): string =>
-  user?.name ?? user?.email ?? 'User';
+const getUserLabel = (user: SpendOverTimeRecord['user'], userFallback: string): string =>
+  user?.name ?? user?.email ?? userFallback;
 
 const getUserDescription = (user: SpendOverTimeRecord['user']): string | null => {
   const email = user?.email;
   return email ? `@${email.split('@')[0]}` : null;
 };
 
-const buildUserOption = (record: SpendOverTimeRecord): SpendFromOption | null => {
+const buildUserOption = (
+  record: SpendOverTimeRecord,
+  userFallback: string,
+): SpendFromOption | null => {
   const uid = record.user?.id;
   if (!uid) {
     return null;
   }
   return {
     id: `user:${uid}`,
-    label: getUserLabel(record.user),
+    label: getUserLabel(record.user, userFallback),
     description: getUserDescription(record.user),
   };
 };
@@ -95,10 +99,13 @@ const buildBankOption = (bank: string): SpendFromOption => ({
   bankName: bank,
 });
 
-const buildFromOptions = (allRecords: SpendOverTimeRecord[]): SpendFromOption[] => {
+const buildFromOptions = (
+  allRecords: SpendOverTimeRecord[],
+  userFallback: string,
+): SpendFromOption[] => {
   const seen = new Map<string, SpendFromOption>();
   allRecords.forEach(record => {
-    const userOpt = buildUserOption(record);
+    const userOpt = buildUserOption(record, userFallback);
     if (userOpt && !seen.has(userOpt.id)) {
       seen.set(userOpt.id, userOpt);
     }
@@ -186,7 +193,11 @@ export const useSpendOverTimeRecords = ({
     [recordsWithoutDateFilter, activeFlowType],
   );
 
-  const fromOptions = useMemo(() => buildFromOptions(allRecords), [allRecords]);
+  const userFallback = useIntlayer('statementsAnalyticsRecords').userFallback.value;
+  const fromOptions = useMemo(
+    () => buildFromOptions(allRecords, userFallback),
+    [allRecords, userFallback],
+  );
 
   const currencyOptions = useMemo(
     () => Array.from(new Set(allRecords.map(r => r.currencyValue).filter(Boolean))),

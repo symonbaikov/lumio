@@ -23,7 +23,12 @@ describe('ReceiptsService', () => {
     delete: jest.Mock;
   };
   let jobRepository: { create: jest.Mock; save: jest.Mock };
-  let transactionRepository: { create: jest.Mock; save: jest.Mock; update: jest.Mock };
+  let transactionRepository: {
+    create: jest.Mock;
+    save: jest.Mock;
+    update: jest.Mock;
+    findOne: jest.Mock;
+  };
   let statementRepository: {
     findOne: jest.Mock;
     save: jest.Mock;
@@ -56,7 +61,19 @@ describe('ReceiptsService', () => {
       create: jest.fn().mockImplementation(payload => payload),
       save: jest.fn().mockImplementation(async payload => ({ id: 'tx-1', ...payload })),
       update: jest.fn().mockResolvedValue({ affected: 1 }),
+      findOne: jest.fn().mockResolvedValue(null),
     };
+    // approveOnce runs inside a DB transaction; the fake manager hands back the same mocks.
+    Object.assign(receiptRepository, {
+      manager: {
+        transaction: jest.fn(async (work: (manager: unknown) => unknown) =>
+          work({
+            getRepository: (entity: unknown) =>
+              entity === Receipt ? receiptRepository : transactionRepository,
+          }),
+        ),
+      },
+    });
 
     statementRepository = {
       findOne: jest.fn().mockResolvedValue(null),
@@ -328,6 +345,58 @@ describe('ReceiptsService', () => {
     );
   });
 
+  it('approving an approved receipt again returns its transaction instead of booking a second', async () => {
+    const receipt = {
+      id: 'receipt-approved',
+      workspaceId: 'workspace-1',
+      status: ReceiptStatus.APPROVED,
+      parsedData: { amount: 12, currency: 'EUR', vendor: 'Lidl', date: '2026-03-20' },
+      subject: 'receipt.jpg',
+      transactionId: 'tx-existing',
+    } as unknown as Receipt;
+    receiptRepository.findOne.mockResolvedValue(receipt);
+    transactionRepository.findOne.mockResolvedValue({ id: 'tx-existing' });
+
+    const result = await service.approve('receipt-approved', 'workspace-1');
+
+    expect(result).toMatchObject({ transaction: { id: 'tx-existing' } });
+    expect(transactionRepository.save).not.toHaveBeenCalled();
+    expect(mockEventEmitter.emitAsync).not.toHaveBeenCalled();
+  });
+
+  it('locks the receipt row while approving', async () => {
+    receiptRepository.findOne.mockResolvedValue({
+      id: 'receipt-lock',
+      workspaceId: 'workspace-1',
+      parsedData: { amount: 5, date: '2026-03-20' },
+      transactionId: null,
+    });
+
+    await service.approve('receipt-lock', 'workspace-1');
+
+    expect(receiptRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({ lock: { mode: 'pessimistic_write' } }),
+    );
+  });
+
+  it('bulk approve skips creating a transaction for an already approved receipt', async () => {
+    const approved = {
+      id: 'receipt-approved',
+      workspaceId: 'workspace-1',
+      status: ReceiptStatus.APPROVED,
+      parsedData: { amount: 12, currency: 'EUR', vendor: 'Lidl', date: '2026-03-20' },
+      subject: 'receipt.jpg',
+      transactionId: 'tx-existing',
+    } as unknown as Receipt;
+    receiptRepository.findOne.mockResolvedValue(approved);
+    transactionRepository.findOne.mockResolvedValue({ id: 'tx-existing' });
+
+    const result = await service.bulkApprove(['receipt-approved'], 'workspace-1');
+
+    expect(result).toEqual({ approved: 1, failed: 0, errors: [] });
+    expect(transactionRepository.save).not.toHaveBeenCalled();
+  });
+
   it('bulk approves receipts and reports missing items', async () => {
     const firstReceipt = {
       id: 'receipt-1',
@@ -342,7 +411,9 @@ describe('ReceiptsService', () => {
       subject: 'receipt-1.jpg',
     } as unknown as Receipt;
 
-    receiptRepository.findOne.mockResolvedValueOnce(firstReceipt).mockResolvedValueOnce(null);
+    receiptRepository.findOne.mockImplementation(async ({ where }: { where: { id: string } }) =>
+      where.id === 'receipt-1' ? firstReceipt : null,
+    );
 
     const result = await service.bulkApprove(['receipt-1', 'missing-receipt'], 'workspace-1');
 

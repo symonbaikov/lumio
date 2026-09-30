@@ -37,7 +37,6 @@ import {
   Layers,
   Receipt,
   Save,
-  Table2,
   Trash2,
   TriangleAlert,
 } from '@/app/components/icons';
@@ -468,72 +467,44 @@ export default function EditStatementPage(): React.JSX.Element {
             ) : null}
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-            {hasDisabledStatementCategory ||
-            (isIdEmpty(statement?.categoryId) && isIdEmpty(statement?.category?.id)) ? (
-              <Button
-                variant="outlined"
-                startIcon={statementCategorySaving ? <Spinner size={18} /> : <Layers size={18} />}
-                onClick={() => setStatementCategoryDrawerOpen(true)}
-                disabled={statementCategorySaving || optionsLoading}
-                title={selectedStatementCategoryName}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  minWidth: 0,
-                  maxWidth: { xs: '100%', md: 280 },
-                  overflow: 'hidden',
-                  borderColor: 'var(--destructive) !important',
-                  color: 'var(--destructive) !important',
-                  bgcolor: 'var(--color-error-soft-bg) !important',
-                  borderWidth: '2px !important',
-                  '& .MuiButton-startIcon': {
-                    color: 'var(--destructive) !important',
-                  },
-                  '&:hover': {
-                    bgcolor: '#fee2e2 !important',
-                    borderColor: 'var(--destructive) !important',
-                  },
-                }}
-              >
-                <Box
-                  component="span"
-                  sx={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {hasDisabledStatementCategory
-                    ? `${selectedStatementCategoryName}${t.labels.disabledSuffix.value}`
-                    : selectedStatementCategoryName}
-                </Box>
-              </Button>
-            ) : (
-              <DetailActionButton
-                onClick={() => setStatementCategoryDrawerOpen(true)}
-                disabled={statementCategorySaving || optionsLoading}
-                title={selectedStatementCategoryName}
-                style={{
-                  minWidth: 0,
-                  maxWidth: '100%',
-                  justifyContent: 'flex-start',
-                  padding: '8px 16px',
-                  fontWeight: 700,
-                }}
-              >
-                {statementCategorySaving ? <Spinner size={18} /> : <Layers size={18} />}
-                <span
-                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                >
-                  {selectedStatementCategoryName}
-                </span>
-              </DetailActionButton>
-            )}
+            {/* A missing category is already called out by the readiness card and the
+                "require category" chip, so the button stays neutral beside its siblings
+                and only its icon carries the warning colour. */}
+            <DetailActionButton
+              onClick={() => setStatementCategoryDrawerOpen(true)}
+              disabled={statementCategorySaving || optionsLoading}
+              title={selectedStatementCategoryName}
+              style={{
+                minWidth: 0,
+                maxWidth: 280,
+                justifyContent: 'flex-start',
+                padding: '8px 16px',
+                fontWeight: 700,
+              }}
+            >
+              {statementCategorySaving ? (
+                <Spinner size={18} />
+              ) : (
+                <Layers
+                  size={18}
+                  style={
+                    hasStatementCategory && !hasDisabledStatementCategory
+                      ? undefined
+                      : { color: 'var(--destructive)' }
+                  }
+                />
+              )}
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {hasDisabledStatementCategory
+                  ? `${selectedStatementCategoryName}${t.labels.disabledSuffix.value}`
+                  : selectedStatementCategoryName}
+              </span>
+            </DetailActionButton>
             <DetailActionButton
               onClick={() => setExportConfirmOpen(true)}
               disabled={exportingToTable || !transactions.length}
             >
-              {exportingToTable ? <Spinner size={18} /> : <Table2 size={18} />}
+              {exportingToTable ? <Spinner size={18} /> : null}
               {t.labels.exportButton.value}
             </DetailActionButton>
             {/* eslint-disable-next-line max-lines-per-function, complexity */}
@@ -569,6 +540,7 @@ export default function EditStatementPage(): React.JSX.Element {
                       </Button>
                     ) : (
                       <DetailActionButton
+                        variant={action.id === 'submitForApproval' ? 'default' : undefined}
                         onClick={() =>
                           handleStageAction(action, stageActionToasts, missingCategoryCount)
                         }
@@ -578,7 +550,7 @@ export default function EditStatementPage(): React.JSX.Element {
                           <Spinner size={18} />
                         ) : action.id === 'unapprove' || action.id === 'rollbackToApprove' ? (
                           <ArrowLeft size={18} />
-                        ) : (
+                        ) : action.id === 'submitForApproval' ? null : (
                           <Check size={18} />
                         )}
                         {stageActionLabels[action.id]}
@@ -592,49 +564,47 @@ export default function EditStatementPage(): React.JSX.Element {
         </Box>
       </Box>
 
-      <Box
+      <Alert
+        severity={readinessSeverity}
         sx={{
           mb: 3,
-          width: { xs: 'calc(100% + 32px)', sm: 'calc(100% + 48px)' },
-          ml: { xs: -2, sm: -3 },
+          px: 2,
+          py: 0.75,
+          minHeight: 42,
+          alignItems: 'center',
+          border: '1px solid',
+          borderColor: `var(--color-${readinessSeverity}-soft-border)`,
+          bgcolor: `var(--color-${readinessSeverity}-soft-bg)`,
+          color: 'text.primary',
+          '& .MuiAlert-message': {
+            width: '100%',
+            py: 0,
+            overflow: 'hidden',
+          },
+          '& .MuiAlert-icon': {
+            py: 0,
+            mr: 1.25,
+            alignItems: 'center',
+          },
         }}
       >
-        <Alert
-          variant="filled"
-          severity={readinessSeverity}
+        <Typography
+          variant="body2"
           sx={{
-            px: { xs: 2.5, sm: 4 },
-            py: 0.75,
-            minHeight: 42,
-            alignItems: 'center',
-            '& .MuiAlert-message': {
-              width: '100%',
-              py: 0,
-              overflow: 'hidden',
-            },
-            '& .MuiAlert-icon': {
-              py: 0,
-              mr: 1.25,
-              alignItems: 'center',
-            },
+            width: '100%',
+            lineHeight: 1.35,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
           }}
+          title={readinessInlineText}
         >
-          <Typography
-            variant="body2"
-            sx={{
-              width: '100%',
-              fontWeight: 600,
-              lineHeight: 1.35,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-            title={readinessInlineText}
-          >
-            {readinessInlineText}
-          </Typography>
-        </Alert>
-      </Box>
+          <Box component="span" sx={{ fontWeight: 600 }}>
+            {readinessTitle}
+          </Box>
+          {`: ${readinessMessage}`}
+        </Typography>
+      </Alert>
 
       {statement && (
         <BalanceReviewAlert
@@ -722,7 +692,12 @@ export default function EditStatementPage(): React.JSX.Element {
 
       {/* Editing & Parsing Details Accordion */}
       <Accordion
-        expanded={parsingDetailsExpanded}
+        expanded={
+          parsingDetailsExpanded ??
+          (parsingErrorCount > 0 ||
+            parsingWarningCount > 0 ||
+            (statement?.parsingDetails?.droppedSamples?.length ?? 0) > 0)
+        }
         // eslint-disable-next-line max-params
         onChange={(_, expanded) => setParsingDetailsExpanded(expanded)}
         elevation={0}

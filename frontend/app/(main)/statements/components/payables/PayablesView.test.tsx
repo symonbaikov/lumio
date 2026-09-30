@@ -59,9 +59,14 @@ vi.mock('@/app/contexts/WorkspaceContext', () => ({
   useWorkspace: () => workspaceState,
 }));
 
-vi.mock('@/app/i18n', () => ({
+vi.mock('@/app/i18n', async () => {
+  // The shared currency drawer reads its own dictionary; serve it for real (English).
+  const { useIntlayer: realUseIntlayer } =
+    await vi.importActual<typeof import('react-intlayer')>('react-intlayer');
+  return {
   useLocale: () => ({ locale: 'en' }),
-  useIntlayer: () => ({
+  useIntlayer: (key: string) =>
+    key === 'receiptCurrencyDrawer' ? realUseIntlayer(key) : ({
     payables: {
       title: { value: 'Payables' },
       subtitle: { value: 'Track upcoming payments.' },
@@ -161,7 +166,8 @@ vi.mock('@/app/i18n', () => ({
       pageOf: { value: 'Page {page} of {count}' },
     },
   }),
-}));
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => navigationState.searchParams,

@@ -39,8 +39,9 @@ type AmountCandidate = {
   score: number;
 };
 
+// Letter/digit lookarounds instead of \b: JS \b is ASCII-only, so it never matched the Cyrillic keywords.
 const TOTAL_KEYWORD_REGEX =
-  /\b(grand\s*total|total\s*amount|amount\s*(due|charged|paid|to\s*pay)|total|итого|сумма|всего|к\s*оплате|оплата|celkem)\b/i;
+  /(?<![\p{L}\p{N}_])(grand\s*total|total\s*amount|amount\s*(due|charged|paid|to\s*pay)|total|итого|сумма|всего|к\s*оплате|оплата|celkem)(?![\p{L}\p{N}_])/iu;
 
 const NUMBER_PATTERN = '-?\\d{1,3}(?:[\\s.,]\\d{3})*(?:[.,]\\d{1,2})?|-?\\d+(?:[.,]\\d{1,2})?';
 
@@ -284,6 +285,9 @@ export class UniversalExtractorService {
   private static readonly BANKING_LABEL_PATTERN =
     /\b(лицевой\s+счет|номер\s+счета|расчетный\s+счет|текущий\s+счет|банковский\s+счет|выписка|statement\s+of\s+account|account\s+number|account\s+statement)\b/i;
 
+  private static readonly COLUMN_HEADER_PATTERN =
+    /^(?:(?:description|item|unit\s*price|price|duration|qty|quantity|amount|total|rate|tax|vat|date)\s*){2,}$/i;
+
   private detectBankName(text: string): string | undefined {
     for (const { regex, name } of UniversalExtractorService.BANK_PATTERNS) {
       if (regex.test(text)) {
@@ -307,6 +311,16 @@ export class UniversalExtractorService {
       }
 
       if (/^(page\s+\d+|receipt|invoice|чек|квитанция)$/i.test(line)) {
+        continue;
+      }
+
+      // Page counters ("1 / 4", "Page 2 of 3") and table column headers, which
+      // pdf-parse may glue together ("DESCRIPTIONPRICEDURATIONQTYAMOUNT").
+      if (/^(page\s+)?\d+\s*(\/|of|из)\s*\d+$/i.test(line)) {
+        continue;
+      }
+
+      if (UniversalExtractorService.COLUMN_HEADER_PATTERN.test(line)) {
         continue;
       }
 

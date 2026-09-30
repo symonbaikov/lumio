@@ -3,6 +3,7 @@
 import { AnalyticsComparisonLine } from '@/app/(main)/statements/components/analytics/AnalyticsComparisonLine';
 import type { getComparisonDelta } from '@/app/(main)/statements/components/shared-analytics.utils';
 import { ArrowDown, ArrowUp, ChartPie, Mail } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/analytics-common';
 
 type ComparisonItem = ReturnType<typeof getComparisonDelta> | null;
@@ -92,6 +93,7 @@ export function SpendOverTimeStatCards({
   noDataLabel,
   vsPreviousPeriodLabel,
 }: Props): React.JSX.Element {
+  const spendT = useIntlayer('statementsSpendOverTime');
   const cp = { currency, noDataLabel, vsPreviousPeriodLabel };
   const primaryValue = formatMoney(isIncomeView ? totals.income : totals.expense, currency);
   const primaryIcon = isIncomeView ? (
@@ -137,7 +139,7 @@ export function SpendOverTimeStatCards({
         value={formatMoney(totals.avgPerPeriod, currency)}
         icon={
           <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--muted-foreground)' }}>
-            AVG
+            {spendT.avgBadge}
           </span>
         }
         comparisonItem={getCmp({ c: comparison, key: 'avgPerPeriod' })}

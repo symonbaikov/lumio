@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Cloud, Inbox, Plus, Receipt, Scan, ScanLine } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import {
   buildStatementUploadMenuModel,
   type CloudImportProvider,
@@ -60,6 +61,7 @@ export default function StatementsCircularUploadMenu({
   onLocalUpload,
   placement = 'panel',
 }: Props) {
+  const t = useIntlayer('statementsUploadMenu');
   const [isOpen, setIsOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
   const [isDesktopViewport, setIsDesktopViewport] = useState(() => {
@@ -69,7 +71,27 @@ export default function StatementsCircularUploadMenu({
 
     return window.matchMedia('(min-width: 1024px)').matches;
   });
-  const menuItems = useMemo(() => buildStatementUploadMenuModel(providers), [providers]);
+  const menuItems = useMemo(
+    () =>
+      buildStatementUploadMenuModel(providers).map(item => {
+        const label =
+          item.id === 'scan'
+            ? t.scan.value
+            : item.id === 'cloud-import'
+              ? item.provider === 'dropbox'
+                ? t.importFromDropbox.value
+                : item.provider === 'google-drive'
+                  ? t.importFromGoogleDrive.value
+                  : t.cloud.value
+              : item.id === 'gmail'
+                ? providers.gmailConnected
+                  ? t.syncInbox.value
+                  : t.mailbox.value
+                : t.createExpense.value;
+        return { ...item, label };
+      }),
+    [providers, t],
+  );
 
   const uploadTriggerTourId =
     (placement === 'panel' && isDesktopViewport) || (placement === 'floating' && !isDesktopViewport)
@@ -181,7 +203,7 @@ export default function StatementsCircularUploadMenu({
         <button
           data-statements-fab-backdrop="true"
           type="button"
-          aria-label="Close upload actions"
+          aria-label={t.closeUploadActions.value}
           // Mouse-only dismiss surface; keyboard users close with Escape or the toggle.
           tabIndex={-1}
           onClick={() => setIsOpen(false)}
@@ -337,7 +359,7 @@ export default function StatementsCircularUploadMenu({
           opacity: isOpen ? 0 : 1,
         }}
         inert={isOpen}
-        aria-label="Scan"
+        aria-label={t.scan.value}
       >
         <Scan size={24} />
       </button>
@@ -366,7 +388,7 @@ export default function StatementsCircularUploadMenu({
           bottom: styles.bottomPx,
           transition: 'background 0.15s, color 0.15s',
         }}
-        aria-label="Open upload actions"
+        aria-label={t.openUploadActions.value}
       >
         <Plus
           size={24}

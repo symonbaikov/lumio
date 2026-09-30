@@ -127,21 +127,6 @@ describe('StatementsController (e2e)', () => {
         .attach('file', testPdfPath)
         .expect(409);
     });
-
-    it('should reject a googleSheetId that is not a UUID', () => {
-      const testPdfPath = path.join(__dirname, '../fixtures/unique-statement.pdf');
-      if (!fs.existsSync(testPdfPath)) {
-        fs.writeFileSync(testPdfPath, '%PDF-1.4\nunique content');
-      }
-
-      return request(app.getHttpServer())
-        .post('/statements')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .set('x-workspace-id', workspaceId)
-        .field('googleSheetId', 'sheet-123')
-        .attach('file', testPdfPath)
-        .expect(400);
-    });
   });
 
   describe('/statements (GET)', () => {

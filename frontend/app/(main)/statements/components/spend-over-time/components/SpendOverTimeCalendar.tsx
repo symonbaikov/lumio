@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { SpendOverTimeRecord } from '@/app/(main)/statements/components/spend-over-time.utils';
 import { ChevronLeft, ChevronRight } from '@/app/components/icons';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatMoney } from '@/app/lib/analytics-common';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -28,7 +29,11 @@ type CalendarDay = {
   currencies: string[];
 };
 
-const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+// 2024-01-01 is a Monday: the grid starts on Monday.
+const getWeekdayLabels = (locale: string): string[] => {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+  return Array.from({ length: 7 }, (_, index) => formatter.format(new Date(2024, 0, 1 + index)));
+};
 
 const toDateOnly = (value?: string | null): Date | null => {
   if (!value) {
@@ -64,11 +69,6 @@ const getInitialMonth = (records: SpendOverTimeRecord[]): Date => {
     .sort((a, b) => b.getTime() - a.getTime())[0];
   return startOfMonth(latest ?? new Date());
 };
-
-const monthFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'long',
-  year: 'numeric',
-});
 
 const calendarNavButtonStyle: React.CSSProperties = {
   width: 36,
@@ -119,6 +119,13 @@ export function SpendOverTimeCalendar({
   onDayClick,
   labels,
 }: Props): JSX.Element {
+  const spendT = useIntlayer('statementsSpendOverTime');
+  const { locale } = useLocale();
+  const monthFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }),
+    [locale],
+  );
+  const weekdayLabels = useMemo(() => getWeekdayLabels(locale), [locale]);
   const initialMonth = useMemo(() => getInitialMonth(records), [records]);
   const [visibleMonth, setVisibleMonth] = useState(initialMonth);
 
@@ -191,18 +198,18 @@ export function SpendOverTimeCalendar({
           <button
             type="button"
             onClick={goToPreviousMonth}
-            aria-label="Previous month"
+            aria-label={spendT.previousMonth.value}
             style={calendarNavButtonStyle}
           >
             <ChevronLeft size={18} />
           </button>
           <button type="button" onClick={goToLatestMonth} style={calendarTodayButtonStyle}>
-            Latest
+            {spendT.latest}
           </button>
           <button
             type="button"
             onClick={goToNextMonth}
-            aria-label="Next month"
+            aria-label={spendT.nextMonth.value}
             style={calendarNavButtonStyle}
           >
             <ChevronRight size={18} />
@@ -218,7 +225,7 @@ export function SpendOverTimeCalendar({
           marginBottom: 10,
         }}
       >
-        {WEEKDAY_LABELS.map(label => (
+        {weekdayLabels.map(label => (
           <div
             key={label}
             style={{
@@ -331,7 +338,7 @@ export function SpendOverTimeCalendar({
                   ))}
                   {day.records.length > 3 ? (
                     <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>
-                      +{day.records.length - 3} more
+                      {spendT.moreCount.value.replace('{count}', String(day.records.length - 3))}
                     </span>
                   ) : null}
                 </div>

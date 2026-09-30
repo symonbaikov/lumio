@@ -152,7 +152,7 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
       mockRepositories.workspaceMember.findOne.mockResolvedValue(null); // No workspace restrictions
 
       await expect(
-        service.create(mockUser, mockWorkspaceId, mockFile, undefined, undefined, undefined, false),
+        service.create(mockUser, mockWorkspaceId, mockFile, undefined, undefined, false),
       ).rejects.toThrow(ConflictException);
 
       try {
@@ -160,7 +160,6 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
           mockUser,
           mockWorkspaceId,
           mockFile,
-          undefined,
           undefined,
           undefined,
           false,
@@ -206,7 +205,6 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         mockFile,
         undefined,
         undefined,
-        undefined,
         true, // allowDuplicates
       );
 
@@ -238,7 +236,7 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
       mockRepositories.statement.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       await expect(
-        service.create(mockUser, mockWorkspaceId, mockFile, undefined, undefined, undefined, false),
+        service.create(mockUser, mockWorkspaceId, mockFile, undefined, undefined, false),
       ).rejects.toThrow(ConflictException);
 
       try {
@@ -246,7 +244,6 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
           mockUser,
           mockWorkspaceId,
           mockFile,
-          undefined,
           undefined,
           undefined,
           false,
@@ -295,7 +292,6 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         mockFile,
         undefined,
         undefined,
-        undefined,
         false,
       );
 
@@ -321,7 +317,6 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         mockUser,
         mockWorkspaceId,
         mockFile,
-        undefined,
         undefined,
         undefined,
         false,

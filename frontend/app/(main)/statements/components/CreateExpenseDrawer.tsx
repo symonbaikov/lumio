@@ -23,6 +23,7 @@ import { ReceiptLocationConsent } from '@/app/components/receipts/location/Recei
 import { Button } from '@/app/components/ui/button';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { useIsMobile } from '@/app/hooks/useIsMobile';
+import { useIntlayer } from '@/app/i18n';
 import { type DeviceLocation, isDeviceLocationSupported } from '@/app/lib/device-location';
 import { getReceiptLocationCapture } from '@/app/lib/receipt-location-capture';
 import { type StatementCategoryNode } from '@/app/lib/statement-categories';
@@ -166,6 +167,7 @@ export default function CreateExpenseDrawer({
   onCreateTaxRate,
 }: Props) {
   const isMobile = useIsMobile();
+  const t = useIntlayer('statementsCreateExpenseDrawer');
   const scanCameraInputRef = useRef<HTMLInputElement>(null);
   const scanGalleryInputRef = useRef<HTMLInputElement>(null);
   // Shown instead of the camera the first time, until this device has a choice.
@@ -270,17 +272,17 @@ export default function CreateExpenseDrawer({
     const rate = Number(taxRateValue);
 
     if (!name) {
-      setTaxRateError('Tax rate name is required');
+      setTaxRateError(t.taxRateNameRequired.value);
       return;
     }
 
     if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
-      setTaxRateError('Tax percentage must be between 0 and 100');
+      setTaxRateError(t.taxPercentageRange.value);
       return;
     }
 
     if (!onCreateTaxRate) {
-      setTaxRateError('Tax rate creation is unavailable');
+      setTaxRateError(t.taxRateUnavailable.value);
       return;
     }
 
@@ -303,7 +305,7 @@ export default function CreateExpenseDrawer({
     })()
       .catch(async (createError: unknown) => {
         const message =
-          createError instanceof Error ? createError.message : 'Failed to save tax rate';
+          createError instanceof Error ? createError.message : t.taxRateSaveFailed.value;
         setTaxRateError(message);
       })
       .finally(async () => {
@@ -325,16 +327,16 @@ export default function CreateExpenseDrawer({
               type="button"
               onClick={handleBackClick}
               className="lumio-col-drawer__back-btn"
-              aria-label="Close create expense drawer"
+              aria-label={t.closeDrawer.value}
             >
               <ChevronLeft size={20} />
             </button>
             <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--foreground)' }}>
               {currencyPickerOpen
-                ? 'Select a currency'
+                ? t.selectCurrency
                 : mode === 'manual' && manualStep === 'details'
-                  ? 'Confirm details'
-                  : 'Create expense'}
+                  ? t.confirmDetails
+                  : t.createExpense}
             </span>
           </div>
         }
@@ -352,7 +354,7 @@ export default function CreateExpenseDrawer({
                 className={`lumio-expense-drawer__tab${mode === 'manual' ? ' lumio-expense-drawer__tab--active' : ''}`}
               >
                 <PencilLine size={16} />
-                Manual
+                {t.manualTab}
               </button>
               <button
                 type="button"
@@ -363,7 +365,7 @@ export default function CreateExpenseDrawer({
                 className={`lumio-expense-drawer__tab${mode === 'scan' ? ' lumio-expense-drawer__tab--active' : ''}`}
               >
                 <ScanLine size={16} />
-                Scan
+                {t.scanTab}
               </button>
             </div>
           ) : null}
@@ -377,7 +379,7 @@ export default function CreateExpenseDrawer({
                     type="text"
                     value={currencySearch}
                     onChange={event => setCurrencySearch(event.target.value)}
-                    placeholder="Search"
+                    placeholder={t.searchPlaceholder.value}
                     className="lumio-expense-drawer__search-input"
                   />
                 </div>
@@ -397,7 +399,7 @@ export default function CreateExpenseDrawer({
 
                 {currencyQuery.length === 0 && recentCurrencyItems.length > 0 ? (
                   <div className="lumio-expense-drawer__section">
-                    <p className="lumio-expense-drawer__label">Recents</p>
+                    <p className="lumio-expense-drawer__label">{t.recents}</p>
                     <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {recentCurrencyItems.map(item => (
                         <button
@@ -418,7 +420,7 @@ export default function CreateExpenseDrawer({
                 ) : null}
 
                 <div className="lumio-expense-drawer__section">
-                  <p className="lumio-expense-drawer__label">All</p>
+                  <p className="lumio-expense-drawer__label">{t.all}</p>
                   <div className="lumio-expense-drawer__all-list">
                     {allCurrencyItems.length > 0 ? (
                       allCurrencyItems.map(item => (
@@ -436,7 +438,7 @@ export default function CreateExpenseDrawer({
                         </button>
                       ))
                     ) : (
-                      <p className="lumio-expense-drawer__no-result">No currencies found</p>
+                      <p className="lumio-expense-drawer__no-result">{t.noCurrencies}</p>
                     )}
                   </div>
                 </div>
@@ -479,7 +481,7 @@ export default function CreateExpenseDrawer({
                         }}
                       >
                         <Camera size={20} />
-                        Take photo
+                        {t.takePhoto}
                       </button>
                       <button
                         type="button"
@@ -502,7 +504,7 @@ export default function CreateExpenseDrawer({
                         }}
                       >
                         <ImageIcon size={20} />
-                        Choose from gallery
+                        {t.chooseFromGallery}
                       </button>
                     </>
                   )}
@@ -549,10 +551,10 @@ export default function CreateExpenseDrawer({
                       color: 'var(--foreground)',
                     }}
                   >
-                    Upload receipts
+                    {t.uploadReceipts}
                   </p>
                   <p style={{ marginTop: 8, fontSize: 14, color: 'var(--muted-foreground)' }}>
-                    or drag and drop them here
+                    {t.dragAndDrop}
                   </p>
                   <span
                     style={{
@@ -566,7 +568,7 @@ export default function CreateExpenseDrawer({
                       color: '#fff',
                     }}
                   >
-                    Choose files
+                    {t.chooseFiles}
                   </span>
                   <input
                     ref={fileInputRef}
@@ -598,7 +600,7 @@ export default function CreateExpenseDrawer({
                   }}
                 >
                   <label htmlFor="expense-manual-amount" className="sr-only">
-                    Amount
+                    {t.amount}
                   </label>
                   <div style={{ margin: '0 auto', width: 290, maxWidth: '100%' }}>
                     <div
@@ -736,14 +738,14 @@ export default function CreateExpenseDrawer({
                     background: 'var(--card-bg, #fff)',
                   }}
                 >
-                  <DetailRow label="Amount" onClick={() => setManualStep('amount')}>
+                  <DetailRow label={t.amount.value} onClick={() => setManualStep('amount')}>
                     <span style={{ ...DETAIL_VALUE_STYLE, fontSize: 28, fontWeight: 600 }}>
                       {selectedCurrencySymbol}
                       {manualDraft.amount || '0.00'}
                     </span>
                   </DetailRow>
 
-                  <DetailRow label="Description" htmlFor="expense-manual-description">
+                  <DetailRow label={t.description.value} htmlFor="expense-manual-description">
                     <input
                       id="expense-manual-description"
                       value={manualDraft.description}
@@ -753,15 +755,15 @@ export default function CreateExpenseDrawer({
                           description: event.target.value,
                         }))
                       }
-                      placeholder="Optional"
+                      placeholder={t.optional.value}
                       style={DETAIL_INPUT_STYLE}
                     />
                   </DetailRow>
 
                   <DetailRow
-                    label="Merchant"
+                    label={t.merchant.value}
                     htmlFor="expense-manual-merchant"
-                    error={!manualValidation.merchant ? 'This field is required' : null}
+                    error={!manualValidation.merchant ? t.fieldRequired.value : null}
                   >
                     <input
                       id="expense-manual-merchant"
@@ -772,15 +774,15 @@ export default function CreateExpenseDrawer({
                           merchant: event.target.value,
                         }))
                       }
-                      placeholder="Required"
+                      placeholder={t.required.value}
                       style={DETAIL_INPUT_STYLE}
                     />
                   </DetailRow>
 
                   <DetailRow
-                    label="Category"
+                    label={t.category.value}
                     onClick={() => setCategoryDrawerOpen(true)}
-                    error={!manualValidation.category ? 'This field is required' : null}
+                    error={!manualValidation.category ? t.fieldRequired.value : null}
                   >
                     <span
                       style={{
@@ -794,11 +796,11 @@ export default function CreateExpenseDrawer({
                           : 'var(--muted-foreground)',
                       }}
                     >
-                      {selectedCategoryName || 'Required'}
+                      {selectedCategoryName || t.required}
                     </span>
                   </DetailRow>
 
-                  <DetailRow label="Date">
+                  <DetailRow label={t.date.value}>
                     <DatePicker
                       value={manualDate ? parseISO(manualDate) : null}
                       onChange={(d: Date | null) =>
@@ -809,7 +811,7 @@ export default function CreateExpenseDrawer({
                           fullWidth: true,
                           variant: 'standard',
                           InputProps: { disableUnderline: true },
-                          inputProps: { 'aria-label': 'Date' },
+                          inputProps: { 'aria-label': t.date.value },
                           sx: {
                             '& .MuiInputBase-input': {
                               p: 0,
@@ -823,7 +825,7 @@ export default function CreateExpenseDrawer({
                     />
                   </DetailRow>
 
-                  <DetailRow label="Tax" onClick={() => setTaxRateDrawerOpen(true)} isLast>
+                  <DetailRow label={t.tax.value} onClick={() => setTaxRateDrawerOpen(true)} isLast>
                     <span
                       style={{
                         ...DETAIL_VALUE_STYLE,
@@ -835,8 +837,8 @@ export default function CreateExpenseDrawer({
                       }}
                     >
                       {selectedTaxRate
-                        ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate || 0).toFixed(0)}%)${selectedTaxRate.isDefault ? ' - Default' : ''}`
-                        : 'Optional'}
+                        ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate || 0).toFixed(0)}%)${selectedTaxRate.isDefault ? t.defaultSuffix.value : ''}`
+                        : t.optional}
                     </span>
                   </DetailRow>
                 </div>
@@ -861,7 +863,7 @@ export default function CreateExpenseDrawer({
                     color: 'var(--muted-foreground)',
                   }}
                 >
-                  Selected files
+                  {t.selectedFiles}
                 </p>
                 <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {files.map(file => (
@@ -934,12 +936,15 @@ export default function CreateExpenseDrawer({
               }
             >
               {submitting
-                ? 'Saving...'
+                ? t.saving
                 : mode === 'scan'
-                  ? 'Upload receipt'
+                  ? t.uploadReceipt
                   : manualStep === 'amount'
-                    ? 'Next'
-                    : `Create ${selectedCurrencySymbol}${manualDraft.amount || '0.00'} expense`}
+                    ? t.next
+                    : t.createAmountExpense.value.replace(
+                        '{amount}',
+                        `${selectedCurrencySymbol}${manualDraft.amount || '0.00'}`,
+                      )}
             </Button>
           </div>
         </div>
@@ -960,10 +965,10 @@ export default function CreateExpenseDrawer({
           setError(null);
         }}
         labels={{
-          title: 'Category',
-          searchPlaceholder: 'Search categories',
-          allOption: 'No category',
-          noResults: 'No categories found',
+          title: t.category.value,
+          searchPlaceholder: t.searchCategories.value,
+          allOption: t.noCategory.value,
+          noResults: t.noCategoriesFound.value,
         }}
         width="lg"
         showAllOption={false}
@@ -981,12 +986,12 @@ export default function CreateExpenseDrawer({
               type="button"
               onClick={() => setTaxRateDrawerOpen(false)}
               className="lumio-col-drawer__back-btn"
-              aria-label="Close tax rate drawer"
+              aria-label={t.closeTaxRateDrawer.value}
             >
               <ChevronLeft size={20} />
             </button>
             <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--foreground)' }}>
-              Tax rate
+              {t.taxRate}
             </span>
           </div>
         }
@@ -1002,11 +1007,11 @@ export default function CreateExpenseDrawer({
               <label
                 style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--muted-foreground)' }}
               >
-                <span>Tax rate name</span>
+                <span>{t.taxRateName}</span>
                 <input
                   value={taxRateName}
                   onChange={event => setTaxRateName(event.target.value)}
-                  placeholder="VAT 12%"
+                  placeholder={t.taxRateNamePlaceholder.value}
                   style={{
                     height: 42,
                     borderRadius: tokens.radius.sm,
@@ -1021,7 +1026,7 @@ export default function CreateExpenseDrawer({
               <label
                 style={{ display: 'grid', gap: 6, fontSize: 14, color: 'var(--muted-foreground)' }}
               >
-                <span>Tax percentage</span>
+                <span>{t.taxPercentage}</span>
                 <input
                   value={taxRateValue}
                   onChange={event => setTaxRateValue(event.target.value)}
@@ -1047,7 +1052,7 @@ export default function CreateExpenseDrawer({
                 onClick={() => void handleCreateTaxRate()}
                 style={{ width: '100%', borderRadius: tokens.radius.md }}
               >
-                {taxRateSaving ? 'Saving...' : 'Save tax rate'}
+                {taxRateSaving ? t.saving : t.saveTaxRate}
               </Button>
             </div>
           </div>
@@ -1072,14 +1077,14 @@ export default function CreateExpenseDrawer({
                 >
                   <span>
                     {taxRate.name} ({Number(taxRate.rate || 0).toFixed(0)}%)
-                    {taxRate.isDefault ? ' - Default' : ''}
+                    {taxRate.isDefault ? t.defaultSuffix : ''}
                   </span>
                   {isSelected ? <Check size={24} style={{ color: 'var(--primary)' }} /> : null}
                 </button>
               );
             })}
             {enabledTaxRates.length === 0 ? (
-              <div className="lumio-cat-drawer__no-results">No tax rates found</div>
+              <div className="lumio-cat-drawer__no-results">{t.noTaxRates}</div>
             ) : null}
           </div>
         </div>

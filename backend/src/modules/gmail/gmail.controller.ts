@@ -35,6 +35,7 @@ import {
   Receipt,
   ReceiptSource,
   ReceiptStatus,
+  StatementStage,
   Transaction,
   TransactionType,
   User,
@@ -42,8 +43,9 @@ import {
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { attachReceiptCategories } from '../receipts/helpers/attach-receipt-categories';
+import { ReceiptsService } from '../receipts/receipts.service';
 import { BulkApproveDto } from './dto/bulk-approve.dto';
-import { ExportSheetsDto } from './dto/export-sheets.dto';
+import { ExportXlsxDto } from './dto/export-xlsx.dto';
 import { MarkDuplicateDto } from './dto/mark-duplicate.dto';
 import { ReparseMerchantsDto } from './dto/reparse-merchants.dto';
 import { UpdateGmailSettingsDto } from './dto/update-gmail-settings.dto';
@@ -124,6 +126,7 @@ export class GmailController {
     private readonly categoryService: GmailReceiptCategoryService,
     private readonly exportService: GmailReceiptExportService,
     private readonly merchantReparseService: GmailMerchantReparseService,
+    private readonly receiptsService: ReceiptsService,
   ) {}
 
   private resolveAttachmentPath(storedPath: string): string {
@@ -345,6 +348,7 @@ export class GmailController {
     @Query('hasAmount') hasAmount?: string,
     @Query('categoryId') categoryId?: string,
     @Query('includeLinkedScans') includeLinkedScans?: string,
+    @Query('stage') stage?: string,
   ) {
     const includeInvalidReceipts = this.parseBooleanQuery(includeInvalid, false);
     const hasAmountFilter = this.parseOptionalBooleanQuery(hasAmount);
@@ -382,6 +386,11 @@ export class GmailController {
 
     if (status) {
       queryBuilder.andWhere('receipt.status = :status', { status });
+    }
+
+    // The Submit and Approve pages list only receipts in their own stage.
+    if (stage && (Object.values(StatementStage) as string[]).includes(stage)) {
+      queryBuilder.andWhere('receipt.stage = :stage', { stage });
     }
 
     if (categoryId) {
@@ -453,16 +462,8 @@ export class GmailController {
     @Param('id') id: string,
     @Body() dto: ApproveReceiptDto,
   ) {
-    const receipt = await this.receiptRepository.findOne({
-      where: { id, workspaceId },
-    });
-
-    if (!receipt) {
-      throw new BadRequestException('Receipt not found');
-    }
-
-    // Create transaction with workspaceId
-    const transaction = this.transactionRepository.create({
+    // A repeated approve returns the transaction the first one created.
+    const result = await this.receiptsService.approveOnce(id, workspaceId, receipt => ({
       statementId: null,
       workspaceId,
       transactionDate: new Date(dto.date),
@@ -472,18 +473,15 @@ export class GmailController {
       currency: dto.currency || 'KZT',
       categoryId: dto.categoryId || receipt.parsedData?.categoryId || null,
       transactionType: TransactionType.EXPENSE,
-    });
+    }));
 
-    const savedTransaction = await this.transactionRepository.save(transaction);
-
-    // Update receipt
-    receipt.status = ReceiptStatus.APPROVED;
-    receipt.transactionId = savedTransaction.id;
-    await this.receiptRepository.save(receipt);
+    if (!result) {
+      throw new BadRequestException('Receipt not found');
+    }
 
     return {
-      receipt,
-      transaction: savedTransaction,
+      receipt: result.receipt,
+      transaction: result.transaction,
     };
   }
 
@@ -647,25 +645,22 @@ export class GmailController {
           continue;
         }
 
-        // Create transaction with workspaceId
-        const transaction = this.transactionRepository.create({
+        const approved = await this.receiptsService.approveOnce(receiptId, workspaceId, locked => ({
           statementId: null,
           workspaceId,
-          transactionDate: new Date(receipt.parsedData.date),
-          counterpartyName: receipt.parsedData.vendor || receipt.subject || 'Unknown',
-          paymentPurpose: receipt.parsedData.vendor || receipt.subject || '',
-          amount: receipt.parsedData.amount,
-          currency: receipt.parsedData.currency || 'KZT',
-          categoryId: dto.categoryId || receipt.parsedData.categoryId || null,
+          transactionDate: new Date(locked.parsedData?.date ?? receipt.parsedData.date),
+          counterpartyName: locked.parsedData?.vendor || locked.subject || 'Unknown',
+          paymentPurpose: locked.parsedData?.vendor || locked.subject || '',
+          amount: locked.parsedData?.amount ?? receipt.parsedData.amount,
+          currency: locked.parsedData?.currency || 'KZT',
+          categoryId: dto.categoryId || locked.parsedData?.categoryId || null,
           transactionType: TransactionType.EXPENSE,
-        });
-
-        const savedTransaction = await this.transactionRepository.save(transaction);
-
-        // Update receipt
-        receipt.status = ReceiptStatus.APPROVED;
-        receipt.transactionId = savedTransaction.id;
-        await this.receiptRepository.save(receipt);
+        }));
+        if (!approved) {
+          results.failed++;
+          results.errors.push({ receiptId, error: 'Receipt not found' });
+          continue;
+        }
 
         results.approved++;
       } catch (error) {
@@ -680,20 +675,16 @@ export class GmailController {
     return results;
   }
 
-  @Post('receipts/export-sheets')
+  @Post('receipts/export-xlsx')
   @WorkspaceAuth(Permission.STATEMENT_VIEW)
-  @ApiOperation({ summary: 'Export receipts to Google Sheets' })
-  async exportToSheets(@WorkspaceId() workspaceId: string, @Body() dto: ExportSheetsDto) {
+  @ApiOperation({ summary: 'Export receipts to an Excel (.xlsx) file' })
+  async exportToXlsx(@WorkspaceId() workspaceId: string, @Body() dto: ExportXlsxDto) {
     try {
-      const result = await this.exportService.exportToSheets(
-        workspaceId,
-        dto.receiptIds,
-        dto.spreadsheetId,
-      );
+      const result = await this.exportService.exportToXlsx(workspaceId, dto.receiptIds);
       return result;
     } catch (error) {
       throw new BadRequestException(
-        `Failed to export to sheets: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to export to xlsx: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

@@ -5,7 +5,7 @@ import Skeleton from '@mui/material/Skeleton';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Download, Plus, RefreshCcw } from '@/app/components/icons';
+import { Download, RefreshCcw } from '@/app/components/icons';
 import { Button } from '@/app/components/ui/button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -722,7 +722,6 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
                 {labels.exportXlsx}
               </Button>
               <Button onClick={openCreateDrawer}>
-                <Plus size={16} />
                 {labels.add}
               </Button>
             </div>

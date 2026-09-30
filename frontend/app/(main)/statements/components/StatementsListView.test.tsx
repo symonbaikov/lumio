@@ -86,7 +86,10 @@ vi.mock('@/app/lib/statement-status', () => ({
 }));
 
 vi.mock('@/app/lib/statement-workflow', () => ({
-  getStatementStage: () => 'submit',
+  resolveStatementStage: () => 'submit',
+  migrateLocalStatementStages: async () => undefined,
+  updateStatementStages: async () => ({ updated: [], skipped: [] }),
+  statementStageSkipMessage: () => '',
 }));
 
 vi.mock('@/app/(main)/statements/components/filters/statement-filters', () => ({
@@ -134,7 +137,7 @@ vi.mock('@/app/(main)/statements/components/columns/statement-columns', () => ({
   STATEMENT_COLUMNS_STORAGE_KEY: 'lumio-statement-columns',
   DEFAULT_STATEMENT_COLUMNS: [
     { id: 'receipt', label: 'Receipt', visible: true, order: 0 },
-    { id: 'date', label: 'Date', visible: true, order: 1 },
+    { id: 'merchant', label: 'Merchant', visible: true, order: 1 },
     { id: 'amount', label: 'Amount', visible: true, order: 2 },
     { id: 'approved', label: 'Approved', visible: false, order: 3 },
     { id: 'billable', label: 'Billable', visible: false, order: 4 },
@@ -142,7 +145,7 @@ vi.mock('@/app/(main)/statements/components/columns/statement-columns', () => ({
   ],
   COLUMN_FILTER_MAP: {
     receipt: ['type', 'statuses'],
-    date: ['date'],
+    merchant: ['keywords'],
     amount: ['amountMin', 'amountMax'],
     approved: ['approved'],
     billable: ['billable'],
@@ -150,7 +153,7 @@ vi.mock('@/app/(main)/statements/components/columns/statement-columns', () => ({
   },
   loadStatementColumns: () => [
     { id: 'receipt', label: 'Receipt', visible: true, order: 0 },
-    { id: 'date', label: 'Date', visible: true, order: 1 },
+    { id: 'merchant', label: 'Merchant', visible: true, order: 1 },
     { id: 'amount', label: 'Amount', visible: true, order: 2 },
     { id: 'approved', label: 'Approved', visible: false, order: 3 },
     { id: 'billable', label: 'Billable', visible: false, order: 4 },
@@ -172,6 +175,7 @@ vi.mock('@/app/(main)/statements/components/columns/statement-columns', () => ({
     'type',
   ],
   resetDisallowedStatementFilters: (filters: unknown) => filters,
+  statementColumnWidthStyle: () => ({ flex: '1 1 0', minWidth: 0 }),
 }));
 
 vi.mock('@/app/components/ui/spinner', () => ({

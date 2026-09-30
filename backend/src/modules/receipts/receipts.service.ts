@@ -228,28 +228,62 @@ export class ReceiptsService {
   }
 
   async approve(id: string, workspaceId: string) {
-    const receipt = await this.receiptRepository.findOne({ where: { id, workspaceId } });
-    if (!receipt) {
+    const result = await this.approveOnce(id, workspaceId, receipt =>
+      this.buildTransactionFromReceipt(receipt, workspaceId),
+    );
+    if (!result) {
       return null;
     }
+    return { receipt: result.receipt, transaction: result.transaction };
+  }
 
-    const savedTransaction = await this.createTransactionFromReceipt(receipt, workspaceId);
-    receipt.status = ReceiptStatus.APPROVED;
-    receipt.transactionId = savedTransaction.id;
-    const savedReceipt = await this.receiptRepository.save(receipt);
+  /**
+   * Turns a receipt into its transaction at most once. The receipt row is locked
+   * for the duration, so a repeated or concurrent approve finds the transaction
+   * the first one made and returns it instead of booking the expense twice.
+   * Every approve path (here and the Gmail receipts endpoints) goes through it;
+   * `buildTransaction` only decides the new transaction's fields.
+   */
+  async approveOnce(
+    receiptId: string,
+    workspaceId: string,
+    buildTransaction: (receipt: Receipt) => Partial<Transaction>,
+  ): Promise<{ receipt: Receipt; transaction: Transaction; created: boolean } | null> {
+    const result = await this.receiptRepository.manager.transaction(async manager => {
+      const receipts = manager.getRepository(Receipt);
+      const transactions = manager.getRepository(Transaction);
+      const receipt = await receipts.findOne({
+        where: { id: receiptId, workspaceId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!receipt) {
+        return null;
+      }
+      if (receipt.transactionId) {
+        const existing = await transactions.findOne({
+          where: { id: receipt.transactionId, workspaceId },
+        });
+        if (existing) {
+          return { receipt, transaction: existing, created: false };
+        }
+      }
+      const transaction = await transactions.save(transactions.create(buildTransaction(receipt)));
+      receipt.status = ReceiptStatus.APPROVED;
+      receipt.transactionId = transaction.id;
+      const saved = await receipts.save(receipt);
+      return { receipt: saved, transaction, created: true };
+    });
 
-    this.eventEmitter
-      .emitAsync('receipt.approved', {
-        workspaceId: savedReceipt.workspaceId,
-        receiptId: savedReceipt.id,
-        transactionId: savedTransaction.id,
-      } satisfies ReceiptApprovedEvent)
-      .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
-
-    return {
-      receipt: savedReceipt,
-      transaction: savedTransaction,
-    };
+    if (result?.created) {
+      this.eventEmitter
+        .emitAsync('receipt.approved', {
+          workspaceId: result.receipt.workspaceId,
+          receiptId: result.receipt.id,
+          transactionId: result.transaction.id,
+        } satisfies ReceiptApprovedEvent)
+        .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
+    }
+    return result;
   }
 
   async bulkApprove(receiptIds: string[], workspaceId: string, categoryId?: string) {
@@ -277,21 +311,14 @@ export class ReceiptsService {
           continue;
         }
 
-        const savedTransaction = await this.createTransactionFromReceipt(
-          receipt,
-          workspaceId,
-          categoryId,
+        const approved = await this.approveOnce(receiptId, workspaceId, locked =>
+          this.buildTransactionFromReceipt(locked, workspaceId, categoryId),
         );
-        receipt.status = ReceiptStatus.APPROVED;
-        receipt.transactionId = savedTransaction.id;
-        const savedReceipt = await this.receiptRepository.save(receipt);
-        this.eventEmitter
-          .emitAsync('receipt.approved', {
-            workspaceId: receipt.workspaceId,
-            receiptId: savedReceipt.id,
-            transactionId: savedTransaction.id,
-          } satisfies ReceiptApprovedEvent)
-          .catch(err => this.logger.error('Failed to emit receipt.approved event', err));
+        if (!approved) {
+          results.failed += 1;
+          results.errors.push({ receiptId, error: 'Receipt not found' });
+          continue;
+        }
         results.approved += 1;
       } catch (error) {
         results.failed += 1;
@@ -421,17 +448,17 @@ export class ReceiptsService {
     });
   }
 
-  private async createTransactionFromReceipt(
+  private buildTransactionFromReceipt(
     receipt: Receipt,
     workspaceId: string,
     categoryId?: string,
-  ) {
+  ): Partial<Transaction> {
     const transactionType =
       receipt.parsedData?.transactionType === 'income'
         ? TransactionType.INCOME
         : TransactionType.EXPENSE;
 
-    const transaction = this.transactionRepository.create({
+    return {
       statementId: null,
       workspaceId,
       transactionDate: receipt.parsedData?.date ? new Date(receipt.parsedData.date) : new Date(),
@@ -441,8 +468,6 @@ export class ReceiptsService {
       currency: receipt.parsedData?.currency || 'KZT',
       categoryId: categoryId ?? (receipt.parsedData?.categoryId || null),
       transactionType,
-    });
-
-    return this.transactionRepository.save(transaction);
+    };
   }
 }

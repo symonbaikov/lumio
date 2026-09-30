@@ -115,6 +115,7 @@ export function EditTransactionsTable({
     <TableContainer
       component={Paper}
       elevation={0}
+      className="lumio-stmt-edit-table"
       sx={{ border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}
     >
       <Table size="small">

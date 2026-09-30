@@ -31,9 +31,11 @@ import { BulkApproveDto } from './dto/bulk-approve.dto';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
 import { UpdateReceiptLocationDto } from './dto/update-receipt-location.dto';
+import { UpdateReceiptStageDto, UpdateReceiptStageResultDto } from './dto/update-receipt-stage.dto';
 import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { ReceiptsService } from './receipts.service';
 import { ReceiptLocationService } from './services/receipt-location.service';
+import { ReceiptStageService } from './services/receipt-stage.service';
 
 type MulterFile = Express.Multer.File;
 
@@ -51,6 +53,7 @@ export class ReceiptsController {
   constructor(
     private readonly receiptsService: ReceiptsService,
     private readonly locationService: ReceiptLocationService,
+    private readonly receiptStageService: ReceiptStageService,
   ) {}
 
   @Post('upload')
@@ -173,6 +176,19 @@ export class ReceiptsController {
       throw new BadRequestException('Receipt not found');
     }
     return receipt;
+  }
+
+  @Post('stage')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  @ApiOperation({ summary: 'Move one or more receipts between Submit and Approve' })
+  @ApiResponse({ status: 200, type: UpdateReceiptStageResultDto })
+  async updateStage(
+    @Body() dto: UpdateReceiptStageDto,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ): Promise<UpdateReceiptStageResultDto> {
+    return this.receiptStageService.updateStage(dto.receiptIds, dto.stage, user.id, workspaceId);
   }
 
   @Post(':id/approve')

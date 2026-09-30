@@ -17,7 +17,6 @@ type JsonObject = Record<string, unknown>;
 import { normalizeFilename } from '../common/utils/filename.util';
 import { Category } from './category.entity';
 import { Folder } from './folder.entity';
-import { GoogleSheet } from './google-sheet.entity';
 import { Tag } from './tag.entity';
 import { Transaction } from './transaction.entity';
 import { User } from './user.entity';
@@ -35,6 +34,17 @@ export enum StatementStatus {
    */
   NEEDS_REVIEW = 'needs_review',
   ERROR = 'error',
+}
+
+/**
+ * Where a statement sits in the review workflow (Submit → Approve → Pay).
+ * Separate from `status`, which tracks parsing. Moves go through
+ * `POST /statements/stage`, which enforces the allowed transitions.
+ */
+export enum StatementStage {
+  SUBMIT = 'submit',
+  APPROVE = 'approve',
+  PAY = 'pay',
 }
 
 export enum BankName {
@@ -74,17 +84,6 @@ export class Statement {
 
   @Column({ name: 'workspace_id', type: 'uuid' })
   workspaceId: string;
-
-  @ManyToOne(
-    () => GoogleSheet,
-    sheet => sheet.statements,
-    { nullable: true },
-  )
-  @JoinColumn({ name: 'google_sheet_id' })
-  googleSheet: GoogleSheet | null;
-
-  @Column({ name: 'google_sheet_id', type: 'uuid', nullable: true })
-  googleSheetId: string | null;
 
   @ManyToOne(() => Folder, { nullable: true })
   @JoinColumn({ name: 'folder_id' })
@@ -137,6 +136,14 @@ export class Statement {
     default: StatementStatus.UPLOADED,
   })
   status: StatementStatus;
+
+  @Column({
+    type: 'enum',
+    enum: StatementStage,
+    enumName: 'statements_stage_enum',
+    default: StatementStage.SUBMIT,
+  })
+  stage: StatementStage;
 
   @Column({ name: 'error_message', type: 'text', nullable: true })
   errorMessage: string | null;

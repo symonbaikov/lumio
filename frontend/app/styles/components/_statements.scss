@@ -11,6 +11,29 @@
   }
 }
 
+/* ── Statements route shell ───────────────────────────────
+   Wraps AlertBanner + the page view (see MainSidePanelLayout). Giving the
+   page view its own "height: 100%" only matches the wrapper's total height,
+   not the space actually left after AlertBanner renders above it — that
+   still overflowed the wrapper's overflow:hidden by AlertBanner's height.
+   A flex column here lets the last child (the page view) shrink to fill
+   exactly what AlertBanner didn't take, regardless of how tall it is. */
+.lumio-statements-shell {
+  display: flex;
+  flex-direction: column;
+
+  > * {
+    flex-shrink: 0;
+  }
+
+  // No overflow here: this selector outranks MUI's single class, and some page
+  // views (statement edit) are their own scroller via overflowY:auto.
+  > *:last-child {
+    flex: 1 1 0%;
+    min-height: 0;
+  }
+}
+
 /* ── Statement list item ──────────────────────────────── */
 .lumio-stmt-item {
   position: relative;
@@ -27,7 +50,7 @@
   }
 
   &:hover {
-    border-color: color-mix(in srgb, $color-primary 30%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
   &--duplicate-original {
@@ -262,8 +285,8 @@
     }
 
     &:hover {
-      border-color: $color-primary;
-      color: $color-primary;
+      border-color: var(--primary);
+      color: var(--primary);
 
       @include dark {
         border-color: $color-primary-dk;
@@ -364,8 +387,8 @@
     }
 
     &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 10%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
     }
   }
 
@@ -399,14 +422,14 @@
     }
 
     &:hover {
-      border-color: $color-primary;
-      color: $color-primary;
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
     &--active {
-      border-color: $color-primary;
-      background: color-mix(in srgb, $color-primary 5%, transparent);
-      color: $color-primary;
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 5%, transparent);
+      color: var(--primary);
     }
   }
 
@@ -417,10 +440,10 @@
     align-items: center;
     justify-content: center;
     border-radius: $lumio-radius-md;
-    background: color-mix(in srgb, $color-primary 10%, transparent);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
     font-size: 12px;
     font-weight: 600;
-    color: $color-primary;
+    color: var(--primary);
     margin-left: 4px;
   }
 
@@ -662,12 +685,12 @@
     transition: all 0.15s;
 
     &--merge {
-      border-color: color-mix(in srgb, $color-primary 20%, transparent);
-      color: $color-primary;
+      border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+      color: var(--primary);
 
       &:hover {
-        border-color: $color-primary;
-        background: color-mix(in srgb, $color-primary 5%, transparent);
+        border-color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 5%, transparent);
       }
     }
 
@@ -681,8 +704,8 @@
       }
 
       &:hover {
-        border-color: $color-primary;
-        color: $color-primary;
+        border-color: var(--primary);
+        color: var(--primary);
       }
     }
 
@@ -732,7 +755,7 @@
     align-items: center;
     gap: 6px;
     border-radius: $lumio-radius-md;
-    background: $color-primary;
+    background: var(--primary-fill);
     padding: 6px 10px;
     font-size: 13px;
     font-weight: 500;
@@ -742,7 +765,7 @@
     border: none;
 
     &:hover {
-      background: $color-primary-hover;
+      background: var(--primary-fill-hover);
     }
   }
 
@@ -828,7 +851,7 @@
   }
 
   &:hover {
-    border-color: color-mix(in srgb, $color-primary 30%, transparent);
+    border-color: color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
   &__inner {
@@ -1041,8 +1064,8 @@
     }
 
     &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 20%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
     }
   }
 
@@ -1080,8 +1103,8 @@
     }
 
     &--selected {
-      background: color-mix(in srgb, $color-primary 10%, transparent);
-      color: $color-primary;
+      background: color-mix(in srgb, var(--primary) 10%, transparent);
+      color: var(--primary);
     }
   }
 
@@ -1287,16 +1310,8 @@
   }
 
   &__empty {
-    border-radius: $lumio-radius-lg;
-    border: 1px solid #e5e7eb;
-    background: $lumio-color-surface;
     padding: 48px 24px;
     text-align: center;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-dk;
-    }
   }
 
   &__mobile-rows {
@@ -1464,6 +1479,40 @@
 /* Its own table skin: `lumio-payable-list__table` is sized for compact
    read-only rows, not for hosting 48px-tall form inputs — reusing it left
    the header cells and the fixed-width input cells out of step. */
+// Unlike .lumio-stmt-list this page has no inner scroller, so it must not cap
+// its own height — the form flows and the shell's main area scrolls.
+.lumio-invoice-detail {
+  padding: 24px 16px;
+
+  @media (min-width: 640px) {
+    padding: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    padding: 24px 32px;
+  }
+
+  &__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+
+    @include respond-to('sm') {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+}
+
 .lumio-invoice-lines {
   &__table {
     width: 100%;
@@ -1475,14 +1524,16 @@
   &__th {
     padding: 8px 12px 12px;
     text-align: left;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #94a3b8;
+    font-size: 14px;
+    font-weight: 500;
+    color: #334155;
 
     @include dark {
-      color: $lumio-color-ink-400-dk;
+      color: $lumio-color-ink-700-dk;
+    }
+
+    &:first-child {
+      padding-left: 0;
     }
 
     &--right {
@@ -1502,8 +1553,71 @@
     padding: 8px 12px;
     vertical-align: middle;
 
+    &:first-child {
+      padding-left: 0;
+    }
+
     &--right {
       text-align: right;
+    }
+  }
+
+  // Below the 'sm' breakpoint the fixed % columns squeeze every field down to
+  // a sliver. Switch each row to a card: label on top, full-width field below
+  // (matching the client/currency fields above), so every input's left edge
+  // lines up instead of drifting with its label's width.
+  @include respond-to('sm') {
+    &__table,
+    &__table tbody,
+    &__table tr {
+      display: block;
+      width: 100%;
+    }
+
+    &__table thead,
+    &__table colgroup {
+      display: none;
+    }
+
+    &__row {
+      display: grid;
+      gap: 14px;
+      padding: 16px 0;
+    }
+
+    &__td {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+      padding: 0 !important;
+      text-align: left !important;
+
+      &::before {
+        content: attr(data-label);
+        font-size: 14px;
+        font-weight: 500;
+        color: #334155;
+
+        @include dark {
+          color: $lumio-color-ink-700-dk;
+        }
+      }
+    }
+
+    &__td--right {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    &__td--actions {
+      display: flex;
+      justify-content: flex-end;
+
+      &::before {
+        content: none;
+      }
     }
   }
 }
@@ -1617,8 +1731,8 @@
     }
 
     &:focus-visible {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 30%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
     }
   }
 
@@ -1641,7 +1755,7 @@
     }
 
     &:focus {
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 30%, transparent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent);
     }
   }
 
@@ -1657,7 +1771,10 @@
 .lumio-view-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - $global-nav-height);
+  // See .lumio-stmt-list-view below: fill the parent's already-capped
+  // height instead of recomputing it, or a sibling like AlertBanner clips
+  // the bottom.
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 24px 16px;
@@ -1734,7 +1851,7 @@
     }
 
     &--active {
-      background: $color-primary;
+      background: var(--primary-fill);
       color: #fff;
     }
   }
@@ -1785,8 +1902,8 @@
     }
 
     &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 10%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
     }
   }
 
@@ -1804,10 +1921,10 @@
     align-items: center;
     justify-content: center;
     border-radius: $lumio-radius-md;
-    background: color-mix(in srgb, $color-primary 10%, transparent);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
     font-size: 12px;
     font-weight: 600;
-    color: $color-primary;
+    color: var(--primary);
     margin-left: 4px;
   }
 
@@ -1826,16 +1943,8 @@
   }
 
   &__empty {
-    border-radius: $lumio-radius-md;
-    border: 1px solid #e5e7eb;
-    background: $lumio-color-surface;
     padding: 32px;
     text-align: center;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-dk;
-    }
   }
 
   &__empty-actions {
@@ -1912,7 +2021,7 @@
     padding: 6px 8px;
     font-size: 13px;
     font-weight: 500;
-    color: $color-primary;
+    color: var(--primary);
     background: none;
     border: none;
     cursor: pointer;
@@ -2125,7 +2234,7 @@
 
   &__table-link {
     text-align: left;
-    color: $color-primary;
+    color: var(--primary);
     background: none;
     border: none;
     cursor: pointer;
@@ -2250,7 +2359,7 @@
     display: inline-flex;
     align-items: center;
     border-radius: $lumio-radius-md;
-    background: $color-primary;
+    background: var(--primary-fill);
     padding: 8px 16px;
     font-size: 14px;
     font-weight: 500;
@@ -2260,7 +2369,7 @@
     transition: background-color 0.15s;
 
     &:hover {
-      background: color-mix(in srgb, $color-primary 90%, transparent);
+      background: var(--primary-fill-hover);
     }
   }
 
@@ -2268,17 +2377,17 @@
     display: inline-flex;
     align-items: center;
     border-radius: $lumio-radius-md;
-    border: 1px solid $color-primary;
+    border: 1px solid var(--primary);
     padding: 8px 16px;
     font-size: 14px;
     font-weight: 500;
-    color: $color-primary;
+    color: var(--primary);
     background: none;
     cursor: pointer;
     transition: background-color 0.15s;
 
     &:hover {
-      background: color-mix(in srgb, $color-primary 5%, transparent);
+      background: color-mix(in srgb, var(--primary) 5%, transparent);
     }
   }
 }
@@ -2438,7 +2547,7 @@
     align-items: center;
     gap: 8px;
     border-radius: $lumio-radius-md;
-    background: $color-primary;
+    background: var(--primary-fill);
     padding: 8px 16px;
     font-size: 14px;
     font-weight: 500;
@@ -2448,7 +2557,7 @@
     border: none;
 
     &:hover {
-      background: $color-primary-hover;
+      background: var(--primary-fill-hover);
     }
   }
 }
@@ -2457,7 +2566,10 @@
 .lumio-trash-list {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - $global-nav-height);
+  // See .lumio-stmt-list-view below: fill the parent's already-capped
+  // height instead of recomputing it, or a sibling like AlertBanner clips
+  // the bottom.
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 24px 16px;
@@ -2520,8 +2632,8 @@
     }
 
     &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 10%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
     }
   }
 
@@ -2635,8 +2747,8 @@
     }
 
     &:hover:not(:disabled) {
-      border-color: $color-primary;
-      color: $color-primary;
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
     &:disabled {
@@ -2811,38 +2923,43 @@
 
 /* ── StatementsListItem ──────────────────────────────────── */
 .lumio-stmt-list-item {
+  // A flat row: one hairline underneath, no card of its own. The list block
+  // (.lumio-stmt-list-view__table) is the only surface.
   position: relative;
   overflow: hidden;
-  border-radius: $lumio-radius-lg;
-  border: 1px solid #e5e7eb;
-  background: $lumio-color-surface;
+  border-bottom: 1px solid $lumio-color-ink-150;
   padding: 12px;
-  transition: border-color 0.15s;
+  transition: background-color 0.15s;
 
   @include dark {
-    border-color: $lumio-color-border-dk;
-    background: $lumio-color-surface-dk;
+    border-bottom-color: $lumio-color-ink-150-dk;
+  }
+
+  &:last-child {
+    border-bottom: 0;
   }
 
   &:hover {
-    border-color: color-mix(in srgb, $color-primary 30%, transparent);
+    background: $lumio-color-ink-50;
+
+    @include dark {
+      background: $lumio-color-ink-50-dk;
+    }
   }
 
   @media (min-width: 768px) {
-    padding: 10px 16px;
+    padding: 14px 16px;
   }
 
-  &--selected {
-    border-color: color-mix(in srgb, $color-primary 60%, transparent);
-    background: color-mix(in srgb, $color-primary 5%, transparent);
+  &--selected,
+  &--selected:hover {
+    background: color-mix(in srgb, var(--primary) 5%, transparent);
   }
 
   &--error {
-    border-color: #fecaca;
     background: rgba(255, 241, 242, 0.4);
 
     @include dark {
-      border-color: $lumio-color-danger-soft-dk;
       background: rgba(220, 38, 38, 0.08);
     }
   }
@@ -2869,13 +2986,119 @@
   }
 
   &__desktop {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 16px;
     position: relative;
     z-index: 10;
     width: 100%;
     min-width: 0;
+
+    @media (min-width: 768px) {
+      display: flex;
+    }
+  }
+
+  // Phones: a two-line row instead of the column grid.
+  //   [☐] [doc]  Merchant ............ -9.99 EUR
+  //              Sep 25, 2026 · IT services  Completed
+  &__mobile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 10;
+    min-width: 0;
+    // Only the checkbox and icon take taps; the rest reaches the overlay button.
+    pointer-events: none;
+
+    @media (min-width: 768px) {
+      display: none;
+    }
+  }
+
+  &__mobile-select {
+    display: flex;
+    flex-shrink: 0;
+    pointer-events: auto;
+
+    .MuiCheckbox-root {
+      padding: 4px;
+    }
+  }
+
+  &__mobile-icon {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    pointer-events: auto;
+    opacity: 0.7;
+  }
+
+  &__mobile-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__mobile-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  &__mobile-merchant {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 15px;
+    font-weight: 600;
+    color: $lumio-color-ink-900;
+
+    @include dark {
+      color: $lumio-color-ink-900-dk;
+    }
+  }
+
+  &__mobile-amount {
+    flex-shrink: 0;
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: $lumio-color-ink-900;
+
+    @include dark {
+      color: $lumio-color-ink-900-dk;
+    }
+  }
+
+  &__mobile-meta {
+    font-size: 12px;
+    color: $lumio-color-ink-400;
+
+    @include dark {
+      color: $lumio-color-ink-400-dk;
+    }
+  }
+
+  &__mobile-meta-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__view-btn {
@@ -2916,6 +3139,80 @@
       cursor: not-allowed;
       opacity: 0.5;
     }
+
+    // Plain rows: just an arrow, faint until the row is hovered or focused.
+    &--arrow {
+      border: 0;
+      background: none;
+      box-shadow: none;
+      padding: 4px;
+      color: $lumio-color-ink-400;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+
+      @include dark {
+        border: 0;
+        background: none;
+        box-shadow: none;
+        color: $lumio-color-ink-600-dk;
+      }
+
+      &:hover:not(:disabled) {
+        border: 0;
+        background: none;
+        color: $lumio-color-ink-900;
+
+        @include dark {
+          border: 0;
+          background: none;
+          color: $lumio-color-ink-900-dk;
+        }
+      }
+    }
+  }
+
+  &:hover &__view-btn--arrow,
+  &:focus-within &__view-btn--arrow {
+    opacity: 1;
+  }
+}
+
+// On the flat white list the app's filled grey checkbox read as one more
+// tile under every row; here an unchecked box is just an outline.
+.lumio-stmt-list-item,
+.lumio-stmt-list-view__desktop-header,
+.lumio-stmt-edit-table,
+.lumio-categories-list {
+  .MuiCheckbox-root:not(.Mui-checked):not(.MuiCheckbox-indeterminate) .MuiSvgIcon-root rect {
+    x: 1px;
+    y: 1px;
+    width: 22px;
+    height: 22px;
+    fill: transparent;
+    // ink-400 keeps the outline at 3:1 against white, the minimum for a control.
+    stroke: $lumio-color-ink-400;
+    stroke-width: 2;
+
+    @include dark {
+      stroke: $lumio-color-ink-600-dk;
+    }
+  }
+}
+
+// Statement edit table: edit/delete stay out of sight until their row is
+// hovered or holds focus, so 15+ rows don't repeat two icons down the edge.
+// Touch screens have no hover, so there they stay visible.
+.lumio-stmt-edit-table {
+  @media (hover: hover) {
+    .lumio-stmt-edit-table__row-actions {
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .MuiTableRow-root:hover .lumio-stmt-edit-table__row-actions,
+    .lumio-stmt-edit-table__row-actions:focus-within {
+      opacity: 1;
+    }
   }
 }
 
@@ -2923,7 +3220,11 @@
 .lumio-stmt-list-view {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - $global-nav-height);
+  // The parent MainSidePanelLayout wrapper already caps height to
+  // 100vh - nav on /statements/* routes; recomputing it here (instead of
+  // filling that parent) made this box taller than the parent whenever a
+  // sibling (e.g. AlertBanner) also took up space, clipping the bottom rows.
+  height: 100%;
   min-height: 0;
   overflow: hidden;
   padding: 16px;
@@ -2981,8 +3282,8 @@
     }
 
     &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 10%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
     }
   }
 
@@ -3012,11 +3313,21 @@
     padding-bottom: 8px;
   }
 
+  // One white block for the whole list; rows inside are flat and divided
+  // by hairlines, the way the Tables page draws its grid.
   &__table {
     display: flex;
     width: 100%;
     flex-direction: column;
-    gap: 12px;
+    border: 1px solid $lumio-color-ink-150;
+    border-radius: $lumio-radius-lg;
+    background: $lumio-color-surface;
+    overflow: hidden;
+
+    @include dark {
+      border-color: $lumio-color-ink-150-dk;
+      background: $lumio-color-surface-dk;
+    }
   }
 
   &__loading {
@@ -3126,8 +3437,8 @@
 
     &--active {
       background: #f0f4ff;
-      color: $color-primary;
-      border-color: color-mix(in srgb, $color-primary 30%, transparent);
+      color: var(--primary);
+      border-color: color-mix(in srgb, var(--primary) 30%, transparent);
 
       @include dark {
         background: color-mix(in srgb, $lumio-color-primary-dk 10%, transparent);
@@ -3167,7 +3478,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 4px 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid $lumio-color-ink-150;
     font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
@@ -3175,9 +3487,17 @@
     color: #9ca3af;
 
     @include dark {
+      border-bottom-color: $lumio-color-ink-150-dk;
       color: $lumio-color-ink-400-dk;
     }
 
+    // Phones: rows are stacked, so column titles would label nothing; keep
+    // select-all and the date sort.
+    @media (max-width: 767px) {
+      [data-column-id]:not([data-column-id='date']) {
+        display: none;
+      }
+    }
   }
 
   &__pull-indicator {
@@ -3209,8 +3529,8 @@
     }
 
     &--ready {
-      border-color: color-mix(in srgb, $color-primary 40%, transparent);
-      color: $color-primary;
+      border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+      color: var(--primary);
     }
   }
 
@@ -3229,7 +3549,7 @@
     align-items: center;
     gap: 6px;
     border-radius: $lumio-radius-md;
-    background: $color-primary;
+    background: var(--primary-fill);
     padding: 6px 10px;
     font-size: 13px;
     font-weight: 500;
@@ -3239,7 +3559,7 @@
     transition: background-color 0.15s;
 
     &:hover {
-      background: $color-primary-hover;
+      background: var(--primary-fill-hover);
     }
   }
 
@@ -3309,13 +3629,12 @@
   }
 
   /* Mobile bulk bar */
+  // Sits in the header where the filter chips were (it replaces them while rows
+  // are selected). It used to be pinned to the screen bottom, where the app's
+  // bottom nav covered it.
   &__mobile-bulk {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    z-index: 40;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
@@ -3323,12 +3642,10 @@
     border: 1px solid #e5e7eb;
     background: $lumio-color-surface;
     padding: 8px 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
     @include dark {
       border-color: $lumio-color-border-dk;
       background: $lumio-color-surface-dk;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
 
     @media (min-width: 768px) {
@@ -3338,6 +3655,7 @@
 
   &__mobile-bulk-actions {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
   }
@@ -3363,18 +3681,30 @@
     }
 
     &--primary {
-      border-color: color-mix(in srgb, $color-primary 20%, transparent);
-      color: $color-primary;
+      border-color: color-mix(in srgb, var(--primary) 20%, transparent);
+      color: var(--primary);
 
       &:hover {
-        border-color: $color-primary;
-        background: color-mix(in srgb, $color-primary 5%, transparent);
+        border-color: var(--primary);
+        background: color-mix(in srgb, var(--primary) 5%, transparent);
+      }
+    }
+
+    // The stage move (Submit / Unapprove): the one filled button, like Submit on the statement page.
+    &--filled {
+      border-color: var(--primary-fill);
+      background: var(--primary-fill);
+      color: #fff;
+      font-weight: 600;
+
+      &:hover {
+        filter: brightness(0.95);
       }
     }
 
     &--secondary:hover {
-      border-color: $color-primary;
-      color: $color-primary;
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
     &--danger {
@@ -3595,8 +3925,8 @@
     }
 
     &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 20%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
     }
   }
 
@@ -3813,8 +4143,8 @@
     }
 
     &:focus {
-      border-color: $color-primary;
-      box-shadow: 0 0 0 2px color-mix(in srgb, $color-primary 10%, transparent);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 10%, transparent);
     }
   }
 
@@ -4054,7 +4384,7 @@
 
     &--active {
       background: #f0f4ff;
-      color: $color-primary;
+      color: var(--primary);
 
       @include dark {
         background: color-mix(in srgb, $lumio-color-primary-dk 10%, transparent);
