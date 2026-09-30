@@ -12,10 +12,10 @@ import Typography from '@mui/material/Typography';
 import React, { useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ChevronLeft, ChevronRight } from '@/app/components/icons';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useCurrencyPickerState } from '@/app/hooks/useCurrencyPickerState';
 import { api } from '@/app/lib/api';
-import { tokens } from '@/lib/theme-tokens';
 import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
 import { CurrencySelector } from './CurrencySelector';
@@ -312,66 +312,35 @@ type CurrencyDrawerProps = {
   onClose: () => void;
   onSelect: (v: string | null) => void;
 };
-function CurrencyDrawerTitle({ onClose }: { onClose: () => void }): React.JSX.Element {
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-      <button
-        type="button"
-        onClick={onClose}
-        style={{
-          borderRadius: tokens.radius.full,
-          padding: 8,
-          color: 'var(--muted-foreground)',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-        }}
-        aria-label="Close currency drawer"
-      >
-        <ChevronLeft size={20} />
-      </button>
-      <Typography variant="h6" fontWeight={600} sx={{ color: 'var(--foreground)' }}>
-        Select a currency
-      </Typography>
-    </Box>
-  );
-}
-
-function CurrencyDrawer({
+function WorkspaceCurrencyDrawer({
   isOpen,
   selectedCurrency,
   onClose,
   onSelect,
 }: CurrencyDrawerProps): React.JSX.Element {
-  const handleSelect = (currency: string | null): void => {
-    onSelect(currency);
+  const picker = useCurrencyPickerState(selectedCurrency ?? '');
+  const handleClose = (): void => {
+    picker.setCurrencySearch('');
     onClose();
   };
   return (
-    <DrawerShell
+    <CurrencyDrawer
       isOpen={isOpen}
-      onClose={onClose}
-      position="right"
-      width="lg"
-      showCloseButton={false}
-      title={<CurrencyDrawerTitle onClose={onClose} />}
-    >
-      <Box sx={{ display: 'flex', height: '100%', flexDirection: 'column' }}>
-        <Box sx={{ flex: 1, overflowY: 'auto', pb: 2 }}>
-          <CurrencySelector
-            selectedCurrency={selectedCurrency}
-            onSelect={handleSelect}
-            mode="inline"
-            open
-            showLabel={false}
-            showTrigger={false}
-            title="Select a currency"
-            minimal={false}
-            showPanelHeader={false}
-          />
-        </Box>
-      </Box>
-    </DrawerShell>
+      onClose={handleClose}
+      currencySearch={picker.currencySearch}
+      setCurrencySearch={picker.setCurrencySearch}
+      selectedCurrencyItem={picker.selectedCurrencyItem}
+      selectedMatchesSearch={picker.selectedMatchesSearch}
+      currencyQuery={picker.currencyQuery}
+      recentCurrencyItems={picker.recentCurrencyItems}
+      allCurrencyItems={picker.allCurrencyItems}
+      handleSelectCurrency={code => {
+        onSelect(code);
+        picker.pushRecentCurrency(code);
+        onClose();
+      }}
+      zIndex={1400}
+    />
   );
 }
 
@@ -608,7 +577,7 @@ export function CreateWorkspaceModal({
           }}
         />
       </Dialog>
-      <CurrencyDrawer
+      <WorkspaceCurrencyDrawer
         isOpen={isOpen && s.step === 2 && s.currencyDrawerOpen}
         selectedCurrency={s.selectedCurrency}
         onClose={() => s.setCurrencyDrawerOpen(false)}

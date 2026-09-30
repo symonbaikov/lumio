@@ -3823,20 +3823,12 @@
   height: 100%;
   flex-direction: column;
 
+  // Plain tabs: an underline marks the active mode, no inset tray around them.
   &__tabs {
     margin-bottom: 20px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    border-radius: $lumio-radius-md;
-    border: 1px solid $color-border;
-    background: rgba(0, 0, 0, 0.04);
-    padding: 6px;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: rgba(255, 255, 255, 0.04);
-    }
+    border-bottom: 1px solid var(--border-color);
   }
 
   &__tab {
@@ -3844,41 +3836,168 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    border-radius: $lumio-radius-md;
-    padding: 8px 12px;
+    margin-bottom: -1px;
+    padding: 10px 12px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: color 0.15s, border-color 0.15s;
     background: none;
     border: none;
-    color: $color-muted-foreground;
-
-    @include dark {
-      color: $lumio-color-text-secondary-dk;
-    }
+    border-bottom: 2px solid transparent;
+    color: var(--muted-foreground);
 
     &:hover {
-      background: $color-muted;
-      color: $color-foreground;
-
-      @include dark {
-        background: $lumio-color-surface-muted-dk;
-        color: $lumio-color-text-primary-dk;
-      }
+      color: var(--foreground);
     }
 
     &--active {
-      background: $color-card-bg;
-      color: $color-foreground;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      color: var(--foreground);
+      border-bottom-color: var(--primary);
+    }
+  }
 
-      @include dark {
-        background: $lumio-color-surface-dk;
-        color: $lumio-color-text-primary-dk;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  // Quiet one-line attach row in place of a tall drop zone.
+  &__attach {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--foreground);
+    transition: border-color 0.15s, background-color 0.15s;
+
+    &:hover {
+      background: var(--muted);
+    }
+
+    // Ring drawn inside, like the fields below: the scrolling column clips anything outside.
+    &:has(:focus-visible) {
+      border-style: solid;
+      border-color: var(--primary);
+      box-shadow: inset 0 0 0 1px var(--primary);
+    }
+  }
+
+  &__attach-hint {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted-foreground);
+    text-align: right;
+  }
+
+  // Hidden but still reachable with Tab, unlike display: none.
+  &__attach-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+  }
+
+  &__fields {
+    display: grid;
+    gap: 16px;
+  }
+
+  &__field {
+    display: grid;
+    // Without these a field in a narrow grid column grows to the input's
+    // intrinsic width (~150px) and pushes the row past the drawer edge.
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    gap: 6px;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  // One look for every control: text inputs, picker buttons and the date picker.
+  &__control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--card-bg);
+    font: inherit;
+    font-size: 16px;
+    color: var(--foreground);
+    text-align: left;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+
+    &::placeholder {
+      color: var(--muted-foreground);
+    }
+
+    // One ring, drawn inside the border: an outer ring would be clipped by the
+    // scrolling column and would stack on the global :focus-visible outline.
+    &:focus-visible,
+    &:has(:focus-visible),
+    &:focus-within:not(&--button) {
+      border-color: var(--primary);
+      box-shadow: inset 0 0 0 1px var(--primary);
+    }
+
+    &--button {
+      cursor: pointer;
+
+      &:hover {
+        background: var(--muted);
       }
     }
+
+    &--invalid,
+    &--invalid:focus-visible,
+    &--invalid:focus-within {
+      border-color: var(--destructive);
+      box-shadow: inset 0 0 0 1px var(--destructive);
+    }
+
+    &--invalid:not(:focus-visible):not(:focus-within) {
+      box-shadow: none;
+    }
+  }
+
+  // The control draws its own ring; drop the global outline so it is not doubled.
+  html &__control:focus-visible,
+  html &__control :focus-visible,
+  html &__attach-input:focus-visible {
+    outline: none;
+  }
+
+  &__value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--placeholder {
+      color: var(--muted-foreground);
+    }
+
+    &--amount {
+      font-size: 20px;
+      font-weight: 600;
+    }
+  }
+
+  &__error {
+    font-size: 12px;
+    color: var(--destructive);
   }
 
   &__content {
@@ -3888,127 +4007,6 @@
     flex-direction: column;
     gap: 12px;
     padding-bottom: 16px;
-  }
-
-  &__search {
-    position: relative;
-  }
-
-  &__search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: $color-muted-foreground;
-
-    @include dark {
-      color: $lumio-color-text-secondary-dk;
-    }
-  }
-
-  &__search-input {
-    width: 100%;
-    border-radius: $lumio-radius-md;
-    border: 1px solid $color-border;
-    background: $color-card-bg;
-    padding: 12px 16px 12px 40px;
-    font-size: 14px;
-    color: $color-foreground;
-    outline: none;
-    transition: border-color 0.15s;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-dk;
-      color: $lumio-color-text-primary-dk;
-    }
-
-    &:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
-    }
-  }
-
-  &__currency-item {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between;
-    border-radius: $lumio-radius-md;
-    padding: 12px;
-    text-align: left;
-    cursor: pointer;
-    transition: background-color 0.15s;
-    background: none;
-    border: none;
-    color: $color-foreground;
-
-    @include dark {
-      color: $lumio-color-text-primary-dk;
-    }
-
-    &:hover {
-      background: $color-muted;
-
-      @include dark {
-        background: $lumio-color-surface-muted-dk;
-      }
-    }
-  }
-
-  &__currency-selected {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between;
-    border-radius: $lumio-radius-md;
-    border: 1px solid $color-border;
-    background: $color-muted;
-    padding: 16px;
-    text-align: left;
-    cursor: pointer;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-muted-dk;
-    }
-  }
-
-  &__label {
-    padding: 0 4px;
-    font-size: 14px;
-    color: $color-muted-foreground;
-
-    @include dark {
-      color: $lumio-color-text-secondary-dk;
-    }
-  }
-
-  &__section {
-    margin-top: 8px;
-  }
-
-  &__all-list {
-    margin-top: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__no-result {
-    border-radius: $lumio-radius-md;
-    border: 1px solid $color-border;
-    background: $color-card-bg;
-    padding: 12px;
-    font-size: 14px;
-    color: $color-muted-foreground;
-
-    @include dark {
-      border-color: $lumio-color-border-dk;
-      background: $lumio-color-surface-dk;
-      color: $lumio-color-text-secondary-dk;
-    }
   }
 }
 
@@ -4458,5 +4456,127 @@
       flex-wrap: wrap;
       gap: 2px;
     }
+  }
+}
+
+/* ── Tax rate drawer (inside CreateExpenseDrawer) ────────── */
+.lumio-tax-drawer {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+
+  &__form {
+    display: grid;
+    gap: 16px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  &__form-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    gap: 12px;
+  }
+
+  &__percent-input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    outline: none;
+
+    &::placeholder {
+      color: var(--muted-foreground);
+    }
+  }
+
+  &__percent-sign {
+    color: var(--muted-foreground);
+  }
+
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    align-content: start;
+    gap: 2px;
+    // Rows reach 12px past the form so their text lines up with the inputs above.
+    margin-inline: -12px;
+    padding-top: 12px;
+    padding-bottom: 24px;
+  }
+
+  &__option {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: none;
+    text-align: left;
+    font-size: 14px;
+    color: var(--foreground);
+    cursor: pointer;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: var(--muted);
+    }
+
+    // Inside the row: the scrolling list would clip an outer ring.
+    html &:focus-visible {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--primary);
+    }
+
+    &--selected {
+      font-weight: 600;
+    }
+  }
+
+  &__option-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__tag {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+  }
+
+  &__option-rate {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+    color: var(--muted-foreground);
+  }
+
+  &__option-check {
+    display: inline-flex;
+    width: 18px;
+    flex-shrink: 0;
+    color: var(--primary);
+  }
+
+  &__empty {
+    padding: 24px 12px;
+    font-size: 14px;
+    color: var(--muted-foreground);
+    text-align: center;
   }
 }

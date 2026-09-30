@@ -46,7 +46,7 @@ export function LanguageDrawer({
         </div>
       }
       position="right"
-      width="lg"
+      width="sm"
       showCloseButton={false}
     >
       <div className="lumio-navigation__lang-body">
