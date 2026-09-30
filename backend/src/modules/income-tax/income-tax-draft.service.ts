@@ -1,13 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, type Repository, type SelectQueryBuilder } from 'typeorm';
 import { fromMinor, roundHalfAwayFromZero, toMinor } from '../../common/utils/money.util';
+import {
+  ActorType,
+  AuditAction,
+  type AuditEventMeta,
+  EntityType,
+} from '../../entities/audit-event.entity';
 import { Category } from '../../entities/category.entity';
 import { IncomeTaxLineMapping } from '../../entities/income-tax-line-mapping.entity';
 import { IncomeTaxProfile } from '../../entities/income-tax-profile.entity';
 import { StatementStatus } from '../../entities/statement.entity';
 import type { TaxJurisdiction } from '../../entities/tax-jurisdiction.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
+import { AuditService } from '../audit/audit.service';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { JurisdictionAdoptionService } from '../tax/jurisdiction-adoption.service';
 import { toDateOnly } from '../tax/jurisdictions.service';
@@ -91,6 +98,8 @@ function directionSign(section: LineSection, type: TransactionType): 1 | -1 {
  */
 @Injectable()
 export class IncomeTaxDraftService {
+  private readonly logger = new Logger(IncomeTaxDraftService.name);
+
   constructor(
     @InjectRepository(IncomeTaxProfile)
     private readonly profileRepository: Repository<IncomeTaxProfile>,
@@ -105,7 +114,37 @@ export class IncomeTaxDraftService {
     private readonly completenessService: IncomeTaxCompletenessService,
     private readonly nbpRatesService: NbpRatesService,
     private readonly bdiRatesService: BdiRatesService,
+    private readonly auditService: AuditService,
   ) {}
+
+  /**
+   * Profile and mapping edits change how a year is declared but live on their
+   * own rows, not on the return, so they are logged against the workspace with
+   * the tax year in meta. Audit failure is logged, never allowed to fail the save.
+   */
+  private async recordDeclarationChange(
+    workspaceId: string,
+    userId: string | undefined,
+    before: Record<string, unknown>,
+    after: Record<string, unknown>,
+    meta: AuditEventMeta,
+  ): Promise<void> {
+    try {
+      await this.auditService.createEvent({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId ?? null,
+        entityType: EntityType.TAX_RETURN,
+        entityId: workspaceId,
+        action: AuditAction.UPDATE,
+        diff: { before, after },
+        meta,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for income-tax ${String(meta.kind)}: ${message}`);
+    }
+  }
 
   async getProfile(workspaceId: string, taxYear: number): Promise<IncomeTaxProfileView> {
     const profile = await this.profileRepository.findOne({ where: { workspaceId, taxYear } });
@@ -140,11 +179,20 @@ export class IncomeTaxDraftService {
     taxYear: number,
     taxpayerType: TaxpayerType,
     details: Record<string, unknown>,
+    userId?: string,
   ) {
+    const before = await this.getProfile(workspaceId, taxYear);
     await this.profileRepository.upsert({ workspaceId, taxYear, taxpayerType, details }, [
       'workspaceId',
       'taxYear',
     ]);
+    await this.recordDeclarationChange(
+      workspaceId,
+      userId,
+      { taxpayerType: before.taxpayerType, details: before.details },
+      { taxpayerType, details },
+      { kind: 'income_tax_profile', taxYear },
+    );
     return this.getProfileOverview(workspaceId, taxYear);
   }
 
@@ -228,6 +276,14 @@ export class IncomeTaxDraftService {
       }
     }
 
+    const previous =
+      categoryIds.length > 0
+        ? await this.mappingRepository.find({
+            where: { workspaceId, formKey: pack.formKey, categoryId: In(categoryIds) },
+          })
+        : [];
+    const previousByCategory = new Map(previous.map(m => [m.categoryId, m.lineKey]));
+
     await this.mappingRepository.manager.transaction(async manager => {
       const withdrawn = categoryIds.filter(id => byCategory.get(id) === null);
       if (withdrawn.length > 0) {
@@ -253,6 +309,27 @@ export class IncomeTaxDraftService {
         await manager.upsert(IncomeTaxLineMapping, rows, ['workspaceId', 'formKey', 'categoryId']);
       }
     });
+
+    // Only the assignments that actually moved, keyed by category, to keep the
+    // diff compact when a whole form is resubmitted.
+    const before: Record<string, string | null> = {};
+    const after: Record<string, string | null> = {};
+    for (const categoryId of categoryIds) {
+      const from = previousByCategory.get(categoryId) ?? null;
+      const to = byCategory.get(categoryId) ?? null;
+      if (from !== to) {
+        before[categoryId] = from;
+        after[categoryId] = to;
+      }
+    }
+    if (Object.keys(after).length > 0) {
+      await this.recordDeclarationChange(workspaceId, userId, before, after, {
+        kind: 'income_tax_mappings',
+        taxYear,
+        formKey: pack.formKey,
+        changedCategoryIds: Object.keys(after),
+      });
+    }
 
     return this.getMappings(workspaceId, taxYear);
   }

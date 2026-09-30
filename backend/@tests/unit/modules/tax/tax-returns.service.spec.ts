@@ -1,4 +1,5 @@
 import { createRepoMock } from '../../../helpers/create-repo-mock';
+import { AuditAction, EntityType, Severity } from '@/entities/audit-event.entity';
 import { TaxReturnStatus } from '@/entities/tax-return.entity';
 import { TransactionType } from '@/entities/transaction.entity';
 import { TaxReturnsService } from '@/modules/tax/tax-returns.service';
@@ -10,6 +11,7 @@ describe('TaxReturnsService', () => {
   let transactionRepo: ReturnType<typeof createRepoMock>;
   let adoption: { getCurrentJurisdiction: jest.Mock };
   let exchangeRates: { getRate: jest.Mock };
+  let auditService: { createEvent: jest.Mock };
 
   const KZ = { id: 'j-kz', code: 'KZ', currency: 'KZT' };
 
@@ -34,12 +36,15 @@ describe('TaxReturnsService', () => {
     returnRepo.save.mockImplementation(async (input: unknown) => input);
     adoption = { getCurrentJurisdiction: jest.fn().mockResolvedValue(KZ) };
     exchangeRates = { getRate: jest.fn().mockResolvedValue(1) };
+    auditService = { createEvent: jest.fn().mockResolvedValue(undefined) };
 
     service = new TaxReturnsService(
       returnRepo,
       transactionRepo,
       adoption as never,
       exchangeRates as never,
+      {} as never,
+      auditService as never,
     );
   });
 
@@ -257,6 +262,40 @@ describe('TaxReturnsService', () => {
       // transactions that are still editable.
       expect(returnRepo.manager.transaction).toHaveBeenCalledTimes(1);
     });
+
+    it('audits the filing against the persisted return row', async () => {
+      returnRepo.findOne.mockResolvedValue({ id: 'ret-1', status: TaxReturnStatus.DRAFT });
+
+      await service.file('ws-1', '2026-01-01', '2026-03-31', 'user-1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          actorId: 'user-1',
+          entityType: EntityType.TAX_RETURN,
+          entityId: 'ret-1',
+          action: AuditAction.UPDATE,
+          diff: {
+            before: expect.objectContaining({ status: TaxReturnStatus.DRAFT }),
+            after: expect.objectContaining({ status: TaxReturnStatus.FILED }),
+          },
+          meta: {
+            periodStart: '2026-01-01',
+            periodEnd: '2026-03-31',
+            status: TaxReturnStatus.FILED,
+          },
+        }),
+      );
+      expect(auditService.createEvent.mock.calls[0][0].severity).toBeUndefined();
+    });
+
+    it('still files when the audit log fails', async () => {
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.file('ws-1', '2026-01-01', '2026-03-31', 'user-1')).resolves.toMatchObject(
+        { status: TaxReturnStatus.FILED },
+      );
+    });
   });
 
   describe('reopen', () => {
@@ -303,6 +342,47 @@ describe('TaxReturnsService', () => {
         filedAt: null,
         snapshot: null,
       });
+    });
+
+    it('audits the reopen as a warning', async () => {
+      returnRepo.findOne.mockResolvedValue({
+        id: 'ret-1',
+        workspaceId: 'ws-1',
+        periodStart: '2026-01-01',
+        periodEnd: '2026-03-31',
+        status: TaxReturnStatus.FILED,
+        snapshot: [],
+      });
+
+      await service.reopen('ws-1', '2026-01-01', '2026-03-31', 'user-1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          entityType: EntityType.TAX_RETURN,
+          entityId: 'ret-1',
+          action: AuditAction.UPDATE,
+          severity: Severity.WARN,
+          meta: {
+            periodStart: '2026-01-01',
+            periodEnd: '2026-03-31',
+            status: TaxReturnStatus.DRAFT,
+          },
+        }),
+      );
+    });
+
+    it('still reopens when the audit log fails', async () => {
+      returnRepo.findOne.mockResolvedValue({
+        id: 'ret-1',
+        status: TaxReturnStatus.FILED,
+        snapshot: [],
+      });
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.reopen('ws-1', '2026-01-01', '2026-03-31', 'user-1')).resolves.toMatchObject(
+        { status: TaxReturnStatus.DRAFT },
+      );
     });
   });
 

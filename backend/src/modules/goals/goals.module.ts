@@ -6,6 +6,7 @@ import { DataEntry } from '../../entities/data-entry.entity';
 import { GoalItem } from '../../entities/goal-item.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { AuditModule } from '../audit/audit.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
 import { GoalFlowService } from './goal-flow.service';
@@ -27,6 +28,7 @@ import { GoalsService } from './goals.service';
     ]),
     CategoriesModule,
     ExchangeRatesModule,
+    AuditModule,
   ],
   controllers: [GoalsController],
   providers: [GoalsService, GoalFlowService, GoalItemsService, GoalPlanService],

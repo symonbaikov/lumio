@@ -65,8 +65,9 @@ export class SubscriptionsController {
     @Param('id') id: string,
     @Body() dto: UpdateSubscriptionDto,
     @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
   ) {
-    return this.subscriptionsService.update(id, workspaceId, dto);
+    return this.subscriptionsService.update(id, workspaceId, user.id, dto);
   }
 
   @Patch(':id/owner')
@@ -93,19 +94,31 @@ export class SubscriptionsController {
 
   @Post(':id/confirm')
   @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
-  async confirm(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    return this.subscriptionsService.confirm(id, workspaceId);
+  async confirm(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.subscriptionsService.confirm(id, workspaceId, user.id);
   }
 
   @Post(':id/dismiss')
   @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
-  async dismiss(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.subscriptionsService.dismiss(id, workspaceId);
+  async dismiss(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.subscriptionsService.dismiss(id, workspaceId, user.id);
   }
 
   @Delete(':id')
   @WorkspaceAuth(Permission.SUBSCRIPTION_DELETE)
-  async remove(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.subscriptionsService.remove(id, workspaceId);
+  async remove(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.subscriptionsService.remove(id, workspaceId, user.id);
   }
 }

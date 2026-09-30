@@ -1,14 +1,19 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { CryptoWallet } from '../../entities/crypto-wallet.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
+import { AuditService } from '../audit/audit.service';
+import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import {
   CHAIN_NAMES,
@@ -81,8 +86,23 @@ export interface CryptoTransactionView {
   txHash: string | null;
 }
 
+function daysAgo(days: number): Date {
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+  return since;
+}
+
+/** `2026-08` → from `2026-08-01` up to, not including, `2026-09-01`. */
+function monthWindow(month: string): { since: string; until: string } {
+  const [year, monthIndex] = month.split('-').map(Number);
+  const next =
+    monthIndex === 12 ? `${year + 1}-01` : `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+  return { since: `${month}-01`, until: `${next}-01` };
+}
 @Injectable()
 export class CryptoService {
+  private readonly logger = new Logger(CryptoService.name);
+
   constructor(
     @InjectRepository(CryptoWallet)
     private readonly walletRepo: Repository<CryptoWallet>,
@@ -93,6 +113,7 @@ export class CryptoService {
     private readonly syncService: CryptoSyncService,
     private readonly priceService: CryptoPriceService,
     private readonly exchangeRatesService: ExchangeRatesService,
+    private readonly auditService: AuditService,
   ) {}
 
   async findAll(workspaceId: string): Promise<CryptoWalletView[]> {
@@ -166,6 +187,19 @@ export class CryptoService {
       throw new ConflictException('This address is already connected to the workspace');
     }
 
+    await this.recordAudit(
+      created.map(wallet => ({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId,
+        entityType: EntityType.CRYPTO_WALLET,
+        entityId: wallet.id,
+        action: AuditAction.CREATE,
+        diff: { before: null, after: walletAuditSnapshot(wallet) },
+        meta: { chain: CHAIN_NAMES[wallet.chainId] ?? null, chainId: wallet.chainId },
+      })),
+    );
+
     // A freshly connected wallet with no history looks broken, so pull it now —
     // every chain at once, since each has its own provider. A sync failure must
     // not lose the connection the user just made.
@@ -187,25 +221,78 @@ export class CryptoService {
     }));
   }
 
-  async sync(workspaceId: string, walletId: string): Promise<WalletSyncResult> {
+  async sync(workspaceId: string, walletId: string, userId: string): Promise<WalletSyncResult> {
     const wallet = await this.getOwnedWallet(workspaceId, walletId);
-    return this.syncService.syncWallet(wallet);
+    const result = await this.syncService.syncWallet(wallet);
+    // A sync that found nothing new changed nothing worth a log entry.
+    if (result.imported > 0) {
+      await this.recordAudit([
+        {
+          workspaceId,
+          actorType: ActorType.USER,
+          actorId: userId,
+          entityType: EntityType.CRYPTO_WALLET,
+          entityId: wallet.id,
+          action: AuditAction.IMPORT,
+          meta: {
+            count: result.imported,
+            skipped: result.skipped,
+            chain: CHAIN_NAMES[wallet.chainId] ?? null,
+            address: shortenAddress(wallet.address),
+          },
+        },
+      ]);
+    }
+    return result;
   }
 
   /** Removes the wallet; its transactions go with it via ON DELETE CASCADE. */
-  async remove(workspaceId: string, walletId: string): Promise<void> {
+  async remove(workspaceId: string, walletId: string, userId: string): Promise<void> {
     const wallet = await this.getOwnedWallet(workspaceId, walletId);
+    const transactionCount = await this.transactionRepo.count({
+      where: { workspaceId, cryptoWalletId: wallet.id },
+    });
     await this.walletRepo.delete(wallet.id);
+    await this.recordAudit([
+      {
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId,
+        entityType: EntityType.CRYPTO_WALLET,
+        entityId: wallet.id,
+        action: AuditAction.DELETE,
+        diff: { before: walletAuditSnapshot(wallet), after: null },
+        meta: { chain: CHAIN_NAMES[wallet.chainId] ?? null, transactionCount },
+      },
+    ]);
   }
 
-  async getSummary(workspaceId: string, days = 30): Promise<CryptoSummary> {
+  // Several wallets from one connect share a batch; an audit failure never fails the call.
+  private async recordAudit(events: CreateAuditEventDto[]): Promise<void> {
+    try {
+      if (events.length === 1) {
+        await this.auditService.createEvent(events[0]);
+      } else {
+        await this.auditService.createBatchEvents(events, randomUUID());
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for crypto wallet(s): ${message}`);
+    }
+  }
+
+  /**
+   * `month` (`YYYY-MM`) swaps the rolling window for that calendar month, so the
+   * dashboard can compare how much came in and went out month by month. The
+   * portfolio value stays the current one either way.
+   */
+  async getSummary(workspaceId: string, days = 30, month?: string): Promise<CryptoSummary> {
     const currency = await this.getWorkspaceCurrency(workspaceId);
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+    const window = month ? monthWindow(month) : { since: daysAgo(days), until: null };
 
     const [walletCount, flows, holdings] = await Promise.all([
       this.walletRepo.count({ where: { workspaceId } }),
-      this.getFlows(workspaceId, since),
+      this.getFlows(workspaceId, window.since, window.until),
       this.getHoldings(workspaceId, currency),
     ]);
 
@@ -295,15 +382,20 @@ export class CryptoService {
 
   private async getFlows(
     workspaceId: string,
-    since: Date,
+    since: Date | string,
+    until: string | null,
   ): Promise<{ income: number; expense: number }> {
-    const rows = await this.transactionRepo
+    const query = this.transactionRepo
       .createQueryBuilder('t')
       .select('t.transaction_type', 'type')
       .addSelect('SUM(t.amount)', 'total')
       .where('t.workspace_id = :workspaceId', { workspaceId })
       .andWhere('t.crypto_wallet_id IS NOT NULL')
-      .andWhere('t.transaction_date >= :since', { since })
+      .andWhere('t.transaction_date >= :since', { since });
+    if (until) {
+      query.andWhere('t.transaction_date < :until', { until });
+    }
+    const rows = await query
       .groupBy('t.transaction_type')
       .getRawMany<{ type: TransactionType; total: string }>();
 
@@ -376,6 +468,20 @@ export class CryptoService {
     });
     return workspace?.currency ?? 'USD';
   }
+}
+
+/** Plain wallet fields for the audit diff, with the address shortened. */
+function walletAuditSnapshot(wallet: CryptoWallet): Record<string, unknown> {
+  return {
+    address: shortenAddress(wallet.address),
+    chainId: wallet.chainId,
+    chainName: CHAIN_NAMES[wallet.chainId] ?? null,
+    label: wallet.label ?? null,
+  };
+}
+
+function shortenAddress(address: string): string {
+  return address.length > 12 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
 }
 
 function round2(value: number): number {

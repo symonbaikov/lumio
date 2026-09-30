@@ -33,24 +33,9 @@ function AuditTimelineItem({
   onRollback?: (e: AuditEvent) => void;
 }) {
   const t = useIntlayer('auditUi');
-  const entityTypeLabels: Record<string, string> = {
-    transaction: t.entityLabels.transaction.value,
-    statement: t.entityLabels.statement.value,
-    receipt: t.entityLabels.receipt.value,
-    category: t.entityLabels.category.value,
-    rule: t.entityLabels.rule.value,
-    workspace: t.entityLabels.workspace.value,
-    integration: t.entityLabels.integration.value,
-    table_row: t.entityLabels.table_row.value,
-    table_cell: t.entityLabels.table_cell.value,
-    branch: t.entityLabels.branch.value,
-    wallet: t.entityLabels.wallet.value,
-    custom_table: t.entityLabels.custom_table.value,
-    custom_table_column: t.entityLabels.custom_table_column.value,
-  };
   const formatted = formatAuditEvent(event);
   const Icon = ACTION_ICON_MAP[event.action];
-  const entityLabel = entityTypeLabels[event.entityType] ?? event.entityType;
+  const entityLabel = t.entityLabels[event.entityType]?.value ?? event.entityType;
   const initials = getInitials(event.actorLabel);
   const avatarColor =
     event.actorType === 'system' ? 'var(--muted-foreground)' : getAvatarColor(event.actorLabel);
