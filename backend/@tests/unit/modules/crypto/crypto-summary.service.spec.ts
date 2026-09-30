@@ -67,8 +67,9 @@ function build(options: {
     {} as never,
     priceService as never,
     exchangeRatesService as never,
+    { createEvent: jest.fn(), createBatchEvents: jest.fn() } as never,
   );
-  return { service };
+  return { service, transactionRepo };
 }
 
 describe('CryptoService.getSummary', () => {
@@ -120,6 +121,47 @@ describe('CryptoService.getSummary', () => {
     const { service } = build({});
 
     expect((await service.getSummary(WORKSPACE)).portfolioChangeSinceYesterday).toBeNull();
+  });
+});
+
+describe('CryptoService.getSummary for a calendar month', () => {
+  const flowQuery = (transactionRepo: { createQueryBuilder: jest.Mock }) =>
+    transactionRepo.createQueryBuilder.mock.results[0].value as Record<string, jest.Mock>;
+
+  it('limits the flows to that month instead of the rolling window', async () => {
+    const { service, transactionRepo } = build({});
+
+    await service.getSummary(WORKSPACE, 30, '2026-08');
+
+    const qb = flowQuery(transactionRepo);
+    expect(qb.andWhere).toHaveBeenCalledWith('t.transaction_date >= :since', {
+      since: '2026-08-01',
+    });
+    expect(qb.andWhere).toHaveBeenCalledWith('t.transaction_date < :until', {
+      until: '2026-09-01',
+    });
+  });
+
+  it('rolls December over into the next year', async () => {
+    const { service, transactionRepo } = build({});
+
+    await service.getSummary(WORKSPACE, 30, '2025-12');
+
+    expect(flowQuery(transactionRepo).andWhere).toHaveBeenCalledWith(
+      't.transaction_date < :until',
+      { until: '2026-01-01' },
+    );
+  });
+
+  it('keeps the open-ended rolling window without a month', async () => {
+    const { service, transactionRepo } = build({});
+
+    await service.getSummary(WORKSPACE, 30);
+
+    expect(flowQuery(transactionRepo).andWhere).not.toHaveBeenCalledWith(
+      't.transaction_date < :until',
+      expect.anything(),
+    );
   });
 });
 
@@ -185,6 +227,7 @@ describe('CryptoService.connect', () => {
       syncService as never,
       {} as never,
       {} as never,
+      { createEvent: jest.fn(), createBatchEvents: jest.fn() } as never,
     );
     return { service, saved };
   }

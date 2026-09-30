@@ -6,7 +6,13 @@ import { FilterDropdown } from '@/app/(main)/statements/components/filters/Filte
 import { Search } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
 import { useIntlayer } from '@/app/i18n';
-import type { ActorType, AuditAction, AuditEventFilter } from '@/lib/api/audit';
+import {
+  type ActorType,
+  type AuditAction,
+  type AuditEventFilter,
+  ENTITY_TYPES,
+  type EntityType,
+} from '@/lib/api/audit';
 
 /** Keys of the `auditUi` dictionary used as option labels. */
 type LabelKey =
@@ -109,11 +115,13 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
   const [usersOpen, setUsersOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
+  const [entityOpen, setEntityOpen] = useState(false);
 
   // Pending state for dropdowns (apply on confirm)
   const [pendingActorType, setPendingActorType] = useState<ActorType | ''>(filters.actorType ?? '');
   const [pendingAction, setPendingAction] = useState<AuditAction | ''>(filters.action ?? '');
   const [pendingDatePreset, setPendingDatePreset] = useState<DatePreset>(currentPreset(filters));
+  const [pendingEntity, setPendingEntity] = useState<EntityType | ''>(filters.entityType ?? '');
 
   // Search debounce
   const [searchVal, setSearchVal] = useState(filters.actorLabel ?? '');
@@ -161,6 +169,16 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
     setActionsOpen(false);
   };
 
+  const applyEntity = () => {
+    onFiltersChange({ entityType: pendingEntity || undefined });
+    setEntityOpen(false);
+  };
+  const resetEntity = () => {
+    setPendingEntity('');
+    onFiltersChange({ entityType: undefined });
+    setEntityOpen(false);
+  };
+
   const applyDate = () => {
     onFiltersChange(presetToDates(pendingDatePreset));
     setDateOpen(false);
@@ -174,6 +192,10 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
   const usersActive = Boolean(filters.actorType);
   const actionsActive = Boolean(filters.action);
   const dateActive = currentPreset(filters) !== '7d';
+  const entityActive = Boolean(filters.entityType);
+  const entityLabel = filters.entityType
+    ? (t.entityLabels[filters.entityType]?.value ?? filters.entityType)
+    : t.allEntityTypes.value;
 
   const usersLabel =
     t[ACTOR_OPTIONS.find(o => o.value === filters.actorType)?.labelKey ?? 'allUsers'].value;
@@ -277,6 +299,57 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
           resetLabel={t.reset.value}
           onApply={applyActions}
           onReset={resetActions}
+        />
+      </FilterDropdown>
+
+      {/* Entity type chip */}
+      <FilterDropdown
+        open={entityOpen}
+        onOpenChange={open => {
+          setEntityOpen(open);
+          if (open) {
+            setPendingEntity(filters.entityType ?? '');
+          }
+        }}
+        trigger={<FilterChipButton active={entityActive}>{entityLabel}</FilterChipButton>}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+            maxHeight: 320,
+            overflowY: 'auto',
+          }}
+        >
+          {(['', ...ENTITY_TYPES] as const).map(value => (
+            <label
+              key={value || 'all'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 13,
+                cursor: 'pointer',
+                padding: '4px 0',
+              }}
+            >
+              <input
+                type="radio"
+                name="audit-entity-type"
+                value={value}
+                checked={pendingEntity === value}
+                onChange={() => setPendingEntity(value)}
+              />
+              {value ? (t.entityLabels[value]?.value ?? value) : t.allEntityTypes.value}
+            </label>
+          ))}
+        </div>
+        <FilterActions
+          applyLabel={t.apply.value}
+          resetLabel={t.reset.value}
+          onApply={applyEntity}
+          onReset={resetEntity}
         />
       </FilterDropdown>
 

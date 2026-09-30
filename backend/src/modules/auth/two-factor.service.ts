@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +15,9 @@ import type { Repository } from 'typeorm';
 import { decryptText, encryptText } from '../../common/utils/encryption.util';
 import { requireSecret } from '../../common/utils/required-secret.util';
 import { User } from '../../entities';
+import { AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
+import { AuditService } from '../audit/audit.service';
+import { recordSecurityEvent } from './security-audit.util';
 
 const ISSUER = 'Lumio';
 const RECOVERY_CODE_COUNT = 10;
@@ -34,10 +38,13 @@ export interface TwoFactorSetupDto {
 
 @Injectable()
 export class TwoFactorService {
+  private readonly logger = new Logger(TwoFactorService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   async getStatus(userId: string): Promise<TwoFactorStatusDto> {
@@ -85,6 +92,7 @@ export class TwoFactorService {
       twoFactorEnabledAt: new Date(),
       twoFactorRecoveryCodes: hashes,
     });
+    await this.recordTwoFactorEvent(user, Severity.WARN, 'enabled');
 
     return { recoveryCodes: codes };
   }
@@ -98,6 +106,7 @@ export class TwoFactorService {
       twoFactorEnabledAt: null,
       twoFactorRecoveryCodes: [],
     });
+    await this.recordTwoFactorEvent(user, Severity.CRITICAL, 'disabled');
   }
 
   async regenerateRecoveryCodes(
@@ -113,6 +122,15 @@ export class TwoFactorService {
 
     const { codes, hashes } = this.generateRecoveryCodes();
     await this.userRepository.update(userId, { twoFactorRecoveryCodes: hashes });
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      entityType: EntityType.USER,
+      entityId: user.id,
+      action: AuditAction.UPDATE,
+      severity: Severity.WARN,
+      meta: { recoveryCodes: 'regenerated' },
+    });
 
     return { recoveryCodes: codes };
   }
@@ -140,12 +158,34 @@ export class TwoFactorService {
     await this.userRepository.update(userId, { twoFactorRecoveryCodes: remaining });
   }
 
+  /** Only the on/off state is logged — never the secret, URL or codes. */
+  private async recordTwoFactorEvent(
+    user: User,
+    severity: Severity,
+    twoFactor: 'enabled' | 'disabled',
+  ): Promise<void> {
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user.workspaceId,
+      actorId: user.id,
+      entityType: EntityType.USER,
+      entityId: user.id,
+      action: AuditAction.UPDATE,
+      severity,
+      diff: {
+        before: { twoFactor: twoFactor === 'enabled' ? 'disabled' : 'enabled' },
+        after: { twoFactor },
+      },
+      meta: { twoFactor },
+    });
+  }
+
   private async loadSecrets(userId: string): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       select: {
         id: true,
         email: true,
+        workspaceId: true,
         passwordHash: true,
         twoFactorSecret: true,
         twoFactorEnabledAt: true,

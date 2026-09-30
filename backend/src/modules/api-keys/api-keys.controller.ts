@@ -36,7 +36,11 @@ export class ApiKeysController {
   @WorkspaceAuth(Permission.API_KEY_MANAGE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Revoke API key' })
-  async revoke(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.apiKeysService.revoke(id, workspaceId);
+  async revoke(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    await this.apiKeysService.revoke(id, workspaceId, user.id);
   }
 }

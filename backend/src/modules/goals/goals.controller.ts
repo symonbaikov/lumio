@@ -89,9 +89,10 @@ export class GoalsController {
     @Param('id') id: string,
     @Param('itemId') itemId: string,
     @Body() itemDto: UpdateGoalItemDto,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {
-    return this.goalItemsService.update(id, itemId, workspaceId, itemDto);
+    return this.goalItemsService.update(id, itemId, workspaceId, user.id, itemDto);
   }
 
   @Delete(':id/items/:itemId')
@@ -99,9 +100,10 @@ export class GoalsController {
   async removeItem(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {
-    return this.goalItemsService.remove(id, itemId, workspaceId);
+    return this.goalItemsService.remove(id, itemId, workspaceId, user.id);
   }
 
   @Get(':id')
@@ -115,15 +117,20 @@ export class GoalsController {
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateGoalDto,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {
-    return this.goalsService.update(id, workspaceId, updateDto);
+    return this.goalsService.update(id, workspaceId, user.id, updateDto);
   }
 
   @Delete(':id')
   @WorkspaceAuth(Permission.GOAL_DELETE)
-  async remove(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
-    await this.goalsService.remove(id, workspaceId);
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    await this.goalsService.remove(id, workspaceId, user.id);
     return deletedResponse('Goal');
   }
 
@@ -143,8 +150,9 @@ export class GoalsController {
   async removeContribution(
     @Param('id') id: string,
     @Param('contributionId') contributionId: string,
+    @CurrentUser() user: User,
     @WorkspaceId() workspaceId: string,
   ) {
-    return this.goalsService.removeContribution(id, contributionId, workspaceId);
+    return this.goalsService.removeContribution(id, contributionId, workspaceId, user.id);
   }
 }

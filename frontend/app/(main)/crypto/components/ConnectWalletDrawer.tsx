@@ -10,14 +10,20 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
-import { ChevronLeft } from '@/app/components/icons';
+import { ChevronLeft, ExternalLink } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { requestWalletAddress, WalletUnavailableError } from '@/app/lib/metamask';
+import {
+  type BrowserWallet,
+  type BrowserWalletFamily,
+  useBrowserWallets,
+  WalletUnavailableError,
+} from '@/app/lib/browser-wallets';
 import { addressFamily, type CryptoNetwork } from '../hooks/useCrypto';
 
 type ConnectWalletDrawerLabels = {
   title: string;
-  useMetaMask: string;
+  walletsLabel: string;
+  install: string;
   manualHint: string;
   addressLabel: string;
   nameLabel: string;
@@ -30,6 +36,12 @@ type ConnectWalletDrawerLabels = {
   readOnly: string;
   connect: string;
   cancel: string;
+};
+
+const FAMILY_CAPTION: Record<BrowserWalletFamily, string> = {
+  evm: 'EVM',
+  solana: 'Solana',
+  tron: 'Tron',
 };
 
 type ConnectWalletDrawerProps = {
@@ -58,6 +70,8 @@ export function ConnectWalletDrawer({
   // Networks the user unticked. Everything else is on, so a new EVM network
   // added on the server is offered ticked without the form having to know it.
   const [excludedChainIds, setExcludedChainIds] = useState<number[]>([]);
+  const [pendingWalletId, setPendingWalletId] = useState<string | null>(null);
+  const wallets = useBrowserWallets();
 
   const family = addressFamily(address.trim());
   const evmNetworks = networks.filter(network => network.family === 'evm');
@@ -82,16 +96,19 @@ export function ConnectWalletDrawer({
     onClose();
   };
 
-  const pickFromWallet = async (): Promise<void> => {
+  const pickFromWallet = async (wallet: BrowserWallet): Promise<void> => {
     setLocalError(null);
+    setPendingWalletId(wallet.id);
     try {
-      setAddress(await requestWalletAddress());
+      setAddress(await wallet.connect());
     } catch (error) {
       // A user who dismisses the wallet prompt has not made a mistake; only a
       // missing wallet needs explaining, and the manual field still works.
       if (error instanceof WalletUnavailableError) {
         setLocalError(labels.noWallet);
       }
+    } finally {
+      setPendingWalletId(null);
     }
   };
 
@@ -142,9 +159,80 @@ export function ConnectWalletDrawer({
     >
       <div className="lumio-payable-drawer__body">
         <div style={{ display: 'grid', gap: 16 }}>
-          <Button variant="outlined" onClick={() => void pickFromWallet()} disabled={saving}>
-            {labels.useMetaMask}
-          </Button>
+          <Box component="fieldset" sx={{ border: 0, m: 0, p: 0 }}>
+            <Typography component="legend" variant="body2" fontWeight={600} sx={{ mb: 1 }}>
+              {labels.walletsLabel}
+            </Typography>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 1,
+                gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr' },
+              }}
+            >
+              {wallets.map(wallet => (
+                <Button
+                  key={wallet.id}
+                  variant="outlined"
+                  disabled={saving || pendingWalletId !== null}
+                  {...(wallet.installed
+                    ? { onClick: () => void pickFromWallet(wallet) }
+                    : { href: wallet.installUrl, target: '_blank', rel: 'noopener noreferrer' })}
+                  sx={{
+                    justifyContent: 'flex-start',
+                    gap: 1.25,
+                    px: 1.25,
+                    py: 1,
+                    textAlign: 'left',
+                    textTransform: 'none',
+                    color: 'text.primary',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={wallet.icon}
+                    alt=""
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      p: 0.5,
+                      flexShrink: 0,
+                      borderRadius: 1.5,
+                      // White tile: several marks (OKX) are black and vanish on a dark theme.
+                      bgcolor: '#fff',
+                      border: 1,
+                      borderColor: 'divider',
+                      opacity: wallet.installed ? 1 : 0.6,
+                    }}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={600} noWrap>
+                      {wallet.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'text.secondary',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                      }}
+                    >
+                      {wallet.installed ? (
+                        FAMILY_CAPTION[wallet.family]
+                      ) : (
+                        <>
+                          {labels.install}
+                          <ExternalLink size={12} />
+                        </>
+                      )}
+                    </Typography>
+                  </Box>
+                </Button>
+              ))}
+            </Box>
+          </Box>
 
           <Divider sx={{ color: 'text.secondary', fontSize: 13 }}>{labels.manualHint}</Divider>
 
@@ -165,19 +253,32 @@ export function ConnectWalletDrawer({
 
           {family === 'evm' && evmNetworks.length > 0 && (
             <Box component="fieldset" sx={{ border: 0, m: 0, p: 0 }}>
-              <Typography component="legend" variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+              <Typography component="legend" variant="body2" fontWeight={600} sx={{ mb: 1.25 }}>
                 {labels.networksLabel}
               </Typography>
               <Box
-                sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr' } }}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr' },
+                  columnGap: 2,
+                  rowGap: 1.25,
+                }}
               >
                 {evmNetworks.map(network => (
                   <FormControlLabel
                     key={network.chainId}
                     label={network.name}
+                    // The theme's 24px box, stacked row on row, reads as a solid green block.
+                    sx={{
+                      m: 0,
+                      gap: 1,
+                      '& .MuiFormControlLabel-label': { fontSize: 14, lineHeight: 1.4 },
+                    }}
                     control={
                       <Checkbox
                         size="small"
+                        // Same selector as the theme override, so this one wins by order.
+                        sx={{ '&.MuiCheckbox-sizeSmall .MuiSvgIcon-root': { fontSize: 20 } }}
                         checked={selectedChainIds.includes(network.chainId)}
                         onChange={() => toggleChain(network.chainId)}
                       />

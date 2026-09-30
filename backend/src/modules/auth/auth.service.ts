@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -25,10 +26,13 @@ import {
   WorkspaceMember,
   WorkspaceRole,
 } from '../../entities';
+import { AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
+import { AuditService } from '../audit/audit.service';
 import { CategoriesService } from '../categories/categories.service';
 import type { AuthResponseDto, LoginResultDto } from './dto/auth-response.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterDto } from './dto/register.dto';
+import { recordSecurityEvent } from './security-audit.util';
 import type { JwtPayload } from './strategies/jwt.strategy';
 import type { JwtRefreshPayload } from './strategies/jwt-refresh.strategy';
 import { TwoFactorService } from './two-factor.service';
@@ -67,6 +71,8 @@ const jwtRefreshSecret = () =>
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -82,6 +88,7 @@ export class AuthService {
     private readonly twoFactorService: TwoFactorService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private readonly auditService: AuditService,
   ) {}
 
   async ensureDevAdminUser(): Promise<void> {
@@ -460,6 +467,7 @@ export class AuthService {
     );
 
     await this.userRepository.increment({ id: userId }, 'tokenVersion', 1);
+    await this.recordSessionRevocation(userId, { sessions: 'all-revoked' });
     return { message: 'Logged out from all devices successfully' };
   }
 
@@ -502,7 +510,27 @@ export class AuthService {
       throw new NotFoundException('Session not found');
     }
 
+    await this.recordSessionRevocation(userId, { sessions: 'revoked', sessionId });
     return { message: 'Session logged out successfully' };
+  }
+
+  private async recordSessionRevocation(
+    userId: string,
+    meta: { sessions: string; sessionId?: string },
+  ): Promise<void> {
+    // The sessions are already revoked; a failed lookup must not undo that answer.
+    const user = await this.userRepository
+      .findOne({ where: { id: userId }, select: ['id', 'workspaceId'] })
+      .catch(() => null);
+    await recordSecurityEvent(this.auditService, this.logger, {
+      workspaceId: user?.workspaceId,
+      actorId: userId,
+      entityType: EntityType.USER,
+      entityId: userId,
+      action: AuditAction.UPDATE,
+      severity: Severity.INFO,
+      meta,
+    });
   }
 
   private async generateTokens(

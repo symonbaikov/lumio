@@ -1,7 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { ActorType, AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
 import { IncomeTaxReturn, IncomeTaxReturnStatus } from '../../entities/income-tax-return.entity';
+import { AuditService } from '../audit/audit.service';
 import type { IncomeTaxDraft } from './income-tax.types';
 import { IncomeTaxDisclaimerService } from './income-tax-disclaimer.service';
 import {
@@ -30,7 +32,37 @@ export class IncomeTaxReturnsService {
     private readonly returnRepository: Repository<IncomeTaxReturn>,
     private readonly draftService: IncomeTaxDraftService,
     private readonly disclaimerService: IncomeTaxDisclaimerService,
+    private readonly auditService: AuditService,
   ) {}
+
+  /** Audit failure is logged, never allowed to undo a status change that committed. */
+  private async recordStatusChange(
+    workspaceId: string,
+    userId: string | undefined,
+    returnId: string,
+    taxYear: number,
+    formKey: string,
+    before: IncomeTaxReturnStatus | null,
+    after: IncomeTaxReturnStatus,
+    severity?: Severity,
+  ): Promise<void> {
+    try {
+      await this.auditService.createEvent({
+        workspaceId,
+        actorType: ActorType.USER,
+        actorId: userId ?? null,
+        entityType: EntityType.TAX_RETURN,
+        entityId: returnId,
+        action: AuditAction.UPDATE,
+        diff: { before: { status: before }, after: { status: after } },
+        meta: { taxYear, formKey },
+        ...(severity ? { severity } : {}),
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Audit event failed for income-tax return ${returnId}: ${message}`);
+    }
+  }
 
   async getDraft(workspaceId: string, taxYear: number): Promise<IncomeTaxDraft> {
     const { pack } = await this.draftService.getContext(workspaceId, taxYear);
@@ -63,8 +95,9 @@ export class IncomeTaxReturnsService {
       finalizedAt: finalizedAt.toISOString(),
     };
 
+    let saved: IncomeTaxReturn;
     try {
-      await this.returnRepository.save({
+      saved = await this.returnRepository.save({
         ...(existing ?? {}),
         workspaceId,
         jurisdictionId: jurisdiction.id,
@@ -84,6 +117,16 @@ export class IncomeTaxReturnsService {
       throw error;
     }
 
+    await this.recordStatusChange(
+      workspaceId,
+      userId,
+      saved.id,
+      taxYear,
+      pack.formKey,
+      existing?.status ?? null,
+      IncomeTaxReturnStatus.FINALIZED,
+    );
+
     this.logger.log(
       `Finalized income-tax draft ${pack.formKey} ${taxYear} for workspace ${workspaceId} ` +
         `(completeness ${draft.completeness.score})`,
@@ -91,7 +134,7 @@ export class IncomeTaxReturnsService {
     return snapshot;
   }
 
-  async reopen(workspaceId: string, taxYear: number): Promise<IncomeTaxDraft> {
+  async reopen(workspaceId: string, taxYear: number, userId?: string): Promise<IncomeTaxDraft> {
     const { pack } = await this.draftService.getContext(workspaceId, taxYear);
     const existing = await this.returnRepository.findOne({
       where: { workspaceId, taxYear, formKey: pack.formKey },
@@ -107,6 +150,17 @@ export class IncomeTaxReturnsService {
       finalizedBy: null,
       snapshot: null,
     });
+    // Reopening discards the finalized snapshot, so it is flagged for review.
+    await this.recordStatusChange(
+      workspaceId,
+      userId,
+      existing.id,
+      taxYear,
+      pack.formKey,
+      existing.status,
+      IncomeTaxReturnStatus.DRAFT,
+      Severity.WARN,
+    );
     return this.draftService.compute(workspaceId, taxYear);
   }
 

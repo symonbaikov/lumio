@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react';
 import type React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { addressFamily, type CryptoNetwork } from '../hooks/useCrypto';
 import { ConnectWalletDrawer } from './ConnectWalletDrawer';
 
@@ -18,7 +18,8 @@ const NETWORKS: CryptoNetwork[] = [
 
 const LABELS = {
   title: 'Connect wallet',
-  useMetaMask: 'Connect with MetaMask',
+  walletsLabel: 'Browser wallet',
+  install: 'Install',
   manualHint: 'or paste',
   addressLabel: 'Address',
   nameLabel: 'Name',
@@ -98,6 +99,75 @@ describe('ConnectWalletDrawer', () => {
         undefined,
       ),
     );
+  });
+});
+
+describe('ConnectWalletDrawer wallet picker', () => {
+  const listeners: Array<(event: Event) => void> = [];
+
+  afterEach(() => {
+    for (const listener of listeners.splice(0)) {
+      window.removeEventListener('eip6963:requestProvider', listener);
+    }
+    delete (window as { phantom?: unknown }).phantom;
+  });
+
+  /** Plays an EIP-6963 wallet: answers every discovery request with its provider. */
+  function announceEvmWallet(rdns: string, name: string, account: string) {
+    const provider = { request: vi.fn(async () => [account]) };
+    const listener = () =>
+      window.dispatchEvent(
+        new CustomEvent('eip6963:announceProvider', {
+          detail: { info: { uuid: `${rdns}-uuid`, name, icon: 'data:,', rdns }, provider },
+        }),
+      );
+    listeners.push(listener);
+    window.addEventListener('eip6963:requestProvider', listener);
+    return provider;
+  }
+
+  it('fills the address from an announced EVM wallet, lower-cased', async () => {
+    const provider = announceEvmWallet(
+      'io.rabby',
+      'Rabby Wallet',
+      '0x899CD926A9028AFE9056E76CC01F32EE859E7A65',
+    );
+    renderDrawer();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Rabby/ }));
+
+    await vi.waitFor(() =>
+      expect((screen.getByLabelText('Address') as HTMLInputElement).value).toBe(
+        '0x899cd926a9028afe9056e76cc01f32ee859e7a65',
+      ),
+    );
+    expect(provider.request).toHaveBeenCalledWith({ method: 'eth_requestAccounts' });
+    // A known wallet is shown once, under its catalogue name.
+    expect(screen.queryByText('Rabby Wallet')).toBeNull();
+  });
+
+  it('fills a Solana address from Phantom and leaves its case alone', async () => {
+    const publicKey = 'vines1vzrYbzLMRdu58ou5XTby4qAqVRLmqo36NKPTg';
+    (window as { phantom?: unknown }).phantom = {
+      solana: { connect: vi.fn(async () => ({ publicKey: { toString: () => publicKey } })) },
+    };
+    renderDrawer();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Phantom/ }));
+
+    await vi.waitFor(() =>
+      expect((screen.getByLabelText('Address') as HTMLInputElement).value).toBe(publicKey),
+    );
+    expect(screen.getByText('Solana')).toBeTruthy();
+  });
+
+  it('links a missing wallet to its install page instead of prompting', async () => {
+    renderDrawer();
+
+    const metaMask = await screen.findByRole('link', { name: /MetaMask/ });
+
+    expect(metaMask.getAttribute('href')).toBe('https://metamask.io/download/');
+    expect(metaMask.getAttribute('target')).toBe('_blank');
   });
 });
 

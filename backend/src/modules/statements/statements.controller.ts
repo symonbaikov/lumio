@@ -94,7 +94,6 @@ export class StatementsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('file', 1, multerConfig))
   async uploadLegacy(
     @UploadedFiles() files: Express.Multer.File[],
@@ -109,7 +108,6 @@ export class StatementsController {
   @Post('upload')
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('files', 2, multerConfig))
   async upload(
     @UploadedFiles() files: Express.Multer.File[],
@@ -124,7 +122,6 @@ export class StatementsController {
   @Post('manual-expense')
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('files', 5, multerConfig))
   async createManualExpense(
     @UploadedFiles() files: Express.Multer.File[],
@@ -160,7 +157,6 @@ export class StatementsController {
   @Post('upload-receipt')
   @HttpCode(HttpStatus.CREATED)
   @WorkspaceAuth(Permission.STATEMENT_UPLOAD)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   @UseInterceptors(FilesInterceptor('files', 5, multerConfig))
   async uploadReceipt(
     @UploadedFiles() files: Express.Multer.File[],
@@ -512,7 +508,6 @@ export class StatementsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @WorkspaceAuth(Permission.STATEMENT_DELETE)
-  @Audit({ entityType: EntityType.STATEMENT, includeDiff: true, isUndoable: true })
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: User,
