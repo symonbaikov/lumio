@@ -1,4 +1,5 @@
 import { createRepoMock } from '../../../helpers/create-repo-mock';
+import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { TransactionType } from '@/entities/transaction.entity';
 import { IncomeTaxDraftService } from '@/modules/income-tax/income-tax-draft.service';
 import { BadRequestException } from '@nestjs/common';
@@ -36,6 +37,7 @@ describe('IncomeTaxDraftService', () => {
   let completeness: { check: jest.Mock };
   let nbpRates: { getYearRates: jest.Mock };
   let bdiRates: { getYearRates: jest.Mock };
+  let auditService: { createEvent: jest.Mock };
 
   const tx = (over: Record<string, unknown>) => ({
     id: 'tx',
@@ -61,6 +63,7 @@ describe('IncomeTaxDraftService', () => {
     completeness = { check: jest.fn().mockResolvedValue({ score: 77, issues: [] }) };
     nbpRates = { getYearRates: jest.fn().mockResolvedValue(null) };
     bdiRates = { getYearRates: jest.fn().mockResolvedValue(null) };
+    auditService = { createEvent: jest.fn().mockResolvedValue(undefined) };
 
     profileRepo.findOne.mockResolvedValue(null);
     mappingRepo.find.mockResolvedValue([
@@ -80,6 +83,7 @@ describe('IncomeTaxDraftService', () => {
       completeness as never,
       nbpRates as never,
       bdiRates as never,
+      auditService as never,
     );
   });
 
@@ -321,6 +325,84 @@ describe('IncomeTaxDraftService', () => {
         [expect.objectContaining({ categoryId: 'c1', lineKey: 'rent', confirmedBy: 'user-1' })],
         ['workspaceId', 'formKey', 'categoryId'],
       );
+    });
+
+    it('audits only the assignments that changed', async () => {
+      categoryRepo.count.mockResolvedValue(3);
+      mappingRepo.manager.transaction.mockImplementation(async (work: (m: unknown) => unknown) =>
+        work({ delete: jest.fn(), upsert: jest.fn() }),
+      );
+      categoryRepo.find.mockResolvedValue([]);
+      transactionRepo.createQueryBuilder.mockReturnValue(queryBuilder({}));
+      mappingRepo.find.mockResolvedValue([
+        { categoryId: 'cat-rent', lineKey: 'rent' },
+        { categoryId: 'cat-ads', lineKey: 'rent' },
+      ]);
+
+      await service.saveMappings('ws-1', 'user-1', 2025, [
+        { categoryId: 'cat-rent', lineKey: 'rent' },
+        { categoryId: 'cat-ads', lineKey: 'advertising' },
+        { categoryId: 'cat-new', lineKey: null },
+      ]);
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          actorId: 'user-1',
+          entityType: EntityType.TAX_RETURN,
+          entityId: 'ws-1',
+          action: AuditAction.UPDATE,
+          diff: { before: { 'cat-ads': 'rent' }, after: { 'cat-ads': 'advertising' } },
+          meta: expect.objectContaining({ taxYear: 2025, changedCategoryIds: ['cat-ads'] }),
+        }),
+      );
+    });
+
+    it('does not fail the save when the audit log fails', async () => {
+      categoryRepo.count.mockResolvedValue(1);
+      mappingRepo.manager.transaction.mockImplementation(async (work: (m: unknown) => unknown) =>
+        work({ delete: jest.fn(), upsert: jest.fn() }),
+      );
+      categoryRepo.find.mockResolvedValue([]);
+      transactionRepo.createQueryBuilder.mockReturnValue(queryBuilder({}));
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(
+        service.saveMappings('ws-1', 'user-1', 2025, [{ categoryId: 'c9', lineKey: 'rent' }]),
+      ).resolves.toMatchObject({ formKey: 'de-euer' });
+    });
+  });
+
+  describe('saveProfile', () => {
+    it('audits the profile change with before and after', async () => {
+      profileRepo.findOne.mockResolvedValue({ taxpayerType: 'self_employed', details: {} });
+      profileRepo.upsert = jest.fn().mockResolvedValue(undefined);
+
+      await service.saveProfile('ws-1', 2025, 'self_employed', { vatRegistered: true }, 'user-1');
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-1',
+          actorId: 'user-1',
+          entityType: EntityType.TAX_RETURN,
+          entityId: 'ws-1',
+          action: AuditAction.UPDATE,
+          diff: {
+            before: { taxpayerType: 'self_employed', details: {} },
+            after: { taxpayerType: 'self_employed', details: { vatRegistered: true } },
+          },
+          meta: { kind: 'income_tax_profile', taxYear: 2025 },
+        }),
+      );
+    });
+
+    it('does not fail the save when the audit log fails', async () => {
+      profileRepo.upsert = jest.fn().mockResolvedValue(undefined);
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(
+        service.saveProfile('ws-1', 2025, 'self_employed', {}, 'user-1'),
+      ).resolves.toMatchObject({ taxYear: 2025 });
     });
   });
 });

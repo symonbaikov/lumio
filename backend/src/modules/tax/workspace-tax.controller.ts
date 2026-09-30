@@ -2,6 +2,8 @@ import { Body, Controller, Get, Put, Query } from '@nestjs/common';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import type { User } from '../../entities/user.entity';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SetJurisdictionDto } from './dto/set-jurisdiction.dto';
 import { JurisdictionAdoptionService } from './jurisdiction-adoption.service';
 import { TaxRatesService } from './tax-rates.service';
@@ -56,7 +58,11 @@ export class WorkspaceTaxController {
    */
   @Put('jurisdiction')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async setJurisdiction(@WorkspaceId() workspaceId: string, @Body() dto: SetJurisdictionDto) {
-    return this.adoptionService.adopt(workspaceId, dto.code, dto.effectiveFrom);
+  async setJurisdiction(
+    @WorkspaceId() workspaceId: string,
+    @Body() dto: SetJurisdictionDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.adoptionService.adopt(workspaceId, dto.code, dto.effectiveFrom, user.id);
   }
 }

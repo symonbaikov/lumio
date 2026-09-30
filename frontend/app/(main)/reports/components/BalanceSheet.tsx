@@ -10,6 +10,7 @@ import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import {
+  AlertTriangle,
   CalendarDays,
   ChevronDown,
   ChevronRight,
@@ -114,6 +115,34 @@ const parseContentDispositionFileName = (contentDisposition?: string): string | 
 
   return null;
 };
+
+// Суммы в дереве баланса — моноширинные цифры без фона, чтобы колонка читалась ровно.
+const AMOUNT_FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+
+// Нейтральное предупреждение: плашка карточки с янтарной полосой слева вместо жёлтой заливки.
+function WarningNote({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <Box
+      role="alert"
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1.25,
+        border: '1px solid var(--border)',
+        borderLeft: '4px solid var(--ff-dash-warning)',
+        borderRadius: tokens.radius.md,
+        bgcolor: 'var(--card)',
+        px: 2,
+        py: 1.25,
+        fontSize: 14,
+        color: 'var(--muted-foreground)',
+      }}
+    >
+      <AlertTriangle size={18} style={{ color: 'var(--ff-dash-warning)', flexShrink: 0 }} />
+      <span>{children}</span>
+    </Box>
+  );
+}
 
 // eslint-disable-next-line max-lines-per-function, complexity
 function BalanceSheet(): React.JSX.Element {
@@ -320,7 +349,7 @@ function BalanceSheet(): React.JSX.Element {
         >
           <Box
             sx={{ display: 'flex', minWidth: 0, alignItems: 'center', gap: 1 }}
-            style={{ paddingLeft: `${level * 18}px` }}
+            style={{ paddingLeft: `${level * 20}px` }}
           >
             {canToggle ? (
               <button
@@ -352,7 +381,7 @@ function BalanceSheet(): React.JSX.Element {
                 whiteSpace: 'nowrap',
                 fontSize: isSection ? 16 : 14,
                 fontWeight: isSection ? 600 : 400,
-                color: 'var(--foreground)',
+                color: isSection ? 'var(--foreground)' : 'var(--muted-foreground)',
               }}
             >
               {account.name}
@@ -367,10 +396,13 @@ function BalanceSheet(): React.JSX.Element {
                   step="0.01"
                   style={{
                     width: 112,
-                    border: '1px solid var(--border)',
-                    background: 'var(--muted)',
-                    padding: '4px 8px',
+                    border: 'none',
+                    borderRadius: 0,
+                    background: 'transparent',
+                    padding: '4px 0',
                     textAlign: 'right',
+                    fontFamily: AMOUNT_FONT,
+                    fontVariantNumeric: 'tabular-nums',
                     fontSize: 14,
                     color: 'var(--foreground)',
                   }}
@@ -390,7 +422,7 @@ function BalanceSheet(): React.JSX.Element {
                   disabled={savingAccountId === account.id}
                   aria-label={account.name}
                 />
-                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--muted-foreground)' }}>
+                <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted-foreground)' }}>
                   {currencyCode}
                 </span>
                 {savingAccountId === account.id && (
@@ -400,9 +432,11 @@ function BalanceSheet(): React.JSX.Element {
             ) : (
               <span
                 style={{
+                  fontFamily: AMOUNT_FONT,
+                  fontVariantNumeric: 'tabular-nums',
                   fontSize: 14,
-                  fontWeight: isSection ? 600 : 500,
-                  color: 'var(--foreground)',
+                  fontWeight: isSection ? 600 : 400,
+                  color: isSection ? 'var(--foreground)' : 'var(--muted-foreground)',
                 }}
               >
                 {formatCurrency(account.amount)}
@@ -603,12 +637,12 @@ function BalanceSheet(): React.JSX.Element {
         </Alert>
       )}
 
-      {balanceWarning && <Alert severity="warning">{balanceWarning}</Alert>}
+      {balanceWarning && <WarningNote>{balanceWarning}</WarningNote>}
 
       {sheet?.missingRates && sheet.missingRates.length > 0 && (
-        <Alert severity="warning">
+        <WarningNote>
           {`${text('missingRates', 'No exchange rate, left out of the totals')}: ${sheet.missingRates.join(', ')}`}
-        </Alert>
+        </WarningNote>
       )}
 
       {sheetQuery.isPending ? (

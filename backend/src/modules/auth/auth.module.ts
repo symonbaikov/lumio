@@ -13,6 +13,7 @@ import {
   WorkspaceInvitation,
   WorkspaceMember,
 } from '../../entities';
+import { AuditModule } from '../audit/audit.module';
 import { CategoriesModule } from '../categories/categories.module';
 import { MailerModule } from '../mailer/mailer.module';
 import { AuthController } from './auth.controller';
@@ -33,6 +34,7 @@ import { TwoFactorService } from './two-factor.service';
       AuthSession,
       PasswordResetToken,
     ]),
+    AuditModule,
     CategoriesModule,
     MailerModule,
     PassportModule,

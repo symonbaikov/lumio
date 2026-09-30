@@ -324,7 +324,12 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
             value={clientId}
             disabled={!isEditable}
             onChange={setClientId}
-            options={clients.map(client => ({ value: client.id, label: client.name }))}
+            options={
+              clients.length > 0
+                ? clients.map(client => ({ value: client.id, label: client.name }))
+                : // An empty list opened as a blank strip; say why instead.
+                  [{ value: '', label: t.clients.empty.value, disabled: true }]
+            }
           />
         </div>
 

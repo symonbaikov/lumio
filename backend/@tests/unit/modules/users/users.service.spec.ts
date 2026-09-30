@@ -1,4 +1,6 @@
 import { User, UserRole } from '@/entities/user.entity';
+import { AuditAction, EntityType, Severity } from '@/entities/audit-event.entity';
+import { AuditService } from '@/modules/audit/audit.service';
 import { AuthSession } from '@/entities/auth-session.entity';
 import { WorkspaceMember } from '@/entities/workspace-member.entity';
 import { Workspace } from '@/entities/workspace.entity';
@@ -28,6 +30,7 @@ describe('UsersService', () => {
   let repository: Repository<User>;
   let workspaceRepository: Repository<Workspace>;
   let workspacesService: WorkspacesService;
+  const auditService = { createEvent: jest.fn() };
 
   const mockUser: Partial<User> = {
     id: '1',
@@ -89,6 +92,7 @@ describe('UsersService', () => {
             confirmEmailChange: jest.fn(),
           },
         },
+        { provide: AuditService, useValue: auditService },
       ],
     }).compile();
 
@@ -589,6 +593,107 @@ describe('UsersService', () => {
       for (const [options] of findOneSpy.mock.calls) {
         expect((options as { select: string[] }).select).toContain('welcomeTutorialSeenAt');
       }
+    });
+  });
+
+  describe('security audit events', () => {
+    const admin = { ...mockUser, id: 'admin-1', role: UserRole.ADMIN } as User;
+
+    beforeEach(() => {
+      auditService.createEvent.mockResolvedValue({});
+      jest.spyOn(bcrypt, 'compare').mockResolvedValue(true as never);
+      jest.spyOn(bcrypt, 'hash').mockResolvedValue('new_hashed' as never);
+    });
+
+    it('logs a password change as WARN without any password or hash', async () => {
+      jest.spyOn<any, any>(service as any, 'findOneWithPassword').mockResolvedValue({
+        ...mockUser,
+        workspaceId: 'ws-home',
+      } as User);
+      jest.spyOn(repository, 'save').mockResolvedValue(mockUser as User);
+
+      await service.changePassword('1', { currentPassword: 'old_pw', newPassword: 'new_pw' });
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-home',
+          actorId: '1',
+          entityType: EntityType.USER,
+          entityId: '1',
+          action: AuditAction.UPDATE,
+          severity: Severity.WARN,
+          meta: { password: 'changed' },
+        }),
+      );
+      const payload = JSON.stringify(auditService.createEvent.mock.calls);
+      for (const leaked of ['old_pw', 'new_pw', 'new_hashed', 'hashed_password']) {
+        expect(payload).not.toContain(leaked);
+      }
+    });
+
+    it('still changes the password when the audit write fails', async () => {
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue({ ...mockUser } as User);
+      const saveSpy = jest.spyOn(repository, 'save').mockResolvedValue(mockUser as User);
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(
+        service.changePassword('1', { currentPassword: 'a', newPassword: 'b' }),
+      ).resolves.toBeUndefined();
+      expect(saveSpy).toHaveBeenCalled();
+    });
+
+    it('skips the event when the user has no home workspace', async () => {
+      jest
+        .spyOn<any, any>(service as any, 'findOneWithPassword')
+        .mockResolvedValue({ ...mockUser, workspaceId: null } as User);
+      jest.spyOn(repository, 'save').mockResolvedValue(mockUser as User);
+
+      await service.changePassword('1', { currentPassword: 'a', newPassword: 'b' });
+
+      expect(auditService.createEvent).not.toHaveBeenCalled();
+    });
+
+    it('logs an admin update against the target with the admin as actor', async () => {
+      const target = { ...mockUser, id: 'target-1', workspaceId: 'ws-target', role: UserRole.USER };
+      jest.spyOn(repository, 'findOne').mockResolvedValue(target as User);
+      jest.spyOn(repository, 'save').mockImplementation(async user => user as User);
+
+      await service.update('target-1', { role: UserRole.ADMIN }, admin);
+
+      const [event] = auditService.createEvent.mock.calls[0];
+      expect(event).toMatchObject({
+        workspaceId: 'ws-target',
+        actorId: 'admin-1',
+        entityType: EntityType.USER,
+        entityId: 'target-1',
+        action: AuditAction.UPDATE,
+        severity: Severity.WARN,
+        diff: { before: { role: UserRole.USER }, after: { role: UserRole.ADMIN } },
+      });
+      expect(JSON.stringify(event)).not.toMatch(/passwordHash|hashed_password|tokenVersion/);
+    });
+
+    it('logs an admin removal as DELETE', async () => {
+      jest
+        .spyOn(repository, 'findOne')
+        .mockResolvedValue({ ...mockUser, id: 'target-1', workspaceId: 'ws-target' } as User);
+      jest
+        .spyOn(repository, 'softDelete')
+        .mockResolvedValue({ affected: 1, raw: [], generatedMaps: [] });
+
+      await service.remove('target-1', admin);
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'ws-target',
+          actorId: 'admin-1',
+          entityId: 'target-1',
+          action: AuditAction.DELETE,
+          severity: Severity.WARN,
+        }),
+      );
     });
   });
 });

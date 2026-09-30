@@ -3,10 +3,8 @@ import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { deletedResponse } from '../../common/utils/responses.util';
-import { EntityType } from '../../entities/audit-event.entity';
 import type { CategoryType } from '../../entities/category.entity';
 import type { User } from '../../entities/user.entity';
-import { Audit } from '../audit/decorators/audit.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -18,7 +16,6 @@ export class CategoriesController {
 
   @Post()
   @WorkspaceAuth(Permission.CATEGORY_CREATE)
-  @Audit({ entityType: EntityType.CATEGORY, includeDiff: true, isUndoable: true })
   async create(
     @Body() createDto: CreateCategoryDto,
     @CurrentUser() user: User,
@@ -61,7 +58,6 @@ export class CategoriesController {
 
   @Put(':id')
   @WorkspaceAuth(Permission.CATEGORY_EDIT)
-  @Audit({ entityType: EntityType.CATEGORY, includeDiff: true, isUndoable: true })
   async update(
     @Param('id') id: string,
     @Body() updateDto: UpdateCategoryDto,
@@ -73,7 +69,6 @@ export class CategoriesController {
 
   @Delete(':id')
   @WorkspaceAuth(Permission.CATEGORY_DELETE)
-  @Audit({ entityType: EntityType.CATEGORY, includeDiff: true, isUndoable: true })
   async remove(
     @Param('id') id: string,
     @CurrentUser() user: User,

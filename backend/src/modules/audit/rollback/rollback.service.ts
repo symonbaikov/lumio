@@ -22,6 +22,18 @@ type SnapshotRecord = Record<string, unknown>;
 const asSnapshotRecord = (value: unknown): SnapshotRecord | null =>
   value && typeof value === 'object' ? (value as SnapshotRecord) : null;
 
+/** Entity types `rollback` below can restore; anything else must not be offered as undoable. */
+const ROLLBACK_ENTITY_TYPES: ReadonlySet<EntityType> = new Set([
+  EntityType.TRANSACTION,
+  EntityType.STATEMENT,
+  EntityType.CATEGORY,
+  EntityType.TABLE_ROW,
+  EntityType.TABLE_CELL,
+  EntityType.CUSTOM_TABLE,
+  EntityType.CUSTOM_TABLE_COLUMN,
+  EntityType.WORKSPACE,
+]);
+
 @Injectable()
 export class RollbackService {
   private readonly logger = new Logger(RollbackService.name);
@@ -42,6 +54,10 @@ export class RollbackService {
     @InjectRepository(Workspace)
     private readonly workspaceRepository: Repository<Workspace>,
   ) {}
+
+  static supports(entityType: EntityType): boolean {
+    return ROLLBACK_ENTITY_TYPES.has(entityType);
+  }
 
   async rollback(event: AuditEvent): Promise<RollbackResult> {
     switch (event.entityType) {

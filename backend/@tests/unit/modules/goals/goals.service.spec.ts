@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import type { Goal, GoalContribution } from '@/entities';
+import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { GoalsService } from '@/modules/goals/goals.service';
 
 const WORKSPACE_ID = 'workspace-1';
@@ -65,10 +66,13 @@ function createService(options: {
     createQueryBuilder: jest.fn(() => queryBuilder),
   } as any;
 
+  const auditService = { createEvent: jest.fn(async () => ({})) } as any;
+
   return {
-    service: new GoalsService(goalRepository, contributionRepository),
+    service: new GoalsService(goalRepository, contributionRepository, auditService),
     goalRepository,
     contributionRepository,
+    auditService,
   };
 }
 
@@ -159,7 +163,7 @@ describe('GoalsService', () => {
   it('hides a deleted goal instead of erasing its history', async () => {
     const { service, goalRepository } = createService({ goals: [goal()] });
 
-    await service.remove('goal-1', WORKSPACE_ID);
+    await service.remove('goal-1', WORKSPACE_ID, USER_ID);
 
     expect(goalRepository.softRemove).toHaveBeenCalled();
   });
@@ -183,10 +187,118 @@ describe('GoalsService', () => {
       totals: [{ goalId: 'goal-1', total: '0' }],
     });
 
-    await service.update('goal-1', WORKSPACE_ID, { targetAmount: 5000 });
+    await service.update('goal-1', WORKSPACE_ID, USER_ID, { targetAmount: 5000 });
 
     expect(goalRepository.save).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Отпуск', targetAmount: 5000, targetDate: '2026-12-31' }),
     );
+  });
+
+  describe('audit trail', () => {
+    it('records a created goal in its workspace', async () => {
+      const { service, goalRepository, auditService } = createService({});
+      goalRepository.save.mockImplementation(async (data: Goal) => ({ ...data, id: 'goal-new' }));
+
+      await service.create(WORKSPACE_ID, USER_ID, { name: 'Lisbon', targetAmount: 5000 });
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: WORKSPACE_ID,
+          actorId: USER_ID,
+          entityType: EntityType.GOAL,
+          entityId: 'goal-new',
+          action: AuditAction.CREATE,
+        }),
+      );
+    });
+
+    it('records an update with the old and new values', async () => {
+      const { service, auditService } = createService({ goals: [goal({ targetAmount: '1000.00' as any })] });
+
+      await service.update('goal-1', WORKSPACE_ID, USER_ID, { targetAmount: 5000 });
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: WORKSPACE_ID,
+          entityType: EntityType.GOAL,
+          entityId: 'goal-1',
+          action: AuditAction.UPDATE,
+          diff: {
+            before: expect.objectContaining({ targetAmount: 1000 }),
+            after: expect.objectContaining({ targetAmount: 5000 }),
+          },
+        }),
+      );
+    });
+
+    it('records the deletion', async () => {
+      const { service, auditService } = createService({ goals: [goal()] });
+
+      await service.remove('goal-1', WORKSPACE_ID, USER_ID);
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: WORKSPACE_ID,
+          entityType: EntityType.GOAL,
+          entityId: 'goal-1',
+          action: AuditAction.DELETE,
+        }),
+      );
+    });
+
+    it('records a contribution as a change to its goal', async () => {
+      const { service, contributionRepository, auditService } = createService({
+        goals: [goal({ name: 'Lisbon', currency: 'EUR' })],
+      });
+      contributionRepository.save.mockImplementation(async (data: GoalContribution) => ({
+        ...data,
+        id: 'contribution-new',
+      }));
+
+      await service.addContribution('goal-1', WORKSPACE_ID, USER_ID, { amount: 250 });
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: WORKSPACE_ID,
+          actorId: USER_ID,
+          entityType: EntityType.GOAL,
+          entityId: 'goal-1',
+          action: AuditAction.UPDATE,
+          description: 'Added contribution of 250 EUR to goal "Lisbon"',
+          meta: expect.objectContaining({
+            contribution: expect.objectContaining({ id: 'contribution-new', amount: 250 }),
+          }),
+        }),
+      );
+    });
+
+    it('records a removed contribution as a change to its goal', async () => {
+      const { service, auditService } = createService({
+        goals: [goal()],
+        contributions: [contribution(300)],
+      });
+
+      await service.removeContribution('goal-1', 'contribution-300', WORKSPACE_ID, USER_ID);
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: WORKSPACE_ID,
+          entityType: EntityType.GOAL,
+          entityId: 'goal-1',
+          action: AuditAction.UPDATE,
+          meta: expect.objectContaining({
+            contribution: expect.objectContaining({ id: 'contribution-300', amount: 300 }),
+          }),
+        }),
+      );
+    });
+
+    it('does not fail the change when the audit write fails', async () => {
+      const { service, goalRepository, auditService } = createService({ goals: [goal()] });
+      auditService.createEvent.mockRejectedValue(new Error('audit down'));
+
+      await expect(service.remove('goal-1', WORKSPACE_ID, USER_ID)).resolves.toBeUndefined();
+      expect(goalRepository.softRemove).toHaveBeenCalled();
+    });
   });
 });
