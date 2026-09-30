@@ -109,7 +109,7 @@ export function ClientsView(): React.JSX.Element {
 
       {clients.length === 0 ? (
         <div className="lumio-payable-list__empty">
-          <EmptyStateIllustration name="receivables" size="md" />
+          <EmptyStateIllustration name="clients" size="md" />
           <h3 style={{ fontSize: 18, fontWeight: 600 }}>{t.clients.empty}</h3>
         </div>
       ) : (
