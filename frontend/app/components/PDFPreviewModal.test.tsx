@@ -37,6 +37,10 @@ vi.mock('@/app/i18n', () => ({
     decline: { value: 'Позже' },
     startingParsing: { value: 'Запуск...' },
     startParsingButton: { value: 'Запустить парсинг' },
+    receiptTitle: 'Receipt',
+    openFileMenu: { value: 'Open file menu' },
+    closePreview: { value: 'Close preview' },
+    download: 'Download',
   }),
 }));
 

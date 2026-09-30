@@ -6,6 +6,7 @@ import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
 import { Calendar, DollarSign, User } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
 
 interface DuplicateTransaction {
@@ -34,6 +35,13 @@ interface DuplicateGroupCardProps {
 
 export default function DuplicateGroupCard({ group, selected, onToggle }: DuplicateGroupCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const t = useIntlayer('transactionDuplicatesPage');
+  const matchTypeLabels: Record<string, string> = {
+    exact: t.card.matchTypes.exact.value,
+    hybrid: t.card.matchTypes.hybrid.value,
+    fuzzy: t.card.matchTypes.fuzzy.value,
+    semantic: t.card.matchTypes.semantic.value,
+  };
 
   const formatDate = (dateString: string) => {
     return formatStoredDateWithOptions(
@@ -95,16 +103,22 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Chip
-                label={`${Math.round(group.confidence * 100)}% Match`}
+                label={t.card.match.value.replace(
+                  '{percent}',
+                  String(Math.round(group.confidence * 100)),
+                )}
                 size="small"
                 color={getConfidenceColor(group.confidence)}
               />
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {group.duplicates.length} duplicate{group.duplicates.length !== 1 ? 's' : ''}
+                {(group.duplicates.length === 1
+                  ? t.card.duplicatesOne.value
+                  : t.card.duplicatesOther.value
+                ).replace('{count}', String(group.duplicates.length))}
               </Typography>
             </Box>
             <Button variant="text" size="small" onClick={() => setExpanded(!expanded)}>
-              {expanded ? 'Hide' : 'Show'} Details
+              {expanded ? t.card.hideDetails : t.card.showDetails}
             </Button>
           </Box>
 
@@ -127,7 +141,7 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                   textTransform: 'uppercase',
                 }}
               >
-                MASTER
+                {t.card.master}
               </Typography>
             </Box>
             <Box
@@ -192,11 +206,11 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                       textTransform: 'uppercase',
                     }}
                   >
-                    DUPLICATE {index + 1}
+                    {t.card.duplicateN.value.replace('{n}', String(index + 1))}
                   </Typography>
                   {duplicate.matchType && (
                     <Chip
-                      label={duplicate.matchType}
+                      label={matchTypeLabels[duplicate.matchType] ?? duplicate.matchType}
                       size="small"
                       color={getMatchTypeColor(duplicate.matchType)}
                       variant={
@@ -209,7 +223,10 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                   )}
                   {duplicate.similarity && (
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      {Math.round(duplicate.similarity * 100)}% similar
+                      {t.card.similar.value.replace(
+                        '{percent}',
+                        String(Math.round(duplicate.similarity * 100)),
+                      )}
                     </Typography>
                   )}
                 </Box>
@@ -261,7 +278,7 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                     sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}
                   >
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      Matched fields:
+                      {t.card.matchedFields}
                     </Typography>
                     {duplicate.matchedFields.map(field => (
                       <Chip key={field} label={field} size="small" variant="outlined" />
@@ -275,8 +292,10 @@ export default function DuplicateGroupCard({ group, selected, onToggle }: Duplic
                 variant="body2"
                 sx={{ textAlign: 'center', color: 'text.secondary', py: 1 }}
               >
-                +{group.duplicates.length - 2} more duplicate
-                {group.duplicates.length - 2 !== 1 ? 's' : ''}
+                {(group.duplicates.length - 2 === 1
+                  ? t.card.moreOne.value
+                  : t.card.moreOther.value
+                ).replace('{count}', String(group.duplicates.length - 2))}
               </Typography>
             )}
           </Box>

@@ -14,7 +14,11 @@ vi.mock('@/app/settings/profile/helpers/recovery-codes-file', () => ({
 
 vi.mock('react-hot-toast', () => ({ default: { error: mocks.toastError } }));
 
-vi.mock('@/app/i18n', () => ({ useLocale: () => ({ locale: 'ar' }) }));
+vi.mock('@/app/i18n', () => ({
+  useLocale: () => ({ locale: 'ar' }),
+  // The shared Spinner reads its aria-label from the uiShell dictionary.
+  useIntlayer: () => ({ loading: { value: 'Loading' } }),
+}));
 
 const tx = (_path: string[], fallback: string) => fallback;
 const codes = ['SV4EA-ZYFTP', 'F3DYA-87KRK'];

@@ -1,5 +1,6 @@
 import { Check, ChevronLeft, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import type { CurrencySearchItem } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -18,6 +19,7 @@ const CURRENCY_BTN_STYLE: React.CSSProperties = {
 
 type CurrencyListProps = { items: CurrencySearchItem[]; onSelect: (code: string) => void };
 function CurrencyList({ items, onSelect }: CurrencyListProps): React.ReactElement {
+  const t = useIntlayer('currencyPickerDrawer');
   if (items.length === 0) {
     return (
       <p
@@ -29,7 +31,7 @@ function CurrencyList({ items, onSelect }: CurrencyListProps): React.ReactElemen
           color: 'var(--muted-foreground)',
         }}
       >
-        No currencies found
+        {t.noCurrencies}
       </p>
     );
   }
@@ -84,9 +86,10 @@ function SelectedCurrencyButton({
 
 type AllCurrencySectionProps = { items: CurrencySearchItem[]; onSelect: (code: string) => void };
 function AllCurrencySection({ items, onSelect }: AllCurrencySectionProps): React.ReactElement {
+  const t = useIntlayer('currencyPickerDrawer');
   return (
     <div style={{ marginTop: 24 }}>
-      <p style={{ padding: '0 4px', fontSize: 14, color: 'var(--muted-foreground)' }}>All</p>
+      <p style={{ padding: '0 4px', fontSize: 14, color: 'var(--muted-foreground)' }}>{t.all}</p>
       <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
         <CurrencyList items={items} onSelect={onSelect} />
       </div>
@@ -96,9 +99,12 @@ function AllCurrencySection({ items, onSelect }: AllCurrencySectionProps): React
 
 type RecentSectionProps = { items: CurrencySearchItem[]; onSelect: (code: string) => void };
 function RecentCurrencySection({ items, onSelect }: RecentSectionProps): React.ReactElement {
+  const t = useIntlayer('currencyPickerDrawer');
   return (
     <div style={{ marginTop: 24 }}>
-      <p style={{ padding: '0 4px', fontSize: 14, color: 'var(--muted-foreground)' }}>Recents</p>
+      <p style={{ padding: '0 4px', fontSize: 14, color: 'var(--muted-foreground)' }}>
+        {t.recents}
+      </p>
       <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <CurrencyList items={items} onSelect={onSelect} />
       </div>
@@ -129,6 +135,7 @@ export function CurrencyPickerDrawer({
   onClose,
   onSelect,
 }: CurrencyPickerDrawerProps): React.ReactElement {
+  const t = useIntlayer('currencyPickerDrawer');
   const currencyQuery = currencySearch.trim().toLowerCase();
   return (
     <DrawerShell
@@ -144,12 +151,12 @@ export function CurrencyPickerDrawer({
             type="button"
             onClick={onClose}
             className="lumio-col-drawer__back-btn"
-            aria-label="Select a currency"
+            aria-label={t.selectCurrency.value}
           >
             <ChevronLeft size={20} />
           </button>
           <span style={{ fontSize: 18, fontWeight: 600, color: 'var(--foreground)' }}>
-            Select a currency
+            {t.selectCurrency}
           </span>
         </div>
       }
@@ -162,7 +169,7 @@ export function CurrencyPickerDrawer({
               type="text"
               value={currencySearch}
               onChange={event => onSearchChange(event.target.value)}
-              placeholder="Search"
+              placeholder={t.search.value}
               className="lumio-cat-drawer__search-input"
             />
           </label>

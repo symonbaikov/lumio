@@ -430,7 +430,14 @@ function BalanceSheet(): React.JSX.Element {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }} data-tour-id="reports-balance">
-      <Box sx={{ border: '1px solid var(--border)', bgcolor: 'var(--card)', p: 2 }}>
+      <Box
+        sx={{
+          border: '1px solid var(--border)',
+          borderRadius: tokens.radius.lg,
+          bgcolor: 'var(--card)',
+          p: 2,
+        }}
+      >
         <Box
           sx={{
             display: 'flex',
@@ -447,6 +454,7 @@ function BalanceSheet(): React.JSX.Element {
                 alignItems: 'center',
                 gap: 1,
                 border: '1px solid var(--border)',
+                borderRadius: tokens.radius.md,
                 bgcolor: 'var(--card)',
                 px: 1.5,
                 py: 1,
@@ -534,6 +542,7 @@ function BalanceSheet(): React.JSX.Element {
                   mt: 0.5,
                   width: 144,
                   border: '1px solid var(--border)',
+                  borderRadius: tokens.radius.md,
                   bgcolor: 'var(--card)',
                   p: 0.5,
                   boxShadow: 1,
@@ -610,6 +619,7 @@ function BalanceSheet(): React.JSX.Element {
             px: 2,
             py: 5,
             display: 'flex',
+            borderRadius: tokens.radius.lg,
             justifyContent: 'center',
           }}
         >
@@ -626,7 +636,14 @@ function BalanceSheet(): React.JSX.Element {
             transition: 'opacity 150ms ease',
           }}
         >
-          <Box sx={{ border: '1px solid var(--border)', bgcolor: 'var(--card)', p: 2 }}>
+          <Box
+            sx={{
+              border: '1px solid var(--border)',
+              borderRadius: tokens.radius.lg,
+              bgcolor: 'var(--card)',
+              p: 2,
+            }}
+          >
             <Box
               sx={{
                 mb: 1.5,
@@ -647,7 +664,14 @@ function BalanceSheet(): React.JSX.Element {
             </Box>
           </Box>
 
-          <Box sx={{ border: '1px solid var(--border)', bgcolor: 'var(--card)', p: 2 }}>
+          <Box
+            sx={{
+              border: '1px solid var(--border)',
+              borderRadius: tokens.radius.lg,
+              bgcolor: 'var(--card)',
+              p: 2,
+            }}
+          >
             <Box
               sx={{
                 mb: 1.5,
@@ -676,6 +700,7 @@ function BalanceSheet(): React.JSX.Element {
             px: 2,
             py: 5,
             textAlign: 'center',
+            borderRadius: tokens.radius.lg,
           }}
         >
           <Typography variant="body2" sx={{ color: 'var(--muted-foreground)' }}>

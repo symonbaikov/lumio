@@ -1,6 +1,6 @@
 /**
  * Shared utilities for side panel components.
- * Used by StatementsSidePanel and CustomTablesSidePanel.
+ * Used by StatementsSidePanel and the statements side panel.
  */
 
 /**

@@ -28,9 +28,9 @@ import {
 } from '@/app/components/icons';
 import { PanelRow, PanelSearchField, PanelSectionLabel } from '@/app/components/panels/panel-ui';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { EmptyState } from '@/app/components/ui/EmptyState';
 import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
@@ -64,14 +64,6 @@ const DEBOUNCE_MS = 250;
 /** One placeholder per recent upload the backend can return. */
 const SKELETON_KEYS = ['search-0', 'search-1', 'search-2', 'search-3', 'search-4'];
 
-const KIND_LABELS: Record<SearchResultKind, string> = {
-  transaction: 'Transactions',
-  statement: 'Statements',
-  payable: 'Payables',
-  receivable: 'Receivables',
-  category: 'Categories',
-};
-
 const KIND_ICONS: Record<SearchResultKind, React.ReactNode> = {
   transaction: <ArrowLeftRight size={18} />,
   statement: <FileText size={18} />,
@@ -96,6 +88,7 @@ function groupByKind(results: SearchResult[]): { kind: SearchResultKind; items: 
 function useFavorites(): Favorites {
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
+  const t = useIntlayer('globalSearch');
   const queryKey = queryKeys.searchFavorites(workspaceId);
 
   const favoritesQuery = useQuery({
@@ -119,7 +112,7 @@ function useFavorites(): Favorites {
     },
     onError: (_error, _variables, context) => {
       queryClient.setQueryData(queryKey, context?.previous);
-      toast.error('Could not update favorites. Try again.');
+      toast.error(t.favoriteUpdateFailed.value);
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
@@ -140,11 +133,12 @@ function FavoriteButton({
   favorite: boolean;
   onToggle: () => void;
 }): React.JSX.Element {
+  const t = useIntlayer('globalSearch');
   return (
     <IconButton
       size="small"
       onClick={onToggle}
-      aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+      aria-label={favorite ? t.removeFavorite.value : t.addFavorite.value}
       aria-pressed={favorite}
       sx={{
         // Sits over the row's reserved trailing slot: a button inside the row button is invalid HTML.
@@ -232,6 +226,7 @@ function SearchTab({
   favorites: Favorites;
 }): React.JSX.Element {
   const workspaceId = useWorkspaceId();
+  const t = useIntlayer('globalSearch');
   const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
 
@@ -274,23 +269,23 @@ function SearchTab({
   if (active.isPending) {
     content = <RowsSkeleton />;
   } else if (active.isError) {
-    content = <PanelMessage>Search is unavailable right now. Try again in a moment.</PanelMessage>;
+    content = <PanelMessage>{t.searchUnavailable}</PanelMessage>;
   } else if (!searching) {
     content =
       results.length > 0 ? (
         <Box>
-          <PanelSectionLabel>Recent uploads</PanelSectionLabel>
+          <PanelSectionLabel>{t.recentUploads}</PanelSectionLabel>
           {results.map(renderRow)}
         </Box>
       ) : (
-        <PanelMessage>No uploads yet.</PanelMessage>
+        <PanelMessage>{t.noUploads}</PanelMessage>
       );
   } else if (results.length === 0) {
-    content = <PanelMessage>Nothing matches "{query}".</PanelMessage>;
+    content = <PanelMessage>{t.noMatches.value.replace('{query}', query)}</PanelMessage>;
   } else {
     content = groupByKind(results).map(group => (
       <Box key={group.kind}>
-        <PanelSectionLabel>{KIND_LABELS[group.kind]}</PanelSectionLabel>
+        <PanelSectionLabel>{t.kinds[group.kind]}</PanelSectionLabel>
         {group.items.map(renderRow)}
       </Box>
     ));
@@ -300,8 +295,8 @@ function SearchTab({
     <>
       <PanelSearchField
         value={input}
-        placeholder="Search transactions, statements, categories…"
-        ariaLabel="Search everything"
+        placeholder={t.searchPlaceholder.value}
+        ariaLabel={t.searchEverything.value}
         autoFocus
         onChange={setInput}
       />
@@ -319,6 +314,7 @@ function FavoritesTab({
   onSelect: (result: SearchResult) => void;
   favorites: Favorites;
 }): React.JSX.Element {
+  const t = useIntlayer('globalSearch');
   const { favoritesQuery } = favorites;
   const results = favoritesQuery.data?.results ?? [];
 
@@ -326,17 +322,22 @@ function FavoritesTab({
     return <RowsSkeleton />;
   }
   if (favoritesQuery.isError) {
-    return <PanelMessage>Favorites are unavailable right now. Try again in a moment.</PanelMessage>;
+    return <PanelMessage>{t.favoritesUnavailable}</PanelMessage>;
   }
   if (results.length === 0) {
+    // A thin outlined star and two lines of text, no illustration.
     return (
-      <EmptyState
-        illustration="favorites"
-        size="md"
-        compact
-        title="No favorites yet"
-        description="Star a statement or receipt in the Search tab to keep it here."
-      />
+      <Box sx={{ py: 6, px: 2, textAlign: 'center' }}>
+        <Box sx={{ display: 'inline-flex', color: 'text.disabled', mb: 1.5 }}>
+          <StarBorder size={32} aria-hidden />
+        </Box>
+        <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.primary' }}>
+          {t.noFavorites}
+        </Typography>
+        <Typography sx={{ mt: 0.5, fontSize: 13, color: 'text.secondary' }}>
+          {t.noFavoritesHint}
+        </Typography>
+      </Box>
     );
   }
   return (
@@ -362,6 +363,7 @@ function SearchPanelBody({
 }: {
   onSelect: (result: SearchResult) => void;
 }): React.JSX.Element {
+  const t = useIntlayer('globalSearch');
   const [tab, setTab] = useState<PanelTab>('search');
   const favorites = useFavorites();
   // eslint-disable-next-line max-params
@@ -378,13 +380,13 @@ function SearchPanelBody({
       >
         <Tab
           value="search"
-          label="Search"
+          label={t.search}
           id="global-search-tab-search"
           aria-controls="global-search-panel-search"
         />
         <Tab
           value="favorites"
-          label="Favorites"
+          label={t.favorites}
           id="global-search-tab-favorites"
           aria-controls="global-search-panel-favorites"
         />
@@ -429,6 +431,7 @@ function SearchPanelBody({
 
 export function GlobalSearch(): React.JSX.Element {
   const router = useRouter();
+  const t = useIntlayer('globalSearch');
   const [open, setOpen] = useState(false);
 
   const handleSelect = (result: SearchResult): void => {
@@ -443,8 +446,8 @@ export function GlobalSearch(): React.JSX.Element {
         <button
           type="button"
           className="lumio-topbar__icon-btn"
-          title="Search"
-          aria-label="Search"
+          title={t.search.value}
+          aria-label={t.search.value}
           onClick={() => setOpen(true)}
         >
           <Search size={18} />
@@ -456,7 +459,7 @@ export function GlobalSearch(): React.JSX.Element {
         onClose={() => setOpen(false)}
         position="right"
         width="md"
-        title="Search"
+        title={t.search}
       >
         <SearchPanelBody onSelect={handleSelect} />
       </DrawerShell>

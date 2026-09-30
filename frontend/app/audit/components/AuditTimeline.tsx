@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Layers } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { AppPagination } from '@/app/components/ui/pagination';
+import { useIntlayer } from '@/app/i18n';
 import type { AuditEvent } from '@/lib/api/audit';
 import { ACTION_ICON_MAP } from '../utils/actionIconMap';
 import { buildGroupedData } from '../utils/audit-table-utils';
@@ -22,22 +23,6 @@ interface AuditTimelineProps {
   onPageChange: (page: number) => void;
 }
 
-const ENTITY_TYPE_LABELS: Record<string, string> = {
-  transaction: 'Transaction',
-  statement: 'Statement',
-  receipt: 'Receipt',
-  category: 'Category',
-  rule: 'Rule',
-  workspace: 'Workspace',
-  integration: 'Integration',
-  table_row: 'Table Row',
-  table_cell: 'Table Cell',
-  branch: 'Branch',
-  wallet: 'Wallet',
-  custom_table: 'Custom Table',
-  custom_table_column: 'Column',
-};
-
 function AuditTimelineItem({
   event,
   onSelect,
@@ -47,9 +32,25 @@ function AuditTimelineItem({
   onSelect: (e: AuditEvent) => void;
   onRollback?: (e: AuditEvent) => void;
 }) {
+  const t = useIntlayer('auditUi');
+  const entityTypeLabels: Record<string, string> = {
+    transaction: t.entityLabels.transaction.value,
+    statement: t.entityLabels.statement.value,
+    receipt: t.entityLabels.receipt.value,
+    category: t.entityLabels.category.value,
+    rule: t.entityLabels.rule.value,
+    workspace: t.entityLabels.workspace.value,
+    integration: t.entityLabels.integration.value,
+    table_row: t.entityLabels.table_row.value,
+    table_cell: t.entityLabels.table_cell.value,
+    branch: t.entityLabels.branch.value,
+    wallet: t.entityLabels.wallet.value,
+    custom_table: t.entityLabels.custom_table.value,
+    custom_table_column: t.entityLabels.custom_table_column.value,
+  };
   const formatted = formatAuditEvent(event);
   const Icon = ACTION_ICON_MAP[event.action];
-  const entityLabel = ENTITY_TYPE_LABELS[event.entityType] ?? event.entityType;
+  const entityLabel = entityTypeLabels[event.entityType] ?? event.entityType;
   const initials = getInitials(event.actorLabel);
   const avatarColor =
     event.actorType === 'system' ? 'var(--muted-foreground)' : getAvatarColor(event.actorLabel);
@@ -96,7 +97,7 @@ function AuditTimelineItem({
             onRollback(event);
           }}
         >
-          Rollback
+          {t.rollback}
         </button>
       )}
     </li>
@@ -116,6 +117,7 @@ function AuditBatchGroup({
   expanded: boolean;
   onToggle: () => void;
 }) {
+  const t = useIntlayer('auditUi');
   return (
     <li className="audit-item">
       <div className="audit-dot">
@@ -124,8 +126,8 @@ function AuditBatchGroup({
       <div className="audit-body">
         <button type="button" className="audit-batch-header" onClick={onToggle}>
           {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          Batch · {count} events
-          <span className="audit-tag">Batch</span>
+          {t.batchSummary.value.replace('{count}', String(count))}
+          <span className="audit-tag">{t.batch}</span>
         </button>
         <div className="audit-when">{relativeTime(createdAt)}</div>
       </div>
@@ -165,6 +167,7 @@ export function AuditTimeline({
   total,
   onPageChange,
 }: AuditTimelineProps) {
+  const t = useIntlayer('auditUi');
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
 
   const rows = useMemo(() => buildGroupedData(events, expandedBatches), [events, expandedBatches]);
@@ -187,7 +190,7 @@ export function AuditTimeline({
     return (
       <div className="audit-empty">
         <EmptyStateIllustration name="activity" size="md" />
-        No events found.
+        {t.noEvents}
       </div>
     );
   }
@@ -221,7 +224,7 @@ export function AuditTimeline({
 
       <div className="audit-pagination">
         <span>
-          Page {page} of {totalPages}
+          {t.pageOf.value.replace('{page}', String(page)).replace('{total}', String(totalPages))}
         </span>
         <AppPagination page={page} total={totalPages} onChange={onPageChange} />
       </div>

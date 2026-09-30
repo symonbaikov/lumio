@@ -19,7 +19,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
-import { Plus, Trash2 } from '@/app/components/icons';
+import { Trash2 } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import type { NewAccountInput } from '../hooks/useLedger';
@@ -76,11 +76,7 @@ export function AccountsTab(props: AccountsTabProps): React.ReactElement {
               }
             />
           ) : (
-            <Button
-              startIcon={<Plus size={16} />}
-              variant="outlined"
-              onClick={() => setAdding(true)}
-            >
+            <Button variant="outlined" onClick={() => setAdding(true)}>
               {t.addAccount}
             </Button>
           )}

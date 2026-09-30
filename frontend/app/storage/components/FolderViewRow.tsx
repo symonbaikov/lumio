@@ -50,7 +50,7 @@ const dragBtnSx = {
   opacity: 0,
   // Revealed on row hover and on keyboard focus (the row wrapper is role="button").
   '[role="button"]:hover &, &:focus-visible': { opacity: 1 },
-  '&:hover': { color: 'primary.main', bgcolor: 'rgba(22,129,24,0.05)' },
+  '&:hover': { color: 'primary.main', bgcolor: 'rgba(var(--primary-rgb),0.05)' },
 };
 const menuBtnSx = {
   color: 'var(--muted-foreground)',

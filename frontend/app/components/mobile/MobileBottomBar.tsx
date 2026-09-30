@@ -13,6 +13,7 @@ import {
   ScanLine,
   Upload,
 } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { AUTH_ROUTE_PREFIXES } from '@/app/lib/auth-routes';
 import { isNavItemActive } from '../navigation/helpers/navigation-config';
 import { MobileMenuDrawer } from './MobileMenuDrawer';
@@ -22,14 +23,19 @@ const HIDDEN_PATHS = ['/onboarding', ...AUTH_ROUTE_PREFIXES, '/shared', '/invite
 const FAB_ACTIONS = [
   {
     id: 'upload',
-    label: 'Upload',
+    labelKey: 'fabUpload',
     icon: Upload,
     href: '/statements/submit?openExpenseDrawer=scan',
   },
-  { id: 'scan', label: 'Scan', icon: ScanLine, href: '/statements/submit?openExpenseDrawer=scan' },
+  {
+    id: 'scan',
+    labelKey: 'fabScan',
+    icon: ScanLine,
+    href: '/statements/submit?openExpenseDrawer=scan',
+  },
   {
     id: 'expense',
-    label: 'Expense',
+    labelKey: 'fabExpense',
     icon: Receipt,
     href: '/statements/submit?openExpenseDrawer=manual',
   },
@@ -38,6 +44,7 @@ const FAB_ACTIONS = [
 export default function MobileBottomBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { shell } = useIntlayer('navigation');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
 
@@ -88,14 +95,14 @@ export default function MobileBottomBar() {
             <span className="lumio-bottom-bar__fab-action-icon">
               <action.icon size={18} />
             </span>
-            <span className="lumio-bottom-bar__fab-action-label">{action.label}</span>
+            <span className="lumio-bottom-bar__fab-action-label">{shell[action.labelKey]}</span>
           </button>
         ))}
       </div>
 
       <nav
         className={`lumio-bottom-bar${fabOpen ? ' lumio-bottom-bar--fab-open' : ''}`}
-        aria-label="Mobile navigation"
+        aria-label={shell.mobileNavigation.value}
       >
         {/* Tab 1: Dashboard */}
         <Link
@@ -118,7 +125,7 @@ export default function MobileBottomBar() {
           type="button"
           className="lumio-bottom-bar__fab"
           onClick={() => setFabOpen(prev => !prev)}
-          aria-label="Quick actions"
+          aria-label={shell.quickActions.value}
         >
           <Plus
             size={24}
@@ -142,7 +149,7 @@ export default function MobileBottomBar() {
           type="button"
           className="lumio-bottom-bar__tab"
           onClick={() => setDrawerOpen(true)}
-          aria-label="Open menu"
+          aria-label={shell.openMenu.value}
         >
           <Menu size={22} />
         </button>

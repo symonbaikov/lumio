@@ -1,0 +1,32 @@
+import { type Dictionary, t } from 'intlayer';
+
+const content = {
+  key: 'panelUi',
+  content: {
+    backToList: t({
+      ru: 'Назад к списку',
+      en: 'Back to the list',
+      kk: 'Тізімге оралу',
+      de: 'Zurück zur Liste',
+      fr: 'Retour à la liste',
+      es: 'Volver a la lista',
+      pt: 'Voltar à lista',
+      tr: 'Listeye dön',
+      uk: 'Назад до списку',
+      zh: '返回列表',
+      ar: 'العودة إلى القائمة',
+      pl: 'Wróć do listy',
+      it: "Torna all'elenco",
+      sk: 'Späť na zoznam',
+      ja: '一覧に戻る',
+      ko: '목록으로 돌아가기',
+      hi: 'सूची पर वापस जाएँ',
+      nl: 'Terug naar de lijst',
+      sv: 'Tillbaka till listan',
+      vi: 'Quay lại danh sách',
+      id: 'Kembali ke daftar',
+    }),
+  },
+} satisfies Dictionary;
+
+export default content;

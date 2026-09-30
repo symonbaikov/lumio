@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ChevronLeft, Plus } from '@/app/components/icons';
+import { ChevronLeft } from '@/app/components/icons';
 import { Button } from '@/app/components/ui/button';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
@@ -103,7 +103,6 @@ export function ClientsView(): React.JSX.Element {
             setDrawerOpen(true);
           }}
         >
-          <Plus size={16} />
           {t.clients.newClient}
         </Button>
       </div>

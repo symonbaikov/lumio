@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
 import { RefreshCw } from '@/app/components/icons';
 import { Spinner } from '@/app/components/ui/spinner';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import DuplicateGroupCard from './components/DuplicateGroupCard';
@@ -69,6 +70,7 @@ function DuplicateGroupsContent({
   selectedGroups: Set<string>;
   onToggleGroup: (masterId: string) => void;
 }) {
+  const t = useIntlayer('transactionDuplicatesPage');
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {loading ? (
@@ -78,7 +80,7 @@ function DuplicateGroupsContent({
         ))
       ) : duplicateGroups.length === 0 ? (
         <Typography variant="body2" sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
-          No duplicate groups found
+          {t.noGroups}
         </Typography>
       ) : (
         duplicateGroups.map(group => (
@@ -95,6 +97,7 @@ function DuplicateGroupsContent({
 }
 
 export default function TransactionDuplicatesPage() {
+  const t = useIntlayer('transactionDuplicatesPage');
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
@@ -115,7 +118,7 @@ export default function TransactionDuplicatesPage() {
       setDuplicateGroups(response.data.groups);
     })()
       .catch(async (error: unknown) => {
-        setError(getApiErrorMessage(error, 'Failed to load duplicates'));
+        setError(getApiErrorMessage(error, t.loadFailed.value));
       })
       .finally(async () => {
         setLoading(false);
@@ -140,7 +143,7 @@ export default function TransactionDuplicatesPage() {
 
   const handleMarkDuplicates = async () => {
     if (selectedGroups.size === 0) {
-      setError('Please select at least one duplicate group to mark');
+      setError(t.selectAtLeastOne.value);
       return;
     }
 
@@ -159,12 +162,12 @@ export default function TransactionDuplicatesPage() {
         groups: groupsToMark,
       });
 
-      setSuccess(`Successfully marked ${response.data.markedCount} transactions as duplicates`);
+      setSuccess(t.markSuccess.value.replace('{count}', String(response.data.markedCount)));
       setSelectedGroups(new Set());
       await loadDuplicates(); // Reload to update the list
     })()
       .catch(async (error: unknown) => {
-        setError(getApiErrorMessage(error, 'Failed to mark duplicates'));
+        setError(getApiErrorMessage(error, t.markFailed.value));
       })
       .finally(async () => {
         setMarking(false);
@@ -190,10 +193,10 @@ export default function TransactionDuplicatesPage() {
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Duplicate Transactions
+              {t.title}
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-              Review and manage duplicate transactions detected across statements
+              {t.subtitle}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -203,7 +206,7 @@ export default function TransactionDuplicatesPage() {
               disabled={detecting}
               startIcon={detecting ? <Spinner size={16} /> : <RefreshCw size={16} />}
             >
-              {detecting ? 'Detecting...' : 'Re-detect'}
+              {detecting ? t.detecting : t.redetect}
             </Button>
           </Box>
         </Box>
@@ -229,7 +232,7 @@ export default function TransactionDuplicatesPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Total Groups
+                  {t.totalGroups}
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {loading ? <Skeleton variant="text" width={32} /> : duplicateGroups.length}
@@ -237,7 +240,7 @@ export default function TransactionDuplicatesPage() {
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Selected
+                  {t.selected}
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {loading ? <Skeleton variant="text" width={32} /> : selectedGroups.size}
@@ -245,7 +248,7 @@ export default function TransactionDuplicatesPage() {
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Total Duplicates
+                  {t.totalDuplicates}
                 </Typography>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {loading ? (
@@ -258,7 +261,7 @@ export default function TransactionDuplicatesPage() {
             </Box>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="outlined" onClick={handleSelectAll}>
-                {selectedGroups.size === duplicateGroups.length ? 'Deselect All' : 'Select All'}
+                {selectedGroups.size === duplicateGroups.length ? t.deselectAll : t.selectAll}
               </Button>
               <Button
                 variant="contained"
@@ -267,8 +270,11 @@ export default function TransactionDuplicatesPage() {
                 startIcon={marking ? <Spinner size={16} /> : undefined}
               >
                 {marking
-                  ? 'Marking...'
-                  : `Mark ${selectedGroups.size} Group${selectedGroups.size !== 1 ? 's' : ''} as Duplicate`}
+                  ? t.marking
+                  : (selectedGroups.size === 1
+                      ? t.markGroupsOne.value
+                      : t.markGroupsOther.value
+                    ).replace('{count}', String(selectedGroups.size))}
               </Button>
             </Box>
           </Box>

@@ -6,7 +6,6 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import type React from 'react';
 import { useState } from 'react';
-import { Plus } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -59,11 +58,7 @@ export default function CryptoPage(): React.JSX.Element {
             {t.subtitle}
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Plus size={18} />}
-          onClick={() => setDrawerOpen(true)}
-        >
+        <Button variant="contained" onClick={() => setDrawerOpen(true)}>
           {t.connect}
         </Button>
       </Box>

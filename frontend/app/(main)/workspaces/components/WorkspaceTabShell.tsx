@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useState } from 'react';
 import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
+import { useIntlayer } from '@/app/i18n';
 import { getWorkspaceTabItems, type WorkspaceTabId } from '@/app/lib/workspace-tabs';
 import { tokens } from '@/lib/theme-tokens';
 import WorkspacesListContent from './WorkspacesListContent';
@@ -53,6 +54,7 @@ function WorkspaceTabShellSkeleton(): React.JSX.Element {
 
 export default function WorkspaceTabShell({ activeItem, children }: Props) {
   const router = useRouter();
+  const t = useIntlayer('workspacesListView');
   const { loading, currentWorkspace } = useWorkspace();
   const [isAllWorkspacesOpen, setIsAllWorkspacesOpen] = useState(false);
 
@@ -78,7 +80,7 @@ export default function WorkspaceTabShell({ activeItem, children }: Props) {
           value={isAllWorkspacesOpen ? ALL_WORKSPACES_TAB : activeItem}
           variant="scrollable"
           scrollButtons={false}
-          aria-label="Workspace sections"
+          aria-label={t.tabs.sections.value}
           sx={{ ...sharedMuiTabsSx, mb: 0 }}
         >
           {tabItems.map(item => (
@@ -93,7 +95,7 @@ export default function WorkspaceTabShell({ activeItem, children }: Props) {
           ))}
           <Tab
             value={ALL_WORKSPACES_TAB}
-            label="All Workspaces"
+            label={t.tabs.allWorkspaces}
             onClick={() => setIsAllWorkspacesOpen(true)}
           />
         </Tabs>

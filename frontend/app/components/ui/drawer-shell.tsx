@@ -6,6 +6,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import * as React from 'react';
 import { X } from '@/app/components/icons';
+import { useIntlayer } from '@/app/i18n';
 import { tokens } from '@/lib/theme-tokens';
 
 export type DrawerPosition = 'left' | 'right';
@@ -72,6 +73,7 @@ export function DrawerShell({
   sx,
   zIndex,
 }: DrawerShellProps) {
+  const t = useIntlayer('uiShell');
   // eslint-disable-next-line max-params
   const handleClose = (_event: object, reason: 'backdropClick' | 'escapeKeyDown'): void => {
     if (reason === 'backdropClick' && !closeOnBackdropClick) {
@@ -127,7 +129,7 @@ export function DrawerShell({
             <IconButton
               type="button"
               onClick={onClose}
-              aria-label="Close drawer"
+              aria-label={t.closeDrawer.value}
               size="small"
               sx={{ ml: 'auto' }}
             >

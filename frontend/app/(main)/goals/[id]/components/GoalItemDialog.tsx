@@ -128,7 +128,7 @@ export function GoalItemDialog({
         />
 
         <TextField
-          label="Currency"
+          label={t.itemCurrency.value}
           value={form.currency}
           onChange={e =>
             setForm({

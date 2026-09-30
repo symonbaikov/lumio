@@ -146,7 +146,7 @@ export function OverviewTab({
         <DashboardCard
           title={t.topCategoriesTitle}
           subtitle={monthLabel}
-          action={<CardLink href="/reports">{t.viewAll}</CardLink>}
+          action={<CardLink href="/statements/top-categories">{t.viewAll}</CardLink>}
         >
           <TopCategoriesCard categories={data.topCategories ?? []} formatAmount={formatAmount} />
         </DashboardCard>

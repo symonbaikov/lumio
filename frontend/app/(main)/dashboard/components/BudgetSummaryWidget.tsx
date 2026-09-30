@@ -69,7 +69,11 @@ export function BudgetSummaryWidget(): React.JSX.Element | null {
   return (
     <DashboardCard
       title={t.title}
-      action={<CardLink href="/budgets">{hasBudgets ? t.viewAll : t.setUpBudgets}</CardLink>}
+      action={
+        <CardLink href={hasBudgets ? '/budgets#budget-list' : '/budgets'}>
+          {hasBudgets ? t.viewAll : t.setUpBudgets}
+        </CardLink>
+      }
     >
       {hasBudgets ? (
         <div className="lumio-dashboard__list">

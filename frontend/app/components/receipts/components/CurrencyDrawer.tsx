@@ -3,6 +3,7 @@
 import { Box, IconButton, Typography } from '@mui/material';
 import { Check, ChevronLeft, Search } from '@/app/components/icons';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { useIntlayer } from '@/app/i18n';
 import type { CurrencySearchItem } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
 
@@ -33,6 +34,7 @@ export function CurrencyDrawer({
   handleSelectCurrency,
   zIndex,
 }: CurrencyDrawerProps) {
+  const t = useIntlayer('receiptCurrencyDrawer');
   return (
     <DrawerShell
       isOpen={isOpen}
@@ -46,12 +48,12 @@ export function CurrencyDrawer({
           <IconButton
             size="small"
             onClick={onClose}
-            aria-label="Close currency drawer"
+            aria-label={t.closeDrawer.value}
             sx={{ borderRadius: tokens.radius.md }}
           >
             <ChevronLeft style={{ width: 20, height: 20 }} />
           </IconButton>
-          <Typography style={{ fontSize: 18, fontWeight: 600 }}>Select a currency</Typography>
+          <Typography style={{ fontSize: 18, fontWeight: 600 }}>{t.title}</Typography>
         </Box>
       }
     >
@@ -83,7 +85,7 @@ export function CurrencyDrawer({
               type="text"
               value={currencySearch}
               onChange={event => setCurrencySearch(event.target.value)}
-              placeholder="Search"
+              placeholder={t.searchPlaceholder.value}
               style={{
                 width: '100%',
                 border: '1px solid var(--border-color)',
@@ -125,7 +127,7 @@ export function CurrencyDrawer({
               <Typography
                 style={{ paddingLeft: 4, fontSize: 14, color: 'var(--muted-foreground)' }}
               >
-                Recents
+                {t.recents}
               </Typography>
               <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {recentCurrencyItems.map(item => (
@@ -157,7 +159,7 @@ export function CurrencyDrawer({
 
           <Box>
             <Typography style={{ paddingLeft: 4, fontSize: 14, color: 'var(--muted-foreground)' }}>
-              All
+              {t.all}
             </Typography>
             <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {allCurrencyItems.length > 0 ? (
@@ -193,7 +195,7 @@ export function CurrencyDrawer({
                     color: 'var(--muted-foreground)',
                   }}
                 >
-                  No currencies found
+                  {t.noResults}
                 </Typography>
               )}
             </Box>

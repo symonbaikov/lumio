@@ -5,39 +5,62 @@ import { FilterActions } from '@/app/(main)/statements/components/filters/Filter
 import { FilterDropdown } from '@/app/(main)/statements/components/filters/FilterDropdown';
 import { Search } from '@/app/components/icons';
 import { FilterChipButton } from '@/app/components/ui/filter-chip-button';
+import { useIntlayer } from '@/app/i18n';
 import type { ActorType, AuditAction, AuditEventFilter } from '@/lib/api/audit';
 
-type ActorTypeOption = { value: ActorType | ''; label: string };
-type ActionOption = { value: AuditAction | ''; label: string };
+/** Keys of the `auditUi` dictionary used as option labels. */
+type LabelKey =
+  | 'allUsers'
+  | 'user'
+  | 'system'
+  | 'integration'
+  | 'allActions'
+  | 'actionCreate'
+  | 'actionUpdate'
+  | 'actionDelete'
+  | 'actionImport'
+  | 'actionExport'
+  | 'actionLink'
+  | 'actionUnlink'
+  | 'actionMerge'
+  | 'actionCategorize'
+  | 'rollback'
+  | 'last7Days'
+  | 'last30Days'
+  | 'last90Days'
+  | 'allTime';
+
+type ActorTypeOption = { value: ActorType | ''; labelKey: LabelKey };
+type ActionOption = { value: AuditAction | ''; labelKey: LabelKey };
 
 const ACTOR_OPTIONS: ActorTypeOption[] = [
-  { value: '', label: 'All users' },
-  { value: 'user', label: 'User' },
-  { value: 'system', label: 'System' },
-  { value: 'integration', label: 'Integration' },
+  { value: '', labelKey: 'allUsers' },
+  { value: 'user', labelKey: 'user' },
+  { value: 'system', labelKey: 'system' },
+  { value: 'integration', labelKey: 'integration' },
 ];
 
 const ACTION_OPTIONS: ActionOption[] = [
-  { value: '', label: 'All actions' },
-  { value: 'create', label: 'Create' },
-  { value: 'update', label: 'Update' },
-  { value: 'delete', label: 'Delete' },
-  { value: 'import', label: 'Import' },
-  { value: 'export', label: 'Export' },
-  { value: 'link', label: 'Link' },
-  { value: 'unlink', label: 'Unlink' },
-  { value: 'match', label: 'Merge' },
-  { value: 'apply_rule', label: 'Categorize' },
-  { value: 'rollback', label: 'Rollback' },
+  { value: '', labelKey: 'allActions' },
+  { value: 'create', labelKey: 'actionCreate' },
+  { value: 'update', labelKey: 'actionUpdate' },
+  { value: 'delete', labelKey: 'actionDelete' },
+  { value: 'import', labelKey: 'actionImport' },
+  { value: 'export', labelKey: 'actionExport' },
+  { value: 'link', labelKey: 'actionLink' },
+  { value: 'unlink', labelKey: 'actionUnlink' },
+  { value: 'match', labelKey: 'actionMerge' },
+  { value: 'apply_rule', labelKey: 'actionCategorize' },
+  { value: 'rollback', labelKey: 'rollback' },
 ];
 
 type DatePreset = '7d' | '30d' | '90d' | 'all';
 
-const DATE_PRESETS: { value: DatePreset; label: string }[] = [
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: '90d', label: 'Last 90 days' },
-  { value: 'all', label: 'All time' },
+const DATE_PRESETS: { value: DatePreset; labelKey: LabelKey }[] = [
+  { value: '7d', labelKey: 'last7Days' },
+  { value: '30d', labelKey: 'last30Days' },
+  { value: '90d', labelKey: 'last90Days' },
+  { value: 'all', labelKey: 'allTime' },
 ];
 
 function daysAgoIso(n: number): string {
@@ -71,9 +94,9 @@ function currentPreset(filters: AuditEventFilter): DatePreset {
   return 'all';
 }
 
-function dateChipLabel(filters: AuditEventFilter): string {
+function dateChipLabelKey(filters: AuditEventFilter): LabelKey {
   const preset = currentPreset(filters);
-  return DATE_PRESETS.find(p => p.value === preset)?.label ?? 'Last 7 days';
+  return DATE_PRESETS.find(p => p.value === preset)?.labelKey ?? 'last7Days';
 }
 
 interface AuditFilterBarProps {
@@ -82,6 +105,7 @@ interface AuditFilterBarProps {
 }
 
 export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps) {
+  const t = useIntlayer('auditUi');
   const [usersOpen, setUsersOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [dateOpen, setDateOpen] = useState(false);
@@ -151,13 +175,11 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
   const actionsActive = Boolean(filters.action);
   const dateActive = currentPreset(filters) !== '7d';
 
-  const usersLabel = filters.actorType
-    ? (ACTOR_OPTIONS.find(o => o.value === filters.actorType)?.label ?? 'All users')
-    : 'All users';
+  const usersLabel =
+    t[ACTOR_OPTIONS.find(o => o.value === filters.actorType)?.labelKey ?? 'allUsers'].value;
 
-  const actionsLabel = filters.action
-    ? (ACTION_OPTIONS.find(o => o.value === filters.action)?.label ?? 'All actions')
-    : 'All actions';
+  const actionsLabel =
+    t[ACTION_OPTIONS.find(o => o.value === filters.action)?.labelKey ?? 'allActions'].value;
 
   return (
     <div className="audit-filter-bar">
@@ -166,7 +188,7 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
         <Search size={14} />
         <input
           className="audit-search"
-          placeholder="Search actions, users…"
+          placeholder={t.searchPlaceholder.value}
           value={searchVal}
           onChange={e => handleSearch(e.target.value)}
         />
@@ -203,13 +225,13 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
                 checked={pendingActorType === opt.value}
                 onChange={() => setPendingActorType(opt.value)}
               />
-              {opt.label}
+              {t[opt.labelKey]}
             </label>
           ))}
         </div>
         <FilterActions
-          applyLabel="Apply"
-          resetLabel="Reset"
+          applyLabel={t.apply.value}
+          resetLabel={t.reset.value}
           onApply={applyUsers}
           onReset={resetUsers}
         />
@@ -246,13 +268,13 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
                 checked={pendingAction === opt.value}
                 onChange={() => setPendingAction(opt.value)}
               />
-              {opt.label}
+              {t[opt.labelKey]}
             </label>
           ))}
         </div>
         <FilterActions
-          applyLabel="Apply"
-          resetLabel="Reset"
+          applyLabel={t.apply.value}
+          resetLabel={t.reset.value}
           onApply={applyActions}
           onReset={resetActions}
         />
@@ -267,7 +289,11 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
             setPendingDatePreset(currentPreset(filters));
           }
         }}
-        trigger={<FilterChipButton active={dateActive}>{dateChipLabel(filters)}</FilterChipButton>}
+        trigger={
+          <FilterChipButton active={dateActive}>
+            {t[dateChipLabelKey(filters)].value}
+          </FilterChipButton>
+        }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {DATE_PRESETS.map(opt => (
@@ -289,13 +315,13 @@ export function AuditFilterBar({ filters, onFiltersChange }: AuditFilterBarProps
                 checked={pendingDatePreset === opt.value}
                 onChange={() => setPendingDatePreset(opt.value)}
               />
-              {opt.label}
+              {t[opt.labelKey]}
             </label>
           ))}
         </div>
         <FilterActions
-          applyLabel="Apply"
-          resetLabel="Reset"
+          applyLabel={t.apply.value}
+          resetLabel={t.reset.value}
           onApply={applyDate}
           onReset={resetDate}
         />
