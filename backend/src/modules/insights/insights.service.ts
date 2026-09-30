@@ -13,6 +13,7 @@ import {
   type InsightMessageKey,
   renderInsight,
 } from './insight-translations';
+import { QUOTE_TEXTS } from './quotes/texts';
 import { isStoicKey } from './stoic-texts';
 import { type PhrasedText, StoicPhrasingService } from './stoic-phrasing.service';
 
@@ -186,16 +187,49 @@ export class InsightsService {
    * wording, which is better than the template it was drafted from.
    */
   private localize(insight: Insight, locale?: string): Insight {
+    if (!locale) {
+      return insight;
+    }
+    const text = this.localizeText(insight, locale);
+    const data = this.localizeExpert(insight.data, locale);
+    if (!text && data === insight.data) {
+      return insight;
+    }
+    return { ...insight, ...text, data } as Insight;
+  }
+
+  /** Template text in the reader's language, or null when the row keeps its own. */
+  private localizeText(
+    insight: Insight,
+    locale: string,
+  ): { title: string; message: string } | null {
     const key = insight.messageKey;
     const params = insight.messageParams;
-    if (!(locale && key && params) || params.locale === locale) {
-      return insight;
+    if (!(key && params) || params.locale === locale) {
+      return null;
     }
     if (!(isStoicKey(key) || key in INSIGHT_TRANSLATIONS.en)) {
-      return insight;
+      return null;
     }
-    const { title, message } = renderInsight(locale, key as InsightMessageKey, params);
-    return { ...insight, title, message } as Insight;
+    return renderInsight(locale, key as InsightMessageKey, params);
+  }
+
+  /**
+   * Expert cards credit a named author, and those names are already translated
+   * for the quote of the day — the same table serves both, so the credit line
+   * does not stay English under a card that is otherwise translated. The work
+   * keeps its published title, the way the quote banner cites its source.
+   */
+  private localizeExpert(
+    data: Record<string, unknown> | null,
+    locale: string,
+  ): Record<string, unknown> | null {
+    const expert = data?.expert;
+    if (typeof expert !== 'string') {
+      return data;
+    }
+    const translated = QUOTE_TEXTS[locale]?.authors[expert];
+    return translated && translated !== expert ? { ...data, expert: translated } : data;
   }
 
   async getSummary(userId: string, workspaceId: string) {
