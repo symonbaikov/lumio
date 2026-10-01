@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Bank sync through your own SimpleFIN account (2026-10-01)
+
+- **Integrations → Bank sync via SimpleFIN**: paste the setup token from your own SimpleFIN Bridge
+  account; Lumio exchanges it once (`POST /integrations/simplefin/connect`), keeps the access
+  credential encrypted, lists the accounts and pulls them (`POST /integrations/simplefin/sync`) on
+  demand or every six hours. Per-account *Pull* switch and target wallet
+  (`POST /integrations/simplefin/settings`), *Refresh accounts*, disconnect deletes the credential.
+- Each pull becomes an **OFX statement through the regular import**: dedupe, rules, review inbox
+  and audit are the same as for an uploaded file. Provider transaction ids are document numbers, so
+  nothing is imported twice; the first pull covers 90 days, later ones overlap by a week; pending
+  rows wait until they post. A rejected credential flips the integration to *Needs a new token*.
+- README positioning: Lumio holds no bank integration of its own; you may connect your own
+  provider account. Enable Banking is not wired (needs an application registered with them).
+
 #### Multi-currency: no silent 1.0, manual rates (2026-10-01)
 
 - A missing exchange rate is now said out loud: `GET /exchange-rates` answers `missing: true`, the

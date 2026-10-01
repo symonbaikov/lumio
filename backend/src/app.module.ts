@@ -72,6 +72,7 @@ import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor
 import { AuthModule } from './modules/auth/auth.module';
 import { BackupsModule } from './modules/backups/backups.module';
 import { BalanceModule } from './modules/balance/balance.module';
+import { BankSyncModule } from './modules/bank-sync/bank-sync.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -253,6 +254,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     InsightsModule,
     ObservabilityModule,
     OpenProtocolIntegrationsModule,
+    BankSyncModule,
     DashboardModule,
     SearchModule,
     PayablesModule,

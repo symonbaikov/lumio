@@ -46,8 +46,11 @@ that document has the evidence behind every line here. Dates are intentions, not
 
 ## Phase 3 — by decision
 
-- [ ] Optional bank sync through the user's own provider account (SimpleFIN, Enable Banking). This
-      changes the "not a bank integration" positioning in the README and needs an explicit decision.
+- [x] Optional bank sync through the user's own provider account: SimpleFIN Bridge (open protocol,
+      the user's own paid account, setup token → encrypted credential, pulls as OFX through the
+      regular import, per-account switches and wallets, every 6 hours or on demand). README now says
+      "Lumio holds no bank integration of its own; you may connect your own provider account".
+      Enable Banking (EU/UK) is not wired: it needs an application registered with them.
 - [x] Mobile layer: service worker with an offline queue for manual entries and receipt photos, web
       push for alerts, home-screen shortcuts (2026-10-01).
 - [x] Import formats: OFX/QFX, QIF, camt.053, MT940, CSV presets for 22 banks, forwarded statements

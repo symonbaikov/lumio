@@ -167,7 +167,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 
 Setting expectations upfront:
 
-- **Not a bank integration** — Lumio parses statement files you export from your bank. It does not connect to bank APIs or fetch transactions automatically.
+- **Not a bank integration** — Lumio holds no bank integration of its own: it parses statement files you export from your bank. If you have your own account with an aggregator that speaks an open protocol (SimpleFIN Bridge today), you can connect it under Integrations and Lumio pulls your statements through the same import; Lumio itself never talks to a bank.
 - **Not an accrual accounting suite** — The ledger records what your statements and manual entries say. There is no automatic accrual, depreciation schedule, or period-end closing workflow.
 - **Not a filing service or tax adviser** — Lumio computes tax figures and drafts VAT and income tax documents, but it does not submit anything to a tax authority on your behalf. An income tax draft is not tax advice — check it before you file.
 - **Not a replacement for accounting software** — Lumio keeps double-entry books of your bank activity and issues invoices, but it does not run payroll or file statutory reports. Use it next to QuickBooks, Xero, or 1C rather than instead of them.
