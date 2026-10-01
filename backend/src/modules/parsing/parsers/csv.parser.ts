@@ -1,4 +1,5 @@
-import csv from 'csv-parser';
+import csv = require('csv-parser');
+
 import * as fs from 'fs';
 import { type BankName, FileType } from '../../../entities/statement.entity';
 import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-statement.interface';
