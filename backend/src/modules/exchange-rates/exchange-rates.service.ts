@@ -1,10 +1,11 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Cache } from 'cache-manager';
 import { LessThanOrEqual, Repository } from 'typeorm';
 import { ExchangeRate } from '../../entities/exchange-rate.entity';
+import { Transaction } from '../../entities/transaction.entity';
 
 /**
  * A rate and the day it was quoted for. `stale` marks a rate borrowed from an
@@ -42,6 +43,9 @@ export class ExchangeRatesService {
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
+    @Optional()
+    @InjectRepository(Transaction)
+    private readonly transactionRepository?: Repository<Transaction>,
   ) {
     this.apiKey = this.configService.get<string>('EXCHANGE_RATE_API_KEY');
   }
@@ -272,6 +276,79 @@ export class ExchangeRatesService {
     // The closer of the two to the requested day.
     candidates.sort((a, b) => b.rateDate.localeCompare(a.rateDate));
     return candidates[0] ?? null;
+  }
+
+  /**
+   * A rate entered by hand for one day. Replaces whatever the provider stored
+   * for that day and clears the cache, so the next conversion uses it.
+   */
+  async setManualRate(
+    from: string,
+    to: string,
+    rate: number,
+    date?: Date | string,
+  ): Promise<{ from: string; to: string; rate: number; rateDate: string }> {
+    const normalizedFrom = this.normalizeCurrencyCode(from);
+    const normalizedTo = this.normalizeCurrencyCode(to);
+    const rateDate = this.toDateOnly(date ?? new Date());
+    await this.exchangeRateRepository.delete({
+      baseCurrency: normalizedFrom,
+      targetCurrency: normalizedTo,
+      rateDate: new Date(rateDate),
+    });
+    await this.saveRate(normalizedFrom, normalizedTo, rate, rateDate, 'manual');
+    await this.cacheManager.del(`exchange_rate:${normalizedFrom}:${normalizedTo}:${rateDate}`);
+    await this.cacheManager.del(`exchange_rate:${normalizedTo}:${normalizedFrom}:${rateDate}`);
+    return { from: normalizedFrom, to: normalizedTo, rate, rateDate };
+  }
+
+  /**
+   * Every currency the workspace's rows carry, with whether a rate to the
+   * workspace currency exists. The dashboard and reports convert at 1.0 when
+   * none does; this is where that becomes visible instead of silent.
+   */
+  async coverageForWorkspace(
+    workspaceId: string,
+    workspaceCurrency: string,
+    sinceDays = 365,
+  ): Promise<
+    Array<{
+      currency: string;
+      rate: number | null;
+      rateDate: string | null;
+      stale: boolean;
+      rows: number;
+    }>
+  > {
+    if (!this.transactionRepository) return [];
+    const since = new Date();
+    since.setDate(since.getDate() - sinceDays);
+    const rows = await this.transactionRepository
+      .createQueryBuilder('t')
+      .select('UPPER(t.currency)', 'currency')
+      .addSelect('COUNT(*)', 'rows')
+      .where('t.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('t.transactionDate >= :since', { since })
+      .andWhere('t.currency IS NOT NULL')
+      .groupBy('UPPER(t.currency)')
+      .getRawMany<{ currency: string; rows: string }>();
+    const target = this.normalizeCurrencyCode(workspaceCurrency);
+    const result = [];
+    for (const row of rows) {
+      const currency = this.normalizeCurrencyCode(row.currency);
+      if (currency === target) continue;
+      const quote = await this.getRateQuote(currency, target, new Date());
+      result.push({
+        currency,
+        rate: quote?.rate ?? null,
+        rateDate: quote?.rateDate ?? null,
+        stale: quote?.stale ?? false,
+        rows: Number(row.rows),
+      });
+    }
+    return result.sort(
+      (a, b) => Number(a.rate !== null) - Number(b.rate !== null) || b.rows - a.rows,
+    );
   }
 
   async convert(

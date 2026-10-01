@@ -52,5 +52,6 @@ that document has the evidence behind every line here. Dates are intentions, not
       push for alerts, home-screen shortcuts (2026-10-01).
 - [x] Import formats: OFX/QFX, QIF, camt.053, MT940, CSV presets for 22 banks, forwarded statements
       from the IMAP mailbox (2026-10-01).
-- [ ] Multi-currency audit: original amount and currency visible everywhere, manual rate override, no
-      silent 1:1 conversion when a rate is missing.
+- [x] Multi-currency audit: original amount and currency visible in the drawer with the rate used,
+      manual rate override, a missing rate reported on the dashboard and in settings instead of a
+      silent 1.0 (2026-10-01).

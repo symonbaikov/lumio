@@ -4,33 +4,49 @@ describe('ExchangeRatesController', () => {
   let controller: ExchangeRatesController;
   const exchangeRatesService = {
     getRate: jest.fn(),
+    getRateQuote: jest.fn(),
     bulkConvert: jest.fn(),
   } as any;
+  const workspaceRepository = { findOne: jest.fn() } as any;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    controller = new ExchangeRatesController(exchangeRatesService);
+    controller = new ExchangeRatesController(exchangeRatesService, workspaceRepository);
   });
 
   describe('getRate', () => {
     it('returns rate for a currency pair', async () => {
-      exchangeRatesService.getRate.mockResolvedValue(3.67);
+      exchangeRatesService.getRateQuote.mockResolvedValue({ rate: 3.67, rateDate: '2025-06-15', stale: false });
       const result = await controller.getRate('USD', 'ILS');
 
-      expect(result).toEqual({ from: 'USD', to: 'ILS', rate: 3.67, date: null });
-      expect(exchangeRatesService.getRate).toHaveBeenCalledWith('USD', 'ILS', undefined);
+      expect(result).toEqual({
+        from: 'USD',
+        to: 'ILS',
+        rate: 3.67,
+        date: null,
+        rateDate: '2025-06-15',
+        stale: false,
+        missing: false,
+      });
+      expect(exchangeRatesService.getRateQuote).toHaveBeenCalledWith('USD', 'ILS', undefined);
     });
 
     it('passes date when provided', async () => {
-      exchangeRatesService.getRate.mockResolvedValue(3.60);
+      exchangeRatesService.getRateQuote.mockResolvedValue({ rate: 3.6, rateDate: '2025-06-15', stale: false });
       const result = await controller.getRate('USD', 'ILS', '2025-06-15');
 
       expect(result.date).toBe('2025-06-15');
-      expect(exchangeRatesService.getRate).toHaveBeenCalledWith(
+      expect(exchangeRatesService.getRateQuote).toHaveBeenCalledWith(
         'USD',
         'ILS',
         new Date('2025-06-15'),
       );
+    });
+
+    it('says so when no rate exists instead of a silent 1', async () => {
+      exchangeRatesService.getRateQuote.mockResolvedValue(null);
+      const result = await controller.getRate('ZZX', 'USD');
+      expect(result).toMatchObject({ rate: 1, missing: true, rateDate: null });
     });
   });
 

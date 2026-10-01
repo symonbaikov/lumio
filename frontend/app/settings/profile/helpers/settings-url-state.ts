@@ -12,7 +12,14 @@ export const SETTINGS_SECTIONS = {
   general: ['profile', 'appearance'],
   security: ['email', 'password', 'two-factor', 'sessions'],
   notifications: ['telegram', 'push'],
-  data: ['workspace-profile', 'processing', 'receipt-location', 'sync', 'my-data'],
+  data: [
+    'workspace-profile',
+    'processing',
+    'exchange-rates',
+    'receipt-location',
+    'sync',
+    'my-data',
+  ],
   advanced: ['changelog'],
 } as const satisfies Record<SettingsTabId, readonly string[]>;
 export type SettingsSectionId = (typeof SETTINGS_SECTIONS)[SettingsTabId][number];

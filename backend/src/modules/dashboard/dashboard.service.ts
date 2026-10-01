@@ -281,6 +281,11 @@ export class DashboardService {
       );
     }
 
+    // Rows in a currency with no rate were counted at face value above; say so.
+    const coverage =
+      (await this.exchangeRatesService.coverageForWorkspace(workspaceId, targetCurrency)) ?? [];
+    const missingRates = coverage.filter(item => item.rate === null).map(item => item.currency);
+
     return {
       totalBalance,
       income30d: income,
@@ -290,6 +295,7 @@ export class DashboardService {
       totalOverdue,
       unapprovedCash,
       currency: targetCurrency,
+      missingRates,
     };
   }
 

@@ -4628,3 +4628,19 @@
     cursor: pointer;
   }
 }
+
+// Rows counted at face value because a rate is missing: a warning line above the dashboard tabs.
+.lumio-dashboard__rates-banner {
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.08);
+  color: var(--foreground, #111827);
+  font-size: 13px;
+
+  a {
+    color: var(--primary, #0584c7);
+    font-weight: 600;
+  }
+}

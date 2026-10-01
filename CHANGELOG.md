@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Multi-currency: no silent 1.0, manual rates (2026-10-01)
+
+- A missing exchange rate is now said out loud: `GET /exchange-rates` answers `missing: true`, the
+  dashboard snapshot lists `missingRates` and shows a banner, Settings → Data → **Exchange rates**
+  lists every currency in the workspace's rows with the rate used (or "no rate") and a field to
+  **set a rate by hand** (`POST /exchange-rates/manual`; it wins over the provider for that day).
+- The transaction drawer shows the amount **in the workspace currency** with the rate and its date,
+  or that no rate exists and the row counts at face value in totals.
+
 #### Import formats: OFX/QFX, QIF, camt.053, MT940, bank CSV presets, mailbox (2026-10-01)
 
 - **Four more statement formats**: OFX/QFX (SGML and XML), QIF (date order inferred from the whole
