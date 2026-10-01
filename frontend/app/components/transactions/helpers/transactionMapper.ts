@@ -37,5 +37,8 @@ export function mapApiRecordToTransaction(tx: TransactionApiRecord): Transaction
     categoryReason: tx.categoryReason,
     transferPairId: tx.transferPairId,
     transferPairSource: tx.transferPairSource,
+    transferPairKind: tx.transferPairKind,
+    reimbursementOfId: tx.reimbursementOfId,
+    reimbursementOf: tx.reimbursementOf,
   };
 }

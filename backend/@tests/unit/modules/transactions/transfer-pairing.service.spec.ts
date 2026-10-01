@@ -186,7 +186,12 @@ describe('TransferPairingService', () => {
 
       expect(repository.update).toHaveBeenCalledWith(
         { workspaceId: WORKSPACE, transferPairId: 'pair-1' },
-        { transferPairId: null, transferPairSource: TransferPairSource.REJECTED },
+        {
+          transferPairId: null,
+          transferPairSource: TransferPairSource.REJECTED,
+          transferPairKind: null,
+          reimbursementOfId: null,
+        },
       );
     });
 
@@ -209,5 +214,116 @@ describe('TransferPairingService', () => {
 
       expect(result.map(r => r.id)).toEqual(['exact', 'far']);
     });
+  });
+});
+
+describe('TransferPairingService reimbursements', () => {
+  let service: TransferPairingService;
+  const repository = {
+    findOne: jest.fn(),
+    update: jest.fn(),
+    createQueryBuilder: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const module = await Test.createTestingModule({
+      providers: [
+        TransferPairingService,
+        { provide: getRepositoryToken(Transaction), useValue: repository },
+        { provide: ExchangeRatesService, useValue: { getRateOrNull: jest.fn(async () => null) } },
+      ],
+    }).compile();
+    service = module.get(TransferPairingService);
+  });
+
+  const income = (overrides: Partial<Transaction> = {}) =>
+    row({
+      id: 'inc',
+      transactionType: TransactionType.INCOME,
+      debit: null,
+      credit: 120,
+      amount: 120,
+      ...overrides,
+    });
+  const expense = (overrides: Partial<Transaction> = {}) =>
+    row({ id: 'exp', amount: 120, debit: 120, ...overrides });
+
+  it('pairs a full repayment so both rows leave the aggregates', async () => {
+    repository.findOne.mockResolvedValueOnce(income()).mockResolvedValueOnce(expense());
+    repository.update.mockResolvedValue({ affected: 2 });
+
+    const result = await service.linkReimbursement(WORKSPACE, 'inc', 'exp');
+
+    expect(result.full).toBe(true);
+    expect(repository.update).toHaveBeenNthCalledWith(
+      1,
+      { id: In(['inc', 'exp']), workspaceId: WORKSPACE, transferPairId: IsNull() },
+      expect.objectContaining({
+        transferPairId: result.transferPairId,
+        transferPairSource: TransferPairSource.MANUAL,
+        transferPairKind: 'reimbursement',
+      }),
+    );
+    expect(repository.update).toHaveBeenNthCalledWith(
+      2,
+      { id: 'inc', workspaceId: WORKSPACE },
+      { reimbursementOfId: 'exp' },
+    );
+  });
+
+  it('only records the link for a partial repayment', async () => {
+    repository.findOne
+      .mockResolvedValueOnce(income({ credit: 80, amount: 80 }))
+      .mockResolvedValueOnce(expense());
+    repository.update.mockResolvedValue({ affected: 1 });
+
+    const result = await service.linkReimbursement(WORKSPACE, 'inc', 'exp');
+
+    expect(result).toEqual({ full: false, transferPairId: null });
+    expect(repository.update).toHaveBeenCalledTimes(1);
+    expect(repository.update).toHaveBeenCalledWith(
+      { id: 'inc', workspaceId: WORKSPACE },
+      { reimbursementOfId: 'exp' },
+    );
+  });
+
+  it('refuses the wrong directions and rows already linked', async () => {
+    repository.findOne.mockResolvedValueOnce(expense()).mockResolvedValueOnce(income());
+    await expect(service.linkReimbursement(WORKSPACE, 'exp', 'inc')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+
+    repository.findOne
+      .mockResolvedValueOnce(income({ reimbursementOfId: 'other' }))
+      .mockResolvedValueOnce(expense());
+    await expect(service.linkReimbursement(WORKSPACE, 'inc', 'exp')).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(repository.update).not.toHaveBeenCalled();
+  });
+
+  it('unlinks the pair together with the link', async () => {
+    repository.findOne.mockResolvedValueOnce(
+      income({
+        reimbursementOfId: 'exp',
+        transferPairId: 'pair-1',
+        transferPairKind: 'reimbursement' as Transaction['transferPairKind'],
+      }),
+    );
+    repository.update.mockResolvedValue({ affected: 2 });
+
+    await service.unlinkReimbursement(WORKSPACE, 'inc');
+
+    expect(repository.update).toHaveBeenNthCalledWith(
+      1,
+      { workspaceId: WORKSPACE, transferPairId: 'pair-1' },
+      { transferPairId: null, transferPairSource: null, transferPairKind: null },
+    );
+    expect(repository.update).toHaveBeenNthCalledWith(
+      2,
+      { id: 'inc', workspaceId: WORKSPACE },
+      { reimbursementOfId: null },
+    );
   });
 });

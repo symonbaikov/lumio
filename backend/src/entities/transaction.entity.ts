@@ -52,6 +52,14 @@ export enum TransactionCategorySource {
   DEFAULT = 'default',
 }
 
+/** What a pair of linked legs represents. */
+export enum TransferPairKind {
+  /** Money moved between the user's own accounts. */
+  TRANSFER = 'transfer',
+  /** Money paid out and paid back in full (a work expense, a split bill). */
+  REIMBURSEMENT = 'reimbursement',
+}
+
 /** How the two legs of a transfer came to be linked. */
 export enum TransferPairSource {
   AUTO = 'auto',
@@ -369,6 +377,22 @@ export class Transaction {
   /** Set together with `transferPairId`; `rejected` survives an unlink on its own. */
   @Column({ name: 'transfer_pair_source', type: 'varchar', length: 10, nullable: true })
   transferPairSource: TransferPairSource | null;
+
+  /** Null means `transfer`; set on both legs. */
+  @Column({ name: 'transfer_pair_kind', type: 'varchar', length: 16, nullable: true })
+  transferPairKind: TransferPairKind | null;
+
+  /**
+   * On an incoming row: the expense it pays back. A full repayment also
+   * becomes a `reimbursement` pair so both rows leave the aggregates; a
+   * partial one only records the link and still counts gross.
+   */
+  @ManyToOne(() => Transaction, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'reimbursement_of_id' })
+  reimbursementOf: Transaction | null;
+
+  @Column({ name: 'reimbursement_of_id', type: 'uuid', nullable: true })
+  reimbursementOfId: string | null;
 
   @Column({ name: 'fingerprint', length: 64, nullable: true })
   fingerprint: string | null;

@@ -175,6 +175,51 @@ describe('Transfer pairing (e2e)', () => {
       .expect(409);
   });
 
+  it('links a full repayment as a reimbursement pair and unlinks it again', async () => {
+    // Free both rows first: the previous test left them as a manual transfer.
+    await as(owner, request(server()).post(`/transactions/${outgoingId}/unlink-transfer`)).expect(
+      200,
+    );
+
+    const candidates = await as(
+      owner,
+      request(server()).get(`/transactions/${incomingId}/reimbursement-candidates`),
+    ).expect(200);
+    expect(candidates.body.data.map((tx: ListedTransaction) => tx.id)).toEqual([outgoingId]);
+
+    const linked = await as(
+      owner,
+      request(server()).post(`/transactions/${incomingId}/link-reimbursement`),
+    )
+      .send({ expenseId: outgoingId })
+      .expect(200);
+    expect(linked.body.full).toBe(true);
+
+    const transfers = await listTransfers();
+    expect(transfers).toHaveLength(2);
+    for (const id of [outgoingId, incomingId]) {
+      const row = await reload(id);
+      expect(row.transferPairId).toBe(linked.body.transferPairId);
+      expect(row.transferPairKind).toBe('reimbursement');
+    }
+    expect((await reload(incomingId)).reimbursementOfId).toBe(outgoingId);
+
+    const listed = await as(owner, request(server()).get('/transactions?type=income')).expect(200);
+    const incomeRow = listed.body.data.find((tx: ListedTransaction) => tx.id === incomingId);
+    expect(incomeRow.reimbursementOf.id).toBe(outgoingId);
+
+    await as(owner, request(server()).post(`/transactions/${incomingId}/unlink-reimbursement`)).expect(
+      200,
+    );
+    expect(await listTransfers()).toHaveLength(0);
+    expect((await reload(incomingId)).reimbursementOfId).toBeNull();
+
+    // Direction matters: the expense cannot be "the reimbursement".
+    await as(owner, request(server()).post(`/transactions/${outgoingId}/link-reimbursement`))
+      .send({ expenseId: incomingId })
+      .expect(400);
+  });
+
   it('validates the body', async () => {
     await as(owner, request(server()).post(`/transactions/${outgoingId}/link-transfer`))
       .send({ otherId: 'not-a-uuid' })

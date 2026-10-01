@@ -41,6 +41,16 @@ export interface Transaction {
   // Transfer between the user's own accounts (both legs share the id)
   transferPairId?: string | null;
   transferPairSource?: 'auto' | 'manual' | 'rejected' | null;
+  transferPairKind?: 'transfer' | 'reimbursement' | null;
+  // Incoming row that pays back an expense (full repayments also become a pair)
+  reimbursementOfId?: string | null;
+  reimbursementOf?: {
+    id: string;
+    counterpartyName: string;
+    transactionDate: string;
+    debit?: number | null;
+    currency?: string;
+  } | null;
   // Parsing metadata (optional, might not exist yet)
   parsingConfidence?: number;
   rawExtract?: string;

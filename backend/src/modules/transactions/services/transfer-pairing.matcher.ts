@@ -36,12 +36,13 @@ export function absAmount(leg: TransferLeg): number {
 
 /**
  * Which account a row belongs to. Null means "unknown": a manual entry with
- * neither a statement nor a wallet cannot be told apart from any other, so it
- * never pairs automatically.
+ * no statement cannot be told apart from any other, so it never pairs
+ * automatically. `walletId` is deliberately not a signal: classification
+ * assigns the workspace's default wallet to every row that has no rule, so
+ * it would make two different bank accounts look like one.
  */
 export function accountKey(leg: TransferLeg): string | null {
   if (leg.cryptoWalletId) return `crypto:${leg.cryptoWalletId}`;
-  if (leg.walletId) return `wallet:${leg.walletId}`;
   const accountNumber = leg.statement?.accountNumber?.trim();
   if (accountNumber) return `account:${accountNumber}`;
   if (leg.statementId) return `statement:${leg.statementId}`;

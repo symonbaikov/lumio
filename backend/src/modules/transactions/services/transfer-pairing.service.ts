@@ -11,6 +11,7 @@ import { In, IsNull, type Repository } from 'typeorm';
 import {
   Transaction,
   TransactionType,
+  TransferPairKind,
   TransferPairSource,
 } from '../../../entities/transaction.entity';
 import { ExchangeRatesService } from '../../exchange-rates/exchange-rates.service';
@@ -26,6 +27,8 @@ import {
 
 /** The manual picker looks further than the matcher: a fee or a slow bank is exactly what it is for. */
 const CANDIDATE_WINDOW_DAYS = 7;
+/** Expense reports get paid back weeks later. */
+const REIMBURSEMENT_WINDOW_DAYS = 45;
 const CANDIDATE_LIMIT = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -63,6 +66,7 @@ export class TransferPairingService {
       .andWhere('t.isDuplicate = false')
       .andWhere('t.splitGroupId IS NULL')
       .andWhere('t.transferPairId IS NULL')
+      .andWhere('t.reimbursementOfId IS NULL')
       .andWhere('(t.statementId IS NULL OR s.deletedAt IS NULL)');
     if (!options.includeRejected) {
       query.andWhere('(t.transferPairSource IS NULL OR t.transferPairSource != :rejected)', {
@@ -216,7 +220,137 @@ export class TransferPairingService {
     }
     await this.transactionRepository.update(
       { workspaceId, transferPairId: row.transferPairId },
-      { transferPairId: null, transferPairSource: TransferPairSource.REJECTED },
+      {
+        transferPairId: null,
+        transferPairSource: TransferPairSource.REJECTED,
+        transferPairKind: null,
+        reimbursementOfId: null,
+      },
+    );
+  }
+
+  /**
+   * Expenses an incoming row may be paying back: either way round in time
+   * (an advance is repaid later, a refund follows the charge), closest amount
+   * first. Any account qualifies — the employer pays into whichever one.
+   */
+  async reimbursementCandidates(workspaceId: string, incomeId: string): Promise<Transaction[]> {
+    const income = await this.findOwned(workspaceId, incomeId);
+    if (income.transactionType !== TransactionType.INCOME) {
+      throw new BadRequestException('Only an incoming transaction can be a reimbursement');
+    }
+    const at = new Date(income.transactionDate).getTime();
+    const rows = await this.transactionRepository
+      .createQueryBuilder('t')
+      .leftJoin('t.statement', 's')
+      .where('t.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('t.id != :id', { id: income.id })
+      .andWhere('t.transactionType = :expense', { expense: TransactionType.EXPENSE })
+      .andWhere('t.isDuplicate = false')
+      .andWhere('t.splitGroupId IS NULL')
+      .andWhere('t.transferPairId IS NULL')
+      .andWhere('t.transactionDate BETWEEN :since AND :until', {
+        since: new Date(at - REIMBURSEMENT_WINDOW_DAYS * DAY_MS),
+        until: new Date(at + REIMBURSEMENT_WINDOW_DAYS * DAY_MS),
+      })
+      .andWhere('(t.statementId IS NULL OR s.deletedAt IS NULL)')
+      .getMany();
+
+    const amount = absAmount(income);
+    return rows
+      .sort(
+        (a, b) =>
+          Math.abs(absAmount(a) - amount) - Math.abs(absAmount(b) - amount) ||
+          daysBetween(a.transactionDate, income.transactionDate) -
+            daysBetween(b.transactionDate, income.transactionDate),
+      )
+      .slice(0, CANDIDATE_LIMIT);
+  }
+
+  /**
+   * Records that `incomeId` pays back `expenseId`. When it pays it back in
+   * full (same currency, same money) the two rows also become a
+   * `reimbursement` pair and drop out of every spend and income aggregate;
+   * a partial repayment keeps only the link and both rows still count gross.
+   */
+  async linkReimbursement(
+    workspaceId: string,
+    incomeId: string,
+    expenseId: string,
+  ): Promise<{ full: boolean; transferPairId: string | null }> {
+    if (incomeId === expenseId) {
+      throw new BadRequestException('A reimbursement needs two different transactions');
+    }
+    const [income, expense] = await Promise.all([
+      this.findOwned(workspaceId, incomeId),
+      this.findOwned(workspaceId, expenseId),
+    ]);
+    if (income.transactionType !== TransactionType.INCOME) {
+      throw new BadRequestException('The reimbursement must be an incoming transaction');
+    }
+    if (expense.transactionType !== TransactionType.EXPENSE) {
+      throw new BadRequestException('A reimbursement can only pay back an expense');
+    }
+    for (const leg of [income, expense]) {
+      if (leg.isDuplicate) {
+        throw new BadRequestException(`Transaction ${leg.id} is marked as a duplicate`);
+      }
+      if (leg.splitGroupId) {
+        throw new BadRequestException(`Transaction ${leg.id} is part of a split`);
+      }
+      if (leg.transferPairId) {
+        throw new ConflictException(`Transaction ${leg.id} is already part of a transfer`);
+      }
+    }
+    if (income.reimbursementOfId) {
+      throw new ConflictException('This transaction already reimburses another one');
+    }
+
+    const sameCurrency =
+      (income.currency || '').trim().toUpperCase() ===
+      (expense.currency || '').trim().toUpperCase();
+    const full = sameCurrency && Math.abs(absAmount(income) - absAmount(expense)) < 0.005;
+
+    let transferPairId: string | null = null;
+    if (full) {
+      transferPairId = randomUUID();
+      const result = await this.transactionRepository.update(
+        { id: In([income.id, expense.id]), workspaceId, transferPairId: IsNull() },
+        {
+          transferPairId,
+          transferPairSource: TransferPairSource.MANUAL,
+          transferPairKind: TransferPairKind.REIMBURSEMENT,
+        },
+      );
+      if (result.affected !== 2) {
+        await this.transactionRepository.update(
+          { transferPairId },
+          { transferPairId: null, transferPairSource: null, transferPairKind: null },
+        );
+        throw new ConflictException('One of the transactions was paired in the meantime');
+      }
+    }
+    await this.transactionRepository.update(
+      { id: income.id, workspaceId },
+      { reimbursementOfId: expense.id },
+    );
+    return { full, transferPairId };
+  }
+
+  async unlinkReimbursement(workspaceId: string, incomeId: string): Promise<void> {
+    const income = await this.findOwned(workspaceId, incomeId);
+    if (!income.reimbursementOfId) {
+      throw new BadRequestException('Transaction is not a reimbursement');
+    }
+    if (income.transferPairId && income.transferPairKind === TransferPairKind.REIMBURSEMENT) {
+      await this.transactionRepository.update(
+        { workspaceId, transferPairId: income.transferPairId },
+        { transferPairId: null, transferPairSource: null, transferPairKind: null },
+      );
+    }
+    await this.transactionRepository.update(
+      { id: income.id, workspaceId },
+      { reimbursementOfId: null },
     );
   }
 

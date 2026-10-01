@@ -1020,6 +1020,8 @@ CD builds, scans, signs and publishes the images on version tags and stops there
 | [SECURITY.md](SECURITY.md) | Security policy, vulnerability reporting, disclosure process |
 | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Community guidelines |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | What is planned, in order |
+| [docs/ui-principles.md](docs/ui-principles.md) | UI stability principles the product follows |
 | [website/docs/](website/docs/) | Documentation site: getting started, guides, architecture, API and deployment reference |
 | [docs/plans/](docs/plans/) | 35 feature design and implementation plan documents |
 | [docs/CI/](docs/CI/) | CI/CD pipeline documentation |

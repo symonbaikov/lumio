@@ -32,7 +32,11 @@ import { BulkUpdateRequestDto } from './dto/bulk-update-transaction.dto';
 import { MarkDuplicatesDto, MergeDuplicatesDto } from './dto/duplicate-actions.dto';
 import { SetTransactionTagsDto } from './dto/set-transaction-tags.dto';
 import { SplitTransactionDto } from './dto/split-transaction.dto';
-import { DetectTransfersDto, LinkTransferDto } from './dto/transfer-actions.dto';
+import {
+  DetectTransfersDto,
+  LinkReimbursementDto,
+  LinkTransferDto,
+} from './dto/transfer-actions.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { CrossStatementDeduplicationService } from './services/cross-statement-deduplication.service';
 import { TransactionAttachmentsService } from './services/transaction-attachments.service';
@@ -348,6 +352,41 @@ export class TransactionsController {
     @WorkspaceId() workspaceId: string,
   ) {
     await this.transferPairingService.unlink(workspaceId, id);
+    return { unlinked: true };
+  }
+
+  @Get(':id/reimbursement-candidates')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async reimbursementCandidates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    const data = await this.transferPairingService.reimbursementCandidates(workspaceId, id);
+    return { data };
+  }
+
+  @Post(':id/link-reimbursement')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async linkReimbursement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: LinkReimbursementDto,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transferPairingService.linkReimbursement(workspaceId, id, body.expenseId);
+  }
+
+  @Post(':id/unlink-reimbursement')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async unlinkReimbursement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    await this.transferPairingService.unlinkReimbursement(workspaceId, id);
     return { unlinked: true };
   }
 

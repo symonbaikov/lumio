@@ -12,3 +12,9 @@ export class LinkTransferDto {
   @IsUUID('4')
   otherId: string;
 }
+
+export class LinkReimbursementDto {
+  /** The expense this incoming transaction pays back. */
+  @IsUUID('4')
+  expenseId: string;
+}

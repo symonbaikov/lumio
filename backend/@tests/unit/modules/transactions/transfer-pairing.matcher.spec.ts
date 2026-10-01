@@ -36,9 +36,10 @@ const noRates: RateLookup = async () => null;
 
 describe('transfer-pairing matcher', () => {
   describe('accountKey', () => {
-    it('prefers the wallet, then the statement account number, then the statement', () => {
+    it('prefers the crypto wallet, then the statement account number, then the statement', () => {
       expect(accountKey(leg({ id: 'a', cryptoWalletId: 'cw' }))).toBe('crypto:cw');
-      expect(accountKey(leg({ id: 'a', walletId: 'w' }))).toBe('wallet:w');
+      // The default wallet is auto-assigned to every row, so it tells nothing.
+      expect(accountKey(leg({ id: 'a', walletId: 'w', statementId: 's1' }))).toBe('statement:s1');
       expect(accountKey(leg({ id: 'a', statement: { accountNumber: ' KZ123 ' } }))).toBe(
         'account:KZ123',
       );

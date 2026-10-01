@@ -67,13 +67,17 @@ export function TransactionDetailsTab({
   };
   const {
     candidates: transferCandidates,
+    mode: linkMode,
     loadCandidates: loadTransferCandidates,
     clearCandidates: clearTransferCandidates,
     link: linkTransfer,
     unlink: unlinkTransfer,
+    linkReimbursement,
+    unlinkReimbursement,
     loading: transferLoading,
     saving: transferSaving,
   } = useTransferLink(handleSplitDone);
+  const isReimbursementPair = transaction.transferPairKind === 'reimbursement';
 
   // The pre-split total the backend validates against: the positive side of the
   // row, not `transaction.amount`, which the mappers sign for display.
@@ -374,7 +378,19 @@ export function TransactionDetailsTab({
       {/* Actions */}
       {transaction.transferPairId && (
         <div className="lumio-tx-detail__cat-badge" data-testid="transfer-badge">
-          {t.transfer.badge.value}
+          {isReimbursementPair ? t.reimbursement.badge.value : t.transfer.badge.value}
+        </div>
+      )}
+      {transaction.reimbursementOf && (
+        <div
+          className="lumio-tx-detail__value"
+          style={{ fontSize: 12, color: 'var(--muted-foreground)' }}
+          data-testid="reimburses"
+        >
+          {t.reimbursement.reimburses.value}:{' '}
+          {formatDate(transaction.reimbursementOf.transactionDate, locale)} ·{' '}
+          {transaction.reimbursementOf.counterpartyName}
+          {transaction.transferPairId ? '' : ` · ${t.reimbursement.partial.value}`}
         </div>
       )}
 
@@ -437,8 +453,37 @@ export function TransactionDetailsTab({
             </button>
           ))}
 
+        {/* Reimbursement of an expense (incoming rows only) */}
+        {onSplitDone &&
+          transaction.transactionType === 'income' &&
+          (transaction.reimbursementOfId ? (
+            <button
+              type="button"
+              onClick={() => unlinkReimbursement(transaction.id)}
+              disabled={transferSaving}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              {t.reimbursement.unlink.value}
+            </button>
+          ) : (
+            !transaction.transferPairId && (
+              <button
+                type="button"
+                onClick={() => {
+                  void loadTransferCandidates(transaction.id, 'reimbursement');
+                }}
+                disabled={transferSaving || transferLoading || Boolean(transaction.splitGroupId)}
+                className="lumio-tx-detail__ignore-btn"
+              >
+                {t.reimbursement.link.value}
+              </button>
+            )
+          ))}
+
         {/* Transfer between own accounts */}
         {onSplitDone &&
+          !isReimbursementPair &&
+          !transaction.reimbursementOfId &&
           (transaction.transferPairId ? (
             <button
               type="button"
@@ -471,15 +516,25 @@ export function TransactionDetailsTab({
 
       {transferCandidates && (
         <div className="lumio-tx-detail__section" data-testid="transfer-candidates">
-          <div className="lumio-tx-detail__label">{t.transfer.pick.value}</div>
+          <div className="lumio-tx-detail__label">
+            {linkMode === 'reimbursement' ? t.reimbursement.pick.value : t.transfer.pick.value}
+          </div>
           {transferCandidates.length === 0 ? (
-            <div className="lumio-tx-detail__value">{t.transfer.noCandidates.value}</div>
+            <div className="lumio-tx-detail__value">
+              {linkMode === 'reimbursement'
+                ? t.reimbursement.noCandidates.value
+                : t.transfer.noCandidates.value}
+            </div>
           ) : (
             transferCandidates.map(candidate => (
               <button
                 key={candidate.id}
                 type="button"
-                onClick={() => linkTransfer(transaction.id, candidate.id)}
+                onClick={() =>
+                  linkMode === 'reimbursement'
+                    ? linkReimbursement(transaction.id, candidate.id)
+                    : linkTransfer(transaction.id, candidate.id)
+                }
                 disabled={transferSaving}
                 className="lumio-tx-detail__ignore-btn"
                 style={{ display: 'block', width: '100%', textAlign: 'left', marginTop: 6 }}

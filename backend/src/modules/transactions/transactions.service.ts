@@ -101,7 +101,8 @@ export class TransactionsService {
       .andWhere('(transaction.statementId IS NULL OR statement.deletedAt IS NULL)')
       .leftJoinAndSelect('transaction.category', 'category')
       .leftJoinAndSelect('transaction.branch', 'branch')
-      .leftJoinAndSelect('transaction.wallet', 'wallet');
+      .leftJoinAndSelect('transaction.wallet', 'wallet')
+      .leftJoinAndSelect('transaction.reimbursementOf', 'reimbursementOf');
 
     if (filters.statementId) {
       query.andWhere('transaction.statementId = :statementId', {

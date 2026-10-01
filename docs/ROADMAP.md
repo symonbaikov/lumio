@@ -1,0 +1,53 @@
+# Roadmap
+
+What Lumio is working towards, in the order we intend to do it. Derived from the 2026 research
+into what people expect from a finance app (`docs/plans/2026-10-01-user-expectations-2026-research-plan.md`);
+that document has the evidence behind every line here. Dates are intentions, not promises.
+
+## Phase 0 — data you can trust (done 2026-10-01)
+
+- [x] Transfers between own accounts paired automatically and by hand, excluded from spend and income.
+- [x] Reimbursements linked to the expense they pay back; full repayments leave the aggregates.
+- [x] Category provenance on every transaction, a fixed and visible order, a sticky manual pick.
+- [x] Switches for AI categorisation, AI merchant names and learning; the "two corrections" guard.
+- [x] Duplicate detection never matches rows from two different accounts.
+- [x] This roadmap, the changelog entries and the UI stability principles (`docs/ui-principles.md`).
+
+## Phase 1 — less manual work
+
+- [ ] Review inbox: one queue for uncategorised rows, low-confidence picks, receipts without an amount
+      and suspected duplicates; keyboard-first on desktop, card swipe on mobile; bulk by payee;
+      a "vacation mode"; auto-approve above a confidence threshold; a weekly "N waiting" digest.
+- [ ] Receipt → transaction match and one-click split by line-item category; Amazon orders matched to
+      several charges; receipts embedded in email bodies, not only attachments.
+- [ ] Telegram inbound: send a photo, a PDF or "coffee 4.50" to the bot and it lands in the review queue.
+- [ ] Subscriptions 2.0: price-change alerts with the yearly effect, duplicate subscriptions, cost per
+      use, a calendar of upcoming charges, sinking-fund suggestions for annual bills, an off switch
+      for "is this recurring?" prompts.
+- [ ] Budget mechanics: rollover, "refill up to" goals, parent-category budgets, a warning when a manual
+      entry would overdraw the account.
+- [ ] Workspace profile Home / Business: the home profile hides invoices, payables, ledger, tax and
+      custom tables.
+
+## Phase 2 — planning ahead
+
+- [ ] Cash-flow forecast for 30/90/365 days from subscriptions, payables, invoices, goals and category
+      averages; "safe to spend"; scenarios; runway for a business.
+- [ ] Investments v1: investment and retirement accounts with manual holdings and prices; contributions
+      count as transfers; net worth with more date ranges and an all-time high.
+- [ ] Reports: cash-flow Sankey, treemap, period comparison, "exclude transfers and investments".
+- [ ] MCP and AI as a trusted agent: scoped API keys, every AI write audited and undoable, a public
+      security posture page.
+- [ ] Small-business pack: bank reconciliation screen, AR/AP ageing, dunning reminders, duplicate
+      payables, a business-subscriptions report.
+
+## Phase 3 — by decision
+
+- [ ] Optional bank sync through the user's own provider account (SimpleFIN, Enable Banking). This
+      changes the "not a bank integration" positioning in the README and needs an explicit decision.
+- [ ] Mobile layer: service worker with an offline queue for manual entries and receipt photos, web
+      push for alerts.
+- [ ] Import formats: OFX/QFX, QIF, CAMT.053, MT940, CSV presets for common banks, a mailbox address
+      for forwarded statements.
+- [ ] Multi-currency audit: original amount and currency visible everywhere, manual rate override, no
+      silent 1:1 conversion when a rate is missing.

@@ -179,7 +179,7 @@ export function TransactionRow({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {t.transferBadge}
+                {tx.transferPairKind === 'reimbursement' ? t.reimbursementBadge : t.transferBadge}
               </span>
             )}
           </div>
