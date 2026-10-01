@@ -46,6 +46,7 @@ import { TransactionsService } from './transactions.service';
     CrossStatementDeduplicationService,
     TransactionFingerprintService,
     TransferPairingService,
+    TransactionAttachmentsService,
   ],
 })
 export class TransactionsModule {}

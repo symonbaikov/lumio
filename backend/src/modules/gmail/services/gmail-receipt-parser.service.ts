@@ -48,6 +48,14 @@ interface ParsedReceiptResult extends Partial<NonNullable<Receipt['parsedData']>
   extracted?: boolean;
 }
 
+/** The RFC 2822 `Date:` header as `YYYY-MM-DD`; the raw header is kept when it does not parse. */
+export function normalizeDateHeader(dateHeader: string | undefined): string | undefined {
+  if (!dateHeader) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateHeader)) return dateHeader;
+  const parsed = new Date(dateHeader);
+  return Number.isNaN(parsed.getTime()) ? dateHeader : parsed.toISOString().slice(0, 10);
+}
+
 const GENERIC_VENDOR_PATTERN =
   /^(page\s+\d+(\s+of\s+\d+)?|receipt|invoice|order\s+confirmation|payment\s+receipt|tax\s+invoice|credit\s+note)$/i;
 
@@ -137,13 +145,31 @@ export class GmailReceiptParserService {
       : undefined;
     const transactionType = bodyText ? this.detectTransactionType(bodyText) : 'unknown';
 
+    // An order confirmation in the body is a receipt too: the same extractor
+    // that reads a PDF reads the stripped text for its line items (and a total
+    // when the amount scan above found none).
+    let lineItems: NonNullable<Receipt['parsedData']>['lineItems'] = [];
+    let fallbackAmount: number | undefined;
+    if (bodyText && this.universalExtractor) {
+      try {
+        const document = await this.universalExtractor.extractFromText(bodyText);
+        lineItems = (document.lineItems ?? [])
+          .filter(item => item.description && Number.isFinite(item.amount) && item.amount > 0)
+          .map(item => ({ description: item.description, amount: item.amount }));
+        fallbackAmount = document.totalAmount;
+      } catch (error) {
+        this.logger.warn('Line-item extraction from email body failed', error);
+      }
+    }
+
     return {
-      amount: amountWithCurrency?.amount,
+      amount: amountWithCurrency?.amount ?? fallbackAmount,
       currency: amountWithCurrency?.currency || 'KZT',
-      date: context.dateHeader,
+      date: normalizeDateHeader(context.dateHeader),
       vendor,
       confidence: vendor ? 0.6 : 0.3,
       transactionType,
+      lineItems,
     };
   }
 

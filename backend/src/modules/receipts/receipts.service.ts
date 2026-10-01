@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
-import { Injectable, Logger } from '@nestjs/common';
+import * as path from 'node:path';
+import { ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,15 +19,37 @@ import {
   TransactionType,
 } from '../../entities';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
+import { TransactionCategorySource } from '../../entities/transaction.entity';
 import { AuditService } from '../audit/audit.service';
 import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
+import { TransactionAttachmentsService } from '../transactions/services/transaction-attachments.service';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import {
   attachReceiptCategories,
   type ReceiptWithCategory,
 } from './helpers/attach-receipt-categories';
 import { ReceiptProcessorService } from './services/receipt-processor.service';
+
+export interface ApproveReceiptOptions {
+  /** Bank row to attach to; `null` forces a new transaction; omitted uses the stored suggestion. */
+  attachTo?: string | null;
+  /** Who approved; needed to record the copied file attachment. */
+  userId?: string;
+}
+
+const MIME_BY_EXTENSION: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.heic': 'image/heic',
+};
+
+function mimeTypeOf(fileName: string): string {
+  return MIME_BY_EXTENSION[path.extname(fileName).toLowerCase()] ?? 'application/octet-stream';
+}
 
 type UploadParams = {
   userId: string;
@@ -64,6 +87,8 @@ export class ReceiptsService {
     private readonly receiptProcessor: ReceiptProcessorService,
     private readonly eventEmitter: EventEmitter2,
     private readonly auditService: AuditService,
+    @Optional()
+    private readonly attachmentsService?: TransactionAttachmentsService,
   ) {}
 
   async createFromUpload(params: UploadParams): Promise<Receipt> {
@@ -249,17 +274,25 @@ export class ReceiptsService {
     }
   }
 
-  async approve(id: string, workspaceId: string, userId: string) {
-    const result = await this.approveOnce(id, workspaceId, receipt =>
-      this.buildTransactionFromReceipt(receipt, workspaceId),
+  async approve(
+    id: string,
+    workspaceId: string,
+    userId: string,
+    options: { attachTo?: string | null } = {},
+  ) {
+    const result = await this.approveOnce(
+      id,
+      workspaceId,
+      receipt => this.buildTransactionFromReceipt(receipt, workspaceId),
+      { ...options, userId },
     );
     if (!result) {
       return null;
     }
-    if (result.created) {
+    if (result.created || result.attached) {
       await this.recordAudit(this.approveEvent(result, userId, workspaceId));
     }
-    return { receipt: result.receipt, transaction: result.transaction };
+    return { receipt: result.receipt, transaction: result.transaction, attached: result.attached };
   }
 
   /**
@@ -273,10 +306,13 @@ export class ReceiptsService {
     receiptId: string,
     workspaceId: string,
     buildTransaction: (receipt: Receipt) => Partial<Transaction>,
+    options: ApproveReceiptOptions = {},
   ): Promise<{
     receipt: Receipt;
     transaction: Transaction;
     created: boolean;
+    /** The receipt was attached to a bank row that already existed. */
+    attached: boolean;
     previousStatus: ReceiptStatus;
   } | null> {
     const result = await this.receiptRepository.manager.transaction(async manager => {
@@ -294,16 +330,69 @@ export class ReceiptsService {
           where: { id: receipt.transactionId, workspaceId },
         });
         if (existing) {
-          return { receipt, transaction: existing, created: false, previousStatus: receipt.status };
+          return {
+            receipt,
+            transaction: existing,
+            created: false,
+            attached: false,
+            previousStatus: receipt.status,
+          };
         }
       }
+
+      // Attach to the bank row the receipt documents (the suggestion, or the
+      // one the user picked) instead of booking the expense a second time.
+      // `attachTo: null` is the explicit "no, this is a new expense".
+      const attachTo =
+        options.attachTo === undefined
+          ? (receipt.metadata?.transactionMatch?.transactionIds?.[0] ?? null)
+          : options.attachTo;
+      if (attachTo) {
+        const target = await transactions.findOne({ where: { id: attachTo, workspaceId } });
+        if (!target) {
+          throw new NotFoundException('Transaction to attach to was not found');
+        }
+        const taken = await receipts.findOne({
+          where: { transactionId: attachTo, workspaceId },
+          select: ['id'],
+        });
+        if (taken && taken.id !== receipt.id) {
+          throw new ConflictException('Another receipt is already attached to that transaction');
+        }
+        if (!target.categoryId && receipt.parsedData?.categoryId) {
+          await transactions.update(
+            { id: target.id },
+            {
+              categoryId: receipt.parsedData.categoryId,
+              categorySource: TransactionCategorySource.HISTORY,
+              categoryReason: receipt.parsedData.vendor ?? 'receipt',
+            },
+          );
+        }
+        const previousStatus = receipt.status;
+        receipt.status = ReceiptStatus.APPROVED;
+        receipt.transactionId = target.id;
+        const saved = await receipts.save(receipt);
+        return {
+          receipt: saved,
+          transaction: target,
+          created: false,
+          attached: true,
+          previousStatus,
+        };
+      }
+
       const transaction = await transactions.save(transactions.create(buildTransaction(receipt)));
       const previousStatus = receipt.status;
       receipt.status = ReceiptStatus.APPROVED;
       receipt.transactionId = transaction.id;
       const saved = await receipts.save(receipt);
-      return { receipt: saved, transaction, created: true, previousStatus };
+      return { receipt: saved, transaction, created: true, attached: false, previousStatus };
     });
+
+    if (result?.attached) {
+      await this.copyFileToTransaction(result.receipt, result.transaction.id, options.userId);
+    }
 
     if (result?.created) {
       this.eventEmitter
@@ -348,8 +437,11 @@ export class ReceiptsService {
           continue;
         }
 
-        const approved = await this.approveOnce(receiptId, workspaceId, locked =>
-          this.buildTransactionFromReceipt(locked, workspaceId, categoryId),
+        const approved = await this.approveOnce(
+          receiptId,
+          workspaceId,
+          locked => this.buildTransactionFromReceipt(locked, workspaceId, categoryId),
+          { userId },
         );
         if (!approved) {
           results.failed += 1;
@@ -357,7 +449,7 @@ export class ReceiptsService {
           continue;
         }
         results.approved += 1;
-        if (approved.created) {
+        if (approved.created || approved.attached) {
           auditEvents.push(this.approveEvent(approved, userId, workspaceId));
         }
       } catch (error) {
@@ -583,6 +675,37 @@ export class ReceiptsService {
       confidence: null,
       isDuplicate: false,
     });
+  }
+
+  /**
+   * The receipt image goes onto the bank row as an attachment, so it is found
+   * where the expense is. Best effort: a missing file must not undo an approve.
+   */
+  private async copyFileToTransaction(
+    receipt: Receipt,
+    transactionId: string,
+    userId: string | undefined,
+  ): Promise<void> {
+    const filePath = receipt.attachmentPaths?.[0];
+    if (!(filePath && userId && this.attachmentsService)) {
+      return;
+    }
+    try {
+      const buffer = await fs.readFile(filePath);
+      const originalname = path.basename(filePath);
+      await this.attachmentsService.create(transactionId, receipt.workspaceId, userId, {
+        originalname,
+        mimetype: mimeTypeOf(originalname),
+        size: buffer.length,
+        buffer,
+      } as Express.Multer.File);
+    } catch (error) {
+      this.logger.warn(
+        `Could not attach receipt ${receipt.id} file to transaction ${transactionId}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private buildTransactionFromReceipt(

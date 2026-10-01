@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { ArrowLeft } from '@/app/components/icons';
 import { ReceiptLocationSection } from '@/app/components/receipts/location/ReceiptLocationSection';
 import { ReceiptParsedDataForm } from '@/app/components/receipts/ReceiptParsedDataForm';
+import { ReceiptTransactionMatch } from '@/app/components/receipts/ReceiptTransactionMatch';
 import type {
   EditableReceiptLineItem,
   EditableReceiptParsedData,
@@ -420,7 +421,7 @@ export default function ReceiptDocumentPage() {
     [persistParsedData],
   );
 
-  const handleApprove = async () => {
+  const handleApprove = async (options: { transactionId?: string | null } = {}) => {
     if (!receipt) {
       return;
     }
@@ -433,7 +434,7 @@ export default function ReceiptDocumentPage() {
         parsedData: currentPayload,
       });
       lastSavedPayloadRef.current = JSON.stringify(currentPayload);
-      await receiptsApi.approveReceipt(receipt.id);
+      await receiptsApi.approveReceipt(receipt.id, options);
       toast.success(t.approved.value);
       await loadData();
     })()
@@ -822,7 +823,7 @@ export default function ReceiptDocumentPage() {
             <DetailActionButton
               variant="default"
               type="button"
-              onClick={handleApprove}
+              onClick={() => void handleApprove()}
               disabled={saving}
             >
               {saving ? <Spinner className="size-[18px] mr-2" /> : null}
@@ -830,6 +831,13 @@ export default function ReceiptDocumentPage() {
             </DetailActionButton>
           </Box>
         </Box>
+
+        <ReceiptTransactionMatch
+          receipt={receipt}
+          saving={saving}
+          onApprove={handleApprove}
+          onChanged={loadData}
+        />
 
         <Box
           sx={{

@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Receipts meet bank rows (2026-10-01)
+
+- **Receipt → transaction match:** after parsing, a receipt is matched to the bank row it documents
+  (same money, same direction, within three days, the name agrees; exactly one plausible row) or to
+  the several charges of one order (Amazon bills per shipment). Approving attaches the receipt to
+  that row and copies its image as a transaction attachment instead of booking the expense a second
+  time; `POST /receipts/:id/approve` takes `{transactionId}` to pick another row or `null` to book
+  a new one, `GET /receipts/:id/transaction-matches` lists the candidates.
+- **Split by line items:** `GET /receipts/:id/split-suggestion` categorises each line (keywords,
+  then the model) and groups them into parts that add up to the transaction; `POST /receipts/:id/split`
+  applies it through the ordinary split. Line categories are remembered on the receipt.
+- **Receipts in the email body:** order confirmations without an attachment now get their line items
+  (and a total when the amount scan found none) from the stripped text, and a `YYYY-MM-DD` date
+  instead of the raw header.
+
 #### Review inbox (2026-10-01)
 
 - **One queue for everything that needs a decision** at `/review` (`GET /review-inbox`,
