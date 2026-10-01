@@ -6,6 +6,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import NextLink from 'next/link';
 import { useEffect } from 'react';
+import { ImportFromFileButton } from '@/app/components/import-wizard/ImportFromFileButton';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
@@ -58,6 +59,7 @@ interface BudgetsContentProps {
   saving: boolean;
   setFormData: (data: BudgetFormData) => void;
   openCreate: (categoryId?: string) => void;
+  refresh: () => void;
   openEdit: (budget: BudgetItem) => void;
   closeDialog: () => void;
   handleSave: () => void;
@@ -75,6 +77,7 @@ export function BudgetsContent({
   saving,
   setFormData,
   openCreate,
+  refresh,
   openEdit,
   closeDialog,
   handleSave,
@@ -109,6 +112,15 @@ export function BudgetsContent({
               {t.savingsGoals}
             </Button>
           )}
+          <ImportFromFileButton
+            target="budgets"
+            onImported={refresh}
+            renderTrigger={(open, label) => (
+              <Button variant="outlined" onClick={open}>
+                {label}
+              </Button>
+            )}
+          />
           <Button variant="contained" onClick={() => openCreate()}>
             {t.newBudget}
           </Button>

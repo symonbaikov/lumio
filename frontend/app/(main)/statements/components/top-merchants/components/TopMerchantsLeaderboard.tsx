@@ -1,6 +1,7 @@
 'use client';
 
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
+import { rowsWithFocused } from '@/app/(main)/statements/components/analytics/focus-rows';
 import type {
   AggregateSortKey,
   TopMerchantAggregateRow,
@@ -38,7 +39,16 @@ type Props = {
   sortLabels: SortLabels;
   columnLabels: ColumnLabels;
   emptyLabel: string;
+  /** `?focus=merchant:<name>` from an advice link; that row is always drawn. */
+  focusId?: string | null;
 };
+
+/**
+ * Target for `?focus=merchant:<name>` deep links. Aggregate row ids carry the
+ * source and currency too, so the name is the only handle an insight shares.
+ */
+const attentionIdOf = (row: TopMerchantAggregateRow): string =>
+  `merchant:${row.merchant.trim().toLowerCase()}`;
 
 const SORT_KEYS: AggregateSortKey[] = ['amount', 'average', 'operations'];
 
@@ -78,7 +88,10 @@ function LeaderboardRow({ row, sourceLabels, onRowClick }: RowProps): React.JSX.
       ? formatStoredDate(row.lastDate)
       : '-';
   return (
-    <tr style={{ color: 'var(--foreground)', borderTop: '1px solid var(--muted)' }}>
+    <tr
+      data-attention={attentionIdOf(row)}
+      style={{ color: 'var(--foreground)', borderTop: '1px solid var(--muted)' }}
+    >
       <td style={{ padding: '8px 16px 8px 0', fontWeight: 500, color: 'var(--foreground)' }}>
         <button
           type="button"
@@ -133,7 +146,9 @@ export function TopMerchantsLeaderboard({
   sortLabels,
   columnLabels,
   emptyLabel,
+  focusId = null,
 }: Props): React.JSX.Element {
+  const visibleRows = rowsWithFocused(rows, attentionIdOf, focusId);
   const sortKeyLabels: Record<AggregateSortKey, string> = {
     amount: sortLabels.sortByAmount,
     average: sortLabels.sortByAverage,
@@ -216,7 +231,7 @@ export function TopMerchantsLeaderboard({
                 </td>
               </tr>
             ) : null}
-            {rows.slice(0, 60).map(row => (
+            {visibleRows.map(row => (
               <LeaderboardRow
                 key={row.id}
                 row={row}

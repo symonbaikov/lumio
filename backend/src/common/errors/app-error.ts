@@ -17,6 +17,18 @@ export const ERR = {
   TABLE_NO_ROWS_TO_CONVERT: 'Table has no rows to convert',
   TABLE_NO_VALID_ROWS_TO_CONVERT: 'Table has no valid rows to convert',
   TABLE_NOT_LINKED_TO_DATA_ENTRY: 'Table is not linked to data entry',
+  TABLE_NOT_LINKED_TO_SOURCE: 'Table is not linked to an app data source',
+  SOURCE_KIND_UNKNOWN: 'Unknown data source',
+  SOURCE_EMPTY: 'No records match the selected filters',
+  SOURCE_TOO_MANY_ROWS: 'Too many records match the filters (limit {{limit}}); narrow them down',
+  SOURCE_FILTER_INVALID: 'Invalid data source filter value',
+  SOURCE_COLUMNS_NOT_FOUND: 'The table has no columns linked to its data source',
+  // ── entity imports (spreadsheet → app records) ──────────────────────────
+  IMPORT_TARGET_UNKNOWN: 'Unknown import target',
+  IMPORT_MAPPING_INCOMPLETE: 'Required columns are not mapped: {{fields}}',
+  IMPORT_NO_VALID_ROWS: 'No rows could be imported',
+  IMPORT_BATCH_NOT_FOUND: 'Import batch not found',
+  IMPORT_BATCH_ALREADY_UNDONE: 'This import has already been undone',
   TABLES_NOT_FOUND: 'One or more tables were not found',
   TOO_MANY_CUSTOM_COLUMNS:
     'Too many custom columns ({{count}}). Simplify the names or build the table from a single tab (limit {{limit}}).',
@@ -40,6 +52,7 @@ export const ERR = {
   COLUMN_NOT_RELATION: 'Column is not a relation',
   RELATION_COLUMN_REQUIRED: 'No relation column specified',
   COLUMN_FORMULA_REQUIRED: 'A formula column requires a formula',
+  COLUMN_FORMULA_CYCLE: 'The formula refers to itself through other formula columns',
   COLUMN_CURRENCY_INVALID: 'Currency must be a 3-letter ISO 4217 code',
   COLUMN_PRECISION_INVALID: 'Decimal places must be a whole number from 0 to 6',
   COLUMN_FORMAT_INVALID: 'Number format must be "plain" or "percent"',
@@ -140,9 +153,6 @@ export const ERR = {
 
   // ── statements ──────────────────────────────────────────────────────────
   STATEMENT_NOT_FOUND: 'Statement not found',
-  STATEMENT_REQUIRED: 'Select a statement',
-  STATEMENT_NO_TRANSACTIONS: 'The selected statement has no transactions',
-  STATEMENT_TOO_MANY: 'Too many statements (limit 10)',
   STATEMENT_NOT_AWAITING_BALANCE: 'The statement is not awaiting balance confirmation',
   STATEMENT_DUPLICATE_FILE: 'This statement has already been uploaded (duplicate file)',
   STATEMENT_DUPLICATE_RECENT: 'A similar statement was uploaded recently',

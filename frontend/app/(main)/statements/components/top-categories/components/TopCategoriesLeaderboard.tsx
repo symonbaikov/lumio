@@ -1,6 +1,7 @@
 'use client';
 
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
+import { rowsWithFocused } from '@/app/(main)/statements/components/analytics/focus-rows';
 import type {
   CategorySortKey,
   TopCategoryAggregateRow,
@@ -38,9 +39,14 @@ type Props = {
   sortLabels: SortLabels;
   columnLabels: ColumnLabels;
   emptyLabel: string;
+  /** `?focus=category:<name>` from an advice link; that row is always drawn. */
+  focusId?: string | null;
 };
 
 const SORT_KEYS: CategorySortKey[] = ['amount', 'average', 'operations'];
+
+const attentionIdOf = (row: TopCategoryAggregateRow): string =>
+  `category:${row.category.trim().toLowerCase()}`;
 
 type SortBtnProps = { label: string; active: boolean; onClick: () => void };
 
@@ -84,7 +90,7 @@ function LeaderboardRow({ row, sourceLabels, onRowClick }: RowProps): React.JSX.
     <tr
       // Target for `?focus=category:<name>` deep links; the leaderboard has no
       // category ids, rows are keyed by name.
-      data-attention={`category:${row.category.trim().toLowerCase()}`}
+      data-attention={attentionIdOf(row)}
       style={{ color: 'var(--foreground)', borderTop: '1px solid var(--muted)' }}
     >
       <td style={{ padding: '8px 16px 8px 0', fontWeight: 500, color: 'var(--foreground)' }}>
@@ -142,7 +148,9 @@ export function TopCategoriesLeaderboard({
   sortLabels,
   columnLabels,
   emptyLabel,
+  focusId = null,
 }: Props): React.JSX.Element {
+  const visibleRows = rowsWithFocused(rows, attentionIdOf, focusId);
   const sortKeyLabels: Record<CategorySortKey, string> = {
     amount: sortLabels.sortByAmount,
     average: sortLabels.sortByAverage,
@@ -225,7 +233,7 @@ export function TopCategoriesLeaderboard({
                 </td>
               </tr>
             ) : null}
-            {rows.slice(0, 60).map(row => (
+            {visibleRows.map(row => (
               <LeaderboardRow
                 key={row.id}
                 row={row}

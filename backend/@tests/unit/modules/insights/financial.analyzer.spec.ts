@@ -98,6 +98,11 @@ describe('FinancialAnalyzer', () => {
       messageParams: { category: 'Такси', percent: 200 },
       severity: InsightSeverity.WARN,
     });
+    // The link opens the leaderboard on this month, so the row it rings shows
+    // the total the advice quoted rather than an all-time one.
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    expect(rising?.data).toMatchObject({ month, categoryName: 'Такси' });
   });
 
   it('ignores a category whose spending is below the rising threshold', async () => {
@@ -210,6 +215,10 @@ describe('FinancialAnalyzer', () => {
       messageKey: 'trend.savings_rate_up',
       messageParams: { rate: 50, diff: 30 },
       severity: InsightSeverity.INFO,
+    });
+    const now = new Date();
+    expect(savings?.data).toMatchObject({
+      month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
     });
   });
 

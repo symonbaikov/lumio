@@ -12,9 +12,9 @@ import {
 import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { tokens } from '@/lib/theme-tokens';
 
-type VmProps = { vm: TopCategoriesViewModelReturn };
+type VmProps = { vm: TopCategoriesViewModelReturn; focusId: string | null };
 
-function TopCategoriesBody({ vm }: VmProps): React.JSX.Element {
+function TopCategoriesBody({ vm, focusId }: VmProps): React.JSX.Element {
   if (vm.loading) {
     return <AnalyticsLeaderboardSkeleton />;
   }
@@ -35,17 +35,19 @@ function TopCategoriesBody({ vm }: VmProps): React.JSX.Element {
       </div>
     );
   }
-  return <TopCategoriesContent vm={vm} />;
+  return <TopCategoriesContent vm={vm} focusId={focusId} />;
 }
 
 export default function TopCategoriesView(): React.JSX.Element {
   const vm = useTopCategoriesViewModel();
-  useAttentionFocus();
+  // The ringed row has to survive the leaderboard's cut-off, so the id the
+  // link named travels down with it.
+  const focusId = useAttentionFocus();
   return (
     <div className="container-shared lumio-view-page">
       <TopCategoriesPageHeader vm={vm} />
       <div className="lumio-view-page__body">
-        <TopCategoriesBody vm={vm} />
+        <TopCategoriesBody vm={vm} focusId={focusId} />
       </div>
       <TopCategoriesFiltersDrawer vm={vm} />
       {vm.selectedRow ? (

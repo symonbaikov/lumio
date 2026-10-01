@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { ImportFromFileButton } from '@/app/components/import-wizard/ImportFromFileButton';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
@@ -160,9 +161,16 @@ export function InvoicesListView(): React.JSX.Element {
             <Button variant="outline" onClick={() => router.push('/invoices/clients')}>
               {t.clientsNav}
             </Button>
-            <Button onClick={() => router.push('/invoices/new')}>
-              {t.newInvoice}
-            </Button>
+            <ImportFromFileButton
+              target="invoices"
+              onImported={() => void load()}
+              renderTrigger={(open, label) => (
+                <Button variant="outline" onClick={open}>
+                  {label}
+                </Button>
+              )}
+            />
+            <Button onClick={() => router.push('/invoices/new')}>{t.newInvoice}</Button>
           </div>
         </div>
 

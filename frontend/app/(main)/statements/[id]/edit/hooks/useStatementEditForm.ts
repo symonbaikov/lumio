@@ -44,6 +44,8 @@ export interface UseStatementEditFormOptions {
     categoryUpdated: string;
     categoryUpdateFailed: string;
   };
+  /** Translated column titles for a table filled from this statement. */
+  sourceColumnTitles: Record<string, string>;
 }
 
 // eslint-disable-next-line max-lines-per-function
@@ -52,6 +54,7 @@ export function useStatementEditForm({
   user,
   router,
   messages,
+  sourceColumnTitles,
 }: UseStatementEditFormOptions): UseStatementEditFormReturn {
   const s = useStatementFormState();
   // Destructured so effects/callbacks depend on the stable setters and refs,
@@ -118,6 +121,7 @@ export function useStatementEditForm({
 
   const handleExportToCustomTable = async (): Promise<void> => {
     await exportToCustomTable({
+      columnTitles: sourceColumnTitles,
       statementId,
       statement: s.statement,
       router,

@@ -175,11 +175,8 @@
   }
 
   &__stat-spark {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 42px;
+    height: 38px;
+    margin-top: 10px;
     pointer-events: none;
     opacity: 0.9;
     color: var(--primary);

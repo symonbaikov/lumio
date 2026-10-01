@@ -4,9 +4,9 @@ import { TopMerchantsLeaderboard } from '@/app/(main)/statements/components/top-
 import { TopMerchantsStatCards } from '@/app/(main)/statements/components/top-merchants/components/TopMerchantsStatCards';
 import type { useTopMerchantsViewModel } from '@/app/(main)/statements/components/top-merchants/hooks/useTopMerchantsViewModel';
 
-type Props = { vm: ReturnType<typeof useTopMerchantsViewModel> };
+type Props = { vm: ReturnType<typeof useTopMerchantsViewModel>; focusId?: string | null };
 
-function TopMerchantsLeaderboardSection({ vm }: Props): React.JSX.Element {
+function TopMerchantsLeaderboardSection({ vm, focusId }: Props): React.JSX.Element {
   const isIncomeView = vm.activeFlowType === 'income';
   const { labels, workspaceCurrency } = vm;
   const sourceLabels = {
@@ -40,11 +40,12 @@ function TopMerchantsLeaderboardSection({ vm }: Props): React.JSX.Element {
       sortLabels={sortLabels}
       columnLabels={columnLabels}
       emptyLabel={labels.comparisonNoData}
+      focusId={focusId}
     />
   );
 }
 
-export function TopMerchantsContent({ vm }: Props): React.JSX.Element {
+export function TopMerchantsContent({ vm, focusId = null }: Props): React.JSX.Element {
   const isIncomeView = vm.activeFlowType === 'income';
   const { labels, workspaceCurrency } = vm;
   return (
@@ -61,7 +62,7 @@ export function TopMerchantsContent({ vm }: Props): React.JSX.Element {
         noDataLabel={labels.comparisonNoData}
         vsPreviousPeriodLabel={labels.vsPreviousPeriod}
       />
-      <TopMerchantsLeaderboardSection vm={vm} />
+      <TopMerchantsLeaderboardSection vm={vm} focusId={focusId} />
     </div>
   );
 }

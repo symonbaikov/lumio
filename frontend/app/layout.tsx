@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Manrope, Nunito } from 'next/font/google';
+import { cookies } from 'next/headers';
 import './globals.scss';
 import { getLocale } from 'next-intlayer/server';
 import { getIntlayer } from 'react-intlayer';
@@ -15,6 +16,7 @@ import { SidePanelProvider } from './components/side-panel/SidePanelContext';
 import TopBar from './components/TopBar';
 import { WelcomeTutorialHost } from './components/welcome-tutorial/WelcomeTutorialHost';
 import { normalizeLocale } from './lib/locale';
+import { PALETTE_MODE_COOKIE, parsePaletteModeCookie } from './lib/theme-preference';
 import { Providers } from './providers';
 
 const geist = Geist({
@@ -71,6 +73,9 @@ export default async function RootLayout({
   const resolvedLocale = normalizeLocale(typeof locale === 'string' ? locale : undefined);
   const direction = resolvedLocale.startsWith('ar') ? 'rtl' : 'ltr';
   const t = getIntlayer('layout', locale);
+  const initialPaletteMode = parsePaletteModeCookie(
+    (await cookies()).get(PALETTE_MODE_COOKIE)?.value,
+  );
 
   return (
     <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
@@ -87,7 +92,7 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Providers initialLocale={resolvedLocale}>
+            <Providers initialLocale={resolvedLocale} initialPaletteMode={initialPaletteMode}>
               <ChatModeRedirect />
               <DynamicPageTitle />
               <SidePanelProvider

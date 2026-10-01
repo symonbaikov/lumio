@@ -137,6 +137,8 @@ type ExportMsgs = {
   statementNamePrefix: string;
 };
 type ExportArgs = {
+  /** Translated titles per source field (see custom-tables `buildSourceColumnTitles`). */
+  columnTitles: Record<string, string>;
   statementId: string;
   statement: Statement | null;
   router: { push: (p: string) => void };
@@ -145,6 +147,7 @@ type ExportArgs = {
 };
 
 export async function exportToCustomTable({
+  columnTitles,
   statementId,
   statement,
   router,
@@ -161,10 +164,13 @@ export async function exportToCustomTable({
     const description = messages.exportDescription
       .replace('{{dateFrom}}', formatDate(statement.statementDateFrom))
       .replace('{{dateTo}}', formatDate(statement.statementDateTo));
-    const response = await apiClient.post('/custom-tables/from-statements', {
-      statementIds: [statementId],
+    // A table bound to the statement: "Refresh from source" pulls new transactions later.
+    const response = await apiClient.post('/custom-tables/from-source', {
+      kind: 'transactions',
+      filters: { statementIds: [statementId] },
       name,
       description,
+      columnTitles,
     });
     const tableId = getExportTableId(response);
     if (tableId) {
