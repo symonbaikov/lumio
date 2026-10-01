@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Small-business pack (2026-10-01)
+
+- **Bank reconciliation** (`/statements/reconcile`, linked from Payables): open bills and
+  receivables next to the bank rows that look like their payment (same amount and currency, the
+  vendor in the row's text, a date near the due date), one row per bill, confidence shown. *Confirm*
+  links the row and settles the bill through the existing mark-as-paid path.
+- **AR/AP ageing**: open amounts per direction in current / 1–30 / 31–60 / 61–90 / 90+ days past
+  due, with the largest counterparties.
+- **Duplicate bills**: open bills with the same counterparty, amount and currency due within a week.
+- **Dunning reminders**: *Send reminder* on a sent or overdue invoice emails the client (EN/RU) and
+  counts it on the invoice; needs SMTP and a client email, and says so otherwise.
+- **Owners report** for business subscriptions: every active subscription with owner, monthly cost in
+  the workspace currency, next charge and last review, totals per owner, CSV download
+  (`GET /subscriptions/business-report?format=csv`).
+
 #### MCP and AI as a trusted agent (2026-10-01)
 
 - **Scoped API keys**: a key names what it may do (the same strings as the permissions the routes

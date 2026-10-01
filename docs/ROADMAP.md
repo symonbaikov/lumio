@@ -41,8 +41,8 @@ that document has the evidence behind every line here. Dates are intentions, not
       switch, category All/None filters, CSV export (2026-10-01).
 - [x] MCP and AI as a trusted agent: scoped API keys, every AI/MCP write audited as its actor and
       undoable, MCP setup and security posture pages on the website (2026-10-01).
-- [ ] Small-business pack: bank reconciliation screen, AR/AP ageing, dunning reminders, duplicate
-      payables, a business-subscriptions report.
+- [x] Small-business pack: bank reconciliation screen, AR/AP ageing, dunning reminders, duplicate
+      payables, a business-subscriptions report with owners (2026-10-01).
 
 ## Phase 3 — by decision
 

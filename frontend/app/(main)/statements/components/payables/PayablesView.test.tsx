@@ -171,6 +171,7 @@ vi.mock('@/app/i18n', async () => {
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => navigationState.searchParams,
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 vi.mock('@mui/x-date-pickers/DatePicker', async () => {

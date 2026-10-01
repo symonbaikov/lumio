@@ -104,6 +104,7 @@ import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ReviewInboxModule } from './modules/review-inbox/review-inbox.module';
 import { SearchModule } from './modules/search/search.module';
+import { SmbModule } from './modules/smb/smb.module';
 import { StatementsModule } from './modules/statements/statements.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -260,6 +261,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ReviewInboxModule,
     ForecastModule,
     InvestmentsModule,
+    SmbModule,
     CryptoModule,
     WebhooksModule,
     ApiKeysModule,

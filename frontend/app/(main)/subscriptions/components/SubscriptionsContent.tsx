@@ -22,6 +22,7 @@ import { Pencil, Trash2 } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { VendorIcon } from '@/app/components/VendorIcon';
 import { useIntlayer } from '@/app/i18n';
+import apiClient from '@/app/lib/api';
 import { resolveLocaleTag } from '@/app/lib/user-format';
 import {
   formatStoredDateWithOptions,
@@ -214,6 +215,26 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
             {t.subtitle}
           </Typography>
         </Box>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            void apiClient
+              .get<Blob>('/subscriptions/business-report', {
+                params: { format: 'csv' },
+                responseType: 'blob',
+              })
+              .then(response => {
+                const url = URL.createObjectURL(response.data);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'business-subscriptions.csv';
+                link.click();
+                URL.revokeObjectURL(url);
+              });
+          }}
+        >
+          {t.businessReport}
+        </Button>
         <Button variant="contained" onClick={props.openCreate}>
           {t.addSubscription}
         </Button>

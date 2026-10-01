@@ -132,6 +132,13 @@ export class Invoice {
   @Column({ name: 'source_recurring_invoice_id', type: 'uuid', nullable: true })
   sourceRecurringInvoiceId: string | null;
 
+  /** Dunning: how many reminder emails went to the client, and when the last one did. */
+  @Column({ name: 'reminder_count', type: 'int', default: 0 })
+  reminderCount: number;
+
+  @Column({ name: 'last_reminder_at', type: 'timestamptz', nullable: true })
+  lastReminderAt: Date | null;
+
   @OneToMany(
     () => InvoiceLineItem,
     lineItem => lineItem.invoice,
