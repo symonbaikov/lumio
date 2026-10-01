@@ -160,9 +160,7 @@ export function InvoicesListView(): React.JSX.Element {
             <Button variant="outline" onClick={() => router.push('/invoices/clients')}>
               {t.clientsNav}
             </Button>
-            <Button onClick={() => router.push('/invoices/new')}>
-              {t.newInvoice}
-            </Button>
+            <Button onClick={() => router.push('/invoices/new')}>{t.newInvoice}</Button>
           </div>
         </div>
 

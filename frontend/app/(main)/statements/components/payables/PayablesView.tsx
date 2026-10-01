@@ -723,9 +723,7 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
                 <Download size={16} />
                 {labels.exportXlsx}
               </Button>
-              <Button onClick={openCreateDrawer}>
-                {labels.add}
-              </Button>
+              <Button onClick={openCreateDrawer}>{labels.add}</Button>
             </div>
           </div>
         </div>
