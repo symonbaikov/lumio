@@ -241,7 +241,12 @@ export class ReviewInboxService {
               ? { createdAt: LessThanOrEqual(endOfDay(filters.to)) }
               : {};
       const [rows, count] = await this.receiptRepository.findAndCount({
-        where: { workspaceId, status: ReceiptStatus.NEEDS_REVIEW, isDuplicate: false, ...dateWhere },
+        where: {
+          workspaceId,
+          status: ReceiptStatus.NEEDS_REVIEW,
+          isDuplicate: false,
+          ...dateWhere,
+        },
         order: { createdAt: 'DESC' },
         skip,
         take: limit,

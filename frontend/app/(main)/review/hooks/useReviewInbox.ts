@@ -191,7 +191,10 @@ export function useReviewInbox(): UseReviewInboxResult {
     [simpleMutation],
   );
 
-  const toggle = useCallback((id: string) => setSelected(previous => toggleSelection(previous, id)), []);
+  const toggle = useCallback(
+    (id: string) => setSelected(previous => toggleSelection(previous, id)),
+    [],
+  );
   const selectIds = useCallback((ids: string[]) => setSelected(new Set(ids)), []);
   const clearSelection = useCallback(() => setSelected(new Set()), []);
   const move = useCallback(
