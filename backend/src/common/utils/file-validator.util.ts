@@ -2,6 +2,10 @@ import { BadRequestException } from '@nestjs/common';
 import * as fs from 'fs';
 import * as fsp from 'fs/promises';
 import * as path from 'path';
+import {
+  sniffStatementFormat,
+  type TextStatementFormat,
+} from '../../modules/parsing/parsers/statement-formats.util';
 import { resolveUploadsDir } from './uploads.util';
 
 // Multer's diskStorage (see config/multer.config.ts) always writes to this
@@ -24,6 +28,14 @@ function resolveInUploadsDir(candidatePath: string): string | null {
 }
 
 enum AllowedFileType {
+  // Interchange formats arrive under loose MIME types; they are admitted only
+  // when the extension and the first bytes agree (see textStatementFormatOf).
+  OFX = 'application/x-ofx',
+  QIF = 'application/qif',
+  XML = 'application/xml',
+  TEXT_XML = 'text/xml',
+  TEXT_PLAIN = 'text/plain',
+  OCTET = 'application/octet-stream',
   PDF = 'application/pdf',
   XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   XLS = 'application/vnd.ms-excel',
@@ -118,6 +130,77 @@ function readSignature(filePath: string): Buffer | null {
 // `await`. File cleanup on rejection is a separate concern — see
 // `validateFiles`/`unlinkAll` below, used only by upload endpoints that
 // already need to be async for that reason.
+const LOOSE_TEXT_MIMES = new Set<string>([
+  AllowedFileType.OFX,
+  AllowedFileType.QIF,
+  AllowedFileType.XML,
+  AllowedFileType.TEXT_XML,
+  AllowedFileType.TEXT_PLAIN,
+  AllowedFileType.OCTET,
+]);
+
+const TEXT_FORMAT_EXTENSIONS: Record<string, TextStatementFormat> = {
+  '.ofx': 'ofx',
+  '.qfx': 'ofx',
+  '.qif': 'qif',
+  '.xml': 'camt',
+  '.camt': 'camt',
+  '.mt940': 'mt940',
+  '.sta': 'mt940',
+  '.940': 'mt940',
+  '.swi': 'mt940',
+};
+
+function readTextSample(filePath: string, bytes = 8192): string | null {
+  const resolved = resolveInUploadsDir(filePath);
+  if (!resolved?.startsWith(`${uploadsRoot}${path.sep}`)) {
+    return null;
+  }
+  let fd: number;
+  try {
+    fd = fs.openSync(resolved, 'r');
+  } catch {
+    return null;
+  }
+  try {
+    const buf = Buffer.alloc(bytes);
+    const read = fs.readSync(fd, buf, 0, bytes, 0);
+    return buf.subarray(0, read).toString('utf-8');
+  } catch {
+    return null;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
+ * OFX/QFX, QIF, camt.053 or MT940, when the extension says so and the first
+ * bytes agree; null for anything else. The MIME type is not consulted: browsers
+ * send these as octet-stream, text/plain or xml at random.
+ */
+export function textStatementFormatOf(file: {
+  originalname?: string | null;
+  path?: string | null;
+}): TextStatementFormat | null {
+  const extension = path.extname(file.originalname || '').toLowerCase();
+  const expected = TEXT_FORMAT_EXTENSIONS[extension];
+  if (!expected) return null;
+  const sample = file.path ? readTextSample(file.path) : null;
+  if (sample === null) return null;
+  return sniffStatementFormat(sample) === expected ? expected : null;
+}
+
+/** `pdf`, `csv`, …, or one of the interchange formats; `unknown` otherwise. */
+export function resolveFileType(file: {
+  mimetype: string;
+  originalname?: string | null;
+  path?: string | null;
+}): string {
+  const byMime = getFileTypeFromMime(file.mimetype);
+  if (byMime !== 'unknown' && !LOOSE_TEXT_MIMES.has(file.mimetype)) return byMime;
+  return textStatementFormatOf(file) ?? byMime;
+}
+
 export function validateFile(file: Express.Multer.File): void {
   if (!file) {
     throw new BadRequestException('No file provided');
@@ -132,7 +215,12 @@ export function validateFile(file: Express.Multer.File): void {
   const allowedTypes = Object.values(AllowedFileType);
   if (!allowedTypes.includes(file.mimetype as AllowedFileType)) {
     throw new BadRequestException(
-      `File type ${file.mimetype} is not allowed. Allowed types: PDF, XLSX, XLS, CSV, DOCX, JPG, PNG, TIFF, BMP, WEBP`,
+      `File type ${file.mimetype} is not allowed. Allowed types: PDF, XLSX, XLS, CSV, DOCX, OFX, QIF, camt.053, MT940, JPG, PNG, TIFF, BMP, WEBP`,
+    );
+  }
+  if (LOOSE_TEXT_MIMES.has(file.mimetype) && !textStatementFormatOf(file)) {
+    throw new BadRequestException(
+      'File content is not a recognised statement format (OFX/QFX, QIF, camt.053 or MT940)',
     );
   }
 

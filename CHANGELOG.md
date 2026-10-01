@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Import formats: OFX/QFX, QIF, camt.053, MT940, bank CSV presets, mailbox (2026-10-01)
+
+- **Four more statement formats**: OFX/QFX (SGML and XML), QIF (date order inferred from the whole
+  file), ISO 20022 camt.053 and SWIFT MT940 (structured `:86:` details). Recognised by extension and
+  content, whatever MIME type the browser sends; a file that only has the extension is refused.
+- **CSV presets for 22 bank layouts** (Revolut, Wise, N26, Monzo, Starling, Chase, Bank of America,
+  Capital One, American Express, Wells Fargo, PayPal, ING, Rabobank, Sparkasse/DKB, Commerzbank,
+  Nordea, Santander, Barclays, HSBC, Lloyds, Tinkoff): matched by the header row, columns mapped
+  exactly instead of guessed, signed amounts and card-style charges handled per bank.
+- **Forward a statement to the mailbox**: an export attached to an email in the IMAP inbox goes
+  through statement import instead of the receipt pile (PDFs stay receipts).
+
 #### Mobile layer: offline entries and web push (2026-10-01)
 
 - **Works without a network**: a service worker caches the app shell and serves an offline page;

@@ -50,7 +50,7 @@ that document has the evidence behind every line here. Dates are intentions, not
       changes the "not a bank integration" positioning in the README and needs an explicit decision.
 - [x] Mobile layer: service worker with an offline queue for manual entries and receipt photos, web
       push for alerts, home-screen shortcuts (2026-10-01).
-- [ ] Import formats: OFX/QFX, QIF, CAMT.053, MT940, CSV presets for common banks, a mailbox address
-      for forwarded statements.
+- [x] Import formats: OFX/QFX, QIF, camt.053, MT940, CSV presets for 22 banks, forwarded statements
+      from the IMAP mailbox (2026-10-01).
 - [ ] Multi-currency audit: original amount and currency visible everywhere, manual rate override, no
       silent 1:1 conversion when a rate is missing.

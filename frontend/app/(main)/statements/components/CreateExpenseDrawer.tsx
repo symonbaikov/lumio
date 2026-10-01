@@ -612,7 +612,7 @@ export default function CreateExpenseDrawer({
                   <span className="lumio-expense-drawer__attach-hint">{t.attachFileHint}</span>
                   <input
                     type="file"
-                    accept="image/*,.pdf,.csv,.xlsx,.xls"
+                    accept="image/*,.pdf,.csv,.xlsx,.xls,.ofx,.qfx,.qif,.xml,.mt940,.sta,.940"
                     capture="environment"
                     className="lumio-expense-drawer__attach-input"
                     multiple
