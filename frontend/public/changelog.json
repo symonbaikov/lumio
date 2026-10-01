@@ -1,14 +1,100 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "c1c8f4bcede1db2afa2247c37c9063cfc3db0b96"
+      "main": "4ddef0b8292b7a8b085562b86df69cfa9e5d9e02"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-10-01T10:17:15.808Z",
+    "lastGeneratedAt": "2026-10-01T22:30:40.428Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-10-01-4ddef0b",
+      "version": "main-4ddef0b",
+      "branch": "main",
+      "date": "2026-10-01T22:30:40.428Z",
+      "title": "Release update - October 1, 2026",
+      "summary": "This release includes 1 fix.",
+      "markdown": "## Fixes\n- **ci**: Clear lint errors on main and give the type check enough heap",
+      "commits": [
+        {
+          "sha": "d67ee9c411ba8985fc57023a2bc8212dc557c63c",
+          "shortSha": "d67ee9c4",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-10-01T10:17:16Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "edcb3b9dd9a7c430064a2bf96640ea4ee3ee4d01",
+          "shortSha": "edcb3b9d",
+          "subject": "fix(ci): clear lint errors on main and give the type check enough heap",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T23:50:48+03:00",
+          "files": [
+            "backend/src/modules/insights/insights.service.ts",
+            "backend/src/modules/insights/quotes/daily-quote.service.ts",
+            "frontend/app/(main)/invoices/components/InvoicesListView.tsx",
+            "frontend/app/(main)/statements/components/payables/PayablesView.tsx",
+            "frontend/app/lib/timezone.ts",
+            "frontend/package.json"
+          ]
+        },
+        {
+          "sha": "976d9afce5e184df7e9bac04163944a348f32506",
+          "shortSha": "976d9afc",
+          "subject": "test(workspaces): allow the home-workspace read for account security events",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T00:07:13+03:00",
+          "files": [
+            "backend/@tests/unit/common/user-workspace-reads.spec.ts"
+          ]
+        },
+        {
+          "sha": "bc698575b1e56de86999659fdbfcf4886502ab89",
+          "shortSha": "bc698575",
+          "subject": "chore(deps): clear the audit findings that fail dependency-scan",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T00:16:45+03:00",
+          "files": [
+            "backend/package-lock.json",
+            "backend/package.json",
+            "frontend/package-lock.json",
+            "mcp-server/package-lock.json",
+            "package-lock.json",
+            "website/package-lock.json",
+            "website/package.json"
+          ]
+        },
+        {
+          "sha": "e6930cb72fb6642ed789deab9b4ac394909db14f",
+          "shortSha": "e6930cb7",
+          "subject": "Merge remote-tracking branch 'origin/fix/main-ci-red' into chore/backend-audit-2026-10",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T00:37:16+03:00",
+          "files": []
+        },
+        {
+          "sha": "7f9715bf49580eee96d2d18b3b2c5fe729d277df",
+          "shortSha": "7f9715bf",
+          "subject": "Merge pull request #239 from symonbaikov/fix/main-ci-red",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T01:29:47+03:00",
+          "files": []
+        },
+        {
+          "sha": "4ddef0b8292b7a8b085562b86df69cfa9e5d9e02",
+          "shortSha": "4ddef0b8",
+          "subject": "Merge pull request #240 from symonbaikov/chore/backend-audit-2026-10",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T01:30:10+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-10-01-c1c8f4b",
       "version": "main-c1c8f4b",
