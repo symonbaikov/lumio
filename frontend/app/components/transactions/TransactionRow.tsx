@@ -167,6 +167,21 @@ export function TransactionRow({
                 {t.splitBadge}
               </span>
             )}
+            {tx.transferPairId && (
+              <span
+                style={{
+                  marginLeft: 8,
+                  border: '1px solid var(--border-color)',
+                  padding: '1px 6px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--muted-foreground)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {tx.transferPairKind === 'reimbursement' ? t.reimbursementBadge : t.transferBadge}
+              </span>
+            )}
           </div>
         </td>
         <td

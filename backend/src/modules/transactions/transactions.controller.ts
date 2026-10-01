@@ -32,10 +32,16 @@ import { BulkUpdateRequestDto } from './dto/bulk-update-transaction.dto';
 import { MarkDuplicatesDto, MergeDuplicatesDto } from './dto/duplicate-actions.dto';
 import { SetTransactionTagsDto } from './dto/set-transaction-tags.dto';
 import { SplitTransactionDto } from './dto/split-transaction.dto';
+import {
+  DetectTransfersDto,
+  LinkReimbursementDto,
+  LinkTransferDto,
+} from './dto/transfer-actions.dto';
 import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { CrossStatementDeduplicationService } from './services/cross-statement-deduplication.service';
 import { TransactionAttachmentsService } from './services/transaction-attachments.service';
 import { TransactionTagsService } from './services/transaction-tags.service';
+import { TransferPairingService } from './services/transfer-pairing.service';
 import { TransactionsService } from './transactions.service';
 
 /**
@@ -55,6 +61,7 @@ export class TransactionsController {
     private readonly deduplicationService: CrossStatementDeduplicationService,
     private readonly transactionTagsService: TransactionTagsService,
     private readonly transactionAttachmentsService: TransactionAttachmentsService,
+    private readonly transferPairingService: TransferPairingService,
   ) {}
 
   @Get()
@@ -298,6 +305,89 @@ export class TransactionsController {
         isDuplicate: transaction.isDuplicate,
       },
     };
+  }
+
+  /** Pairs the legs of transfers between the user's own accounts and writes them. */
+  @Post('transfers/detect')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async detectTransfers(
+    @Body() body: DetectTransfersDto,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transferPairingService.detectAndApply(workspaceId, body.statementId);
+  }
+
+  @Get(':id/transfer-candidates')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async transferCandidates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    const data = await this.transferPairingService.candidates(workspaceId, id);
+    return { data };
+  }
+
+  @Post(':id/link-transfer')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async linkTransfer(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: LinkTransferDto,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    const transferPairId = await this.transferPairingService.link(workspaceId, id, body.otherId);
+    return { transferPairId };
+  }
+
+  @Post(':id/unlink-transfer')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async unlinkTransfer(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    await this.transferPairingService.unlink(workspaceId, id);
+    return { unlinked: true };
+  }
+
+  @Get(':id/reimbursement-candidates')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async reimbursementCandidates(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    const data = await this.transferPairingService.reimbursementCandidates(workspaceId, id);
+    return { data };
+  }
+
+  @Post(':id/link-reimbursement')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async linkReimbursement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: LinkReimbursementDto,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.transferPairingService.linkReimbursement(workspaceId, id, body.expenseId);
+  }
+
+  @Post(':id/unlink-reimbursement')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async unlinkReimbursement(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    await this.transferPairingService.unlinkReimbursement(workspaceId, id);
+    return { unlinked: true };
   }
 
   @Get(':id/tags')

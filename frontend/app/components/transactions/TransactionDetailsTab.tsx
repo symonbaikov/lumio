@@ -18,6 +18,7 @@ import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { tokens } from '@/lib/theme-tokens';
 import { formatAmount, formatDate } from './helpers/transactionFormatters';
 import { useTransactionSplit } from './hooks/useTransactionSplit';
+import { useTransferLink } from './hooks/useTransferLink';
 import { SplitTransactionDialog } from './SplitTransactionDialog';
 import type { Category, Transaction } from './types';
 
@@ -55,6 +56,28 @@ export function TransactionDetailsTab({
     await onSplitDone?.();
   }, [onSplitDone]);
   const { split, unsplit, saving: splitSaving } = useTransactionSplit(handleSplitDone);
+  const categorySourceLabels = {
+    manual: t.categorySource.manual.value,
+    rule: t.categorySource.rule.value,
+    keyword: t.categorySource.keyword.value,
+    learned: t.categorySource.learned.value,
+    history: t.categorySource.history.value,
+    ai: t.categorySource.ai.value,
+    default: t.categorySource.default.value,
+  };
+  const {
+    candidates: transferCandidates,
+    mode: linkMode,
+    loadCandidates: loadTransferCandidates,
+    clearCandidates: clearTransferCandidates,
+    link: linkTransfer,
+    unlink: unlinkTransfer,
+    linkReimbursement,
+    unlinkReimbursement,
+    loading: transferLoading,
+    saving: transferSaving,
+  } = useTransferLink(handleSplitDone);
+  const isReimbursementPair = transaction.transferPairKind === 'reimbursement';
 
   // The pre-split total the backend validates against: the positive side of the
   // row, not `transaction.amount`, which the mappers sign for display.
@@ -340,9 +363,37 @@ export function TransactionDetailsTab({
             <span style={{ fontSize: 14, color: c.ink500 }}>{t.noCategory.value}</span>
           )}
         </div>
+        {transaction.categorySource && (
+          <div
+            className="lumio-tx-detail__value"
+            style={{ marginTop: 8, fontSize: 12, color: 'var(--muted-foreground)' }}
+            data-testid="category-source"
+          >
+            {t.categorySource.label.value}: {categorySourceLabels[transaction.categorySource]}
+            {transaction.categoryReason ? ` · ${transaction.categoryReason}` : ''}
+          </div>
+        )}
       </div>
 
       {/* Actions */}
+      {transaction.transferPairId && (
+        <div className="lumio-tx-detail__cat-badge" data-testid="transfer-badge">
+          {isReimbursementPair ? t.reimbursement.badge.value : t.transfer.badge.value}
+        </div>
+      )}
+      {transaction.reimbursementOf && (
+        <div
+          className="lumio-tx-detail__value"
+          style={{ fontSize: 12, color: 'var(--muted-foreground)' }}
+          data-testid="reimburses"
+        >
+          {t.reimbursement.reimburses.value}:{' '}
+          {formatDate(transaction.reimbursementOf.transactionDate, locale)} ·{' '}
+          {transaction.reimbursementOf.counterpartyName}
+          {transaction.transferPairId ? '' : ` · ${t.reimbursement.partial.value}`}
+        </div>
+      )}
+
       <div className="lumio-tx-detail__actions">
         <div style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>{t.actions.value}</div>
 
@@ -402,6 +453,59 @@ export function TransactionDetailsTab({
             </button>
           ))}
 
+        {/* Reimbursement of an expense (incoming rows only) */}
+        {onSplitDone &&
+          transaction.transactionType === 'income' &&
+          (transaction.reimbursementOfId ? (
+            <button
+              type="button"
+              onClick={() => unlinkReimbursement(transaction.id)}
+              disabled={transferSaving}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              {t.reimbursement.unlink.value}
+            </button>
+          ) : (
+            !transaction.transferPairId && (
+              <button
+                type="button"
+                onClick={() => {
+                  void loadTransferCandidates(transaction.id, 'reimbursement');
+                }}
+                disabled={transferSaving || transferLoading || Boolean(transaction.splitGroupId)}
+                className="lumio-tx-detail__ignore-btn"
+              >
+                {t.reimbursement.link.value}
+              </button>
+            )
+          ))}
+
+        {/* Transfer between own accounts */}
+        {onSplitDone &&
+          !isReimbursementPair &&
+          !transaction.reimbursementOfId &&
+          (transaction.transferPairId ? (
+            <button
+              type="button"
+              onClick={() => unlinkTransfer(transaction.id)}
+              disabled={transferSaving}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              {transferSaving ? t.transfer.unlinking.value : t.transfer.unlink.value}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                void loadTransferCandidates(transaction.id);
+              }}
+              disabled={transferSaving || transferLoading || Boolean(transaction.splitGroupId)}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              {t.transfer.link.value}
+            </button>
+          ))}
+
         {/* Mark as Ignored */}
         {onMarkIgnored && (
           <button type="button" onClick={handleMarkIgnored} className="lumio-tx-detail__ignore-btn">
@@ -409,6 +513,51 @@ export function TransactionDetailsTab({
           </button>
         )}
       </div>
+
+      {transferCandidates && (
+        <div className="lumio-tx-detail__section" data-testid="transfer-candidates">
+          <div className="lumio-tx-detail__label">
+            {linkMode === 'reimbursement' ? t.reimbursement.pick.value : t.transfer.pick.value}
+          </div>
+          {transferCandidates.length === 0 ? (
+            <div className="lumio-tx-detail__value">
+              {linkMode === 'reimbursement'
+                ? t.reimbursement.noCandidates.value
+                : t.transfer.noCandidates.value}
+            </div>
+          ) : (
+            transferCandidates.map(candidate => (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() =>
+                  linkMode === 'reimbursement'
+                    ? linkReimbursement(transaction.id, candidate.id)
+                    : linkTransfer(transaction.id, candidate.id)
+                }
+                disabled={transferSaving}
+                className="lumio-tx-detail__ignore-btn"
+                style={{ display: 'block', width: '100%', textAlign: 'left', marginTop: 6 }}
+              >
+                {formatDate(candidate.transactionDate, locale)} · {candidate.counterpartyName} ·{' '}
+                {formatAmount(
+                  Math.abs(candidate.amount),
+                  candidate.currency ?? transaction.currency ?? 'KZT',
+                  locale,
+                )}
+              </button>
+            ))
+          )}
+          <button
+            type="button"
+            onClick={clearTransferCandidates}
+            className="lumio-tx-detail__ignore-btn"
+            style={{ marginTop: 6 }}
+          >
+            {t.transfer.cancel.value}
+          </button>
+        </div>
+      )}
 
       {onSplitDone && !transaction.splitGroupId && (
         <SplitTransactionDialog

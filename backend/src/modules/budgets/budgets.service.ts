@@ -333,6 +333,7 @@ export class BudgetsService {
       .andWhere('t.transaction_date >= :start', { start })
       .andWhere('t.transaction_date <= :end', { end })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .getRawOne();
 
     return Number.parseFloat(result?.total ?? '0');

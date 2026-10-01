@@ -821,8 +821,9 @@ describe('exportWorkspaceTransactions', () => {
       workspaceId: 'ws-42',
     });
     expect(qb.andWhere).toHaveBeenNthCalledWith(1, 'transaction.isDuplicate = false');
+    expect(qb.andWhere).toHaveBeenNthCalledWith(2, 'transaction.transferPairId IS NULL');
     expect(qb.andWhere).toHaveBeenNthCalledWith(
-      2,
+      3,
       '(transaction.statementId IS NULL OR statement.deletedAt IS NULL)',
     );
     expect(excelSpy).toHaveBeenCalledWith([{ id: 'tx-1' }], expect.stringContaining('workspace-transactions-'));

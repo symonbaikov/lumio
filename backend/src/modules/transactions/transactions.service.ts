@@ -13,7 +13,12 @@ import { Category } from '../../entities/category.entity';
 import { Payable } from '../../entities/payable.entity';
 import { Receipt } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
-import { TaxSource, Transaction, TransactionType } from '../../entities/transaction.entity';
+import {
+  TaxSource,
+  Transaction,
+  TransactionCategorySource,
+  TransactionType,
+} from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { Wallet } from '../../entities/wallet.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
@@ -96,7 +101,8 @@ export class TransactionsService {
       .andWhere('(transaction.statementId IS NULL OR statement.deletedAt IS NULL)')
       .leftJoinAndSelect('transaction.category', 'category')
       .leftJoinAndSelect('transaction.branch', 'branch')
-      .leftJoinAndSelect('transaction.wallet', 'wallet');
+      .leftJoinAndSelect('transaction.wallet', 'wallet')
+      .leftJoinAndSelect('transaction.reimbursementOf', 'reimbursementOf');
 
     if (filters.statementId) {
       query.andWhere('transaction.statementId = :statementId', {
@@ -116,7 +122,9 @@ export class TransactionsService {
       });
     }
 
-    if (filters.type) {
+    if (filters.type === 'transfer') {
+      query.andWhere('transaction.transferPairId IS NOT NULL');
+    } else if (filters.type) {
       query.andWhere('transaction.transactionType = :type', { type: filters.type });
     }
 
@@ -248,6 +256,25 @@ export class TransactionsService {
     }
 
     Object.assign(transaction, updateDto);
+
+    // `findOne` loaded the relation objects. On save TypeORM takes a loaded
+    // relation over the foreign-key column, so a changed id would silently be
+    // written back as the old one. Drop the stale objects; the id is the truth.
+    if (updateDto.categoryId !== undefined) {
+      transaction.category = undefined as unknown as Category | null;
+    }
+    if (updateDto.branchId !== undefined) {
+      transaction.branch = undefined as unknown as Branch | null;
+    }
+    if (updateDto.walletId !== undefined) {
+      transaction.wallet = undefined as unknown as Wallet | null;
+    }
+
+    // A category the user picked is sticky: re-classification leaves it alone.
+    if (updateDto.categoryId !== undefined && updateDto.categoryId !== previousCategoryId) {
+      transaction.categorySource = updateDto.categoryId ? TransactionCategorySource.MANUAL : null;
+      transaction.categoryReason = null;
+    }
 
     const saved = await this.transactionRepository.save(transaction);
     await this.invalidateReports(userId);

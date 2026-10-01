@@ -38,11 +38,44 @@ export enum TransactionType {
   EXPENSE = 'expense',
 }
 
+/**
+ * Which step of the classification chain set `categoryId`, in order of
+ * precedence. `manual` is sticky: re-classification never overrides it.
+ */
+export enum TransactionCategorySource {
+  MANUAL = 'manual',
+  RULE = 'rule',
+  KEYWORD = 'keyword',
+  LEARNED = 'learned',
+  HISTORY = 'history',
+  AI = 'ai',
+  DEFAULT = 'default',
+}
+
+/** What a pair of linked legs represents. */
+export enum TransferPairKind {
+  /** Money moved between the user's own accounts. */
+  TRANSFER = 'transfer',
+  /** Money paid out and paid back in full (a work expense, a split bill). */
+  REIMBURSEMENT = 'reimbursement',
+}
+
+/** How the two legs of a transfer came to be linked. */
+export enum TransferPairSource {
+  AUTO = 'auto',
+  MANUAL = 'manual',
+  /** The user unlinked the row; auto-pairing leaves it alone from then on. */
+  REJECTED = 'rejected',
+}
+
 @Entity('transactions')
 @Index('IDX_transactions_workspace_date_amount', ['workspaceId', 'transactionDate', 'amount'])
 // Partial, matching the migration: only split rows are ever looked up by group.
 @Index('IDX_transactions_workspace_split_group', ['workspaceId', 'splitGroupId'], {
   where: '"split_group_id" IS NOT NULL',
+})
+@Index('IDX_transactions_workspace_transfer_pair', ['workspaceId', 'transferPairId'], {
+  where: '"transfer_pair_id" IS NOT NULL',
 })
 // Makes a crypto sync idempotent: re-reading the chain re-offers rows we already
 // have, and the insert simply loses the race with itself. One on-chain transaction
@@ -188,6 +221,14 @@ export class Transaction {
   @Column({ name: 'category_hint', nullable: true })
   categoryHint: string | null;
 
+  /** See `TransactionCategorySource`. Null on rows classified before it was recorded. */
+  @Column({ name: 'category_source', type: 'varchar', length: 16, nullable: true })
+  categorySource: TransactionCategorySource | null;
+
+  /** The "why" shown next to the category: a rule name, a learned payee, a matched keyword. */
+  @Column({ name: 'category_reason', type: 'varchar', length: 255, nullable: true })
+  categoryReason: string | null;
+
   @Column({ name: 'transaction_nature', nullable: true })
   transactionNature: string | null;
 
@@ -323,6 +364,35 @@ export class Transaction {
   /** Position within the split group. Index 0 is the original row. */
   @Column({ name: 'split_index', type: 'smallint', nullable: true })
   splitIndex: number | null;
+
+  /**
+   * Links the two legs of a transfer between the user's own accounts; both rows
+   * share this id. The legs keep their income/expense direction (account
+   * balances still need it) but every spend and income aggregate leaves them
+   * out, the same way it leaves out duplicates.
+   */
+  @Column({ name: 'transfer_pair_id', type: 'uuid', nullable: true })
+  transferPairId: string | null;
+
+  /** Set together with `transferPairId`; `rejected` survives an unlink on its own. */
+  @Column({ name: 'transfer_pair_source', type: 'varchar', length: 10, nullable: true })
+  transferPairSource: TransferPairSource | null;
+
+  /** Null means `transfer`; set on both legs. */
+  @Column({ name: 'transfer_pair_kind', type: 'varchar', length: 16, nullable: true })
+  transferPairKind: TransferPairKind | null;
+
+  /**
+   * On an incoming row: the expense it pays back. A full repayment also
+   * becomes a `reimbursement` pair so both rows leave the aggregates; a
+   * partial one only records the link and still counts gross.
+   */
+  @ManyToOne(() => Transaction, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'reimbursement_of_id' })
+  reimbursementOf: Transaction | null;
+
+  @Column({ name: 'reimbursement_of_id', type: 'uuid', nullable: true })
+  reimbursementOfId: string | null;
 
   @Column({ name: 'fingerprint', length: 64, nullable: true })
   fingerprint: string | null;

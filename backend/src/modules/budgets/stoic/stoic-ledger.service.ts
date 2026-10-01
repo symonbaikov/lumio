@@ -266,6 +266,7 @@ export class StoicLedgerService {
       .andWhere('t.transaction_date >= :start', { start })
       .andWhere('t.transaction_date <= :end', { end })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .groupBy('t.category_id')
       .addGroupBy("to_char(t.transaction_date, 'YYYY-MM')")
       .addGroupBy('t.currency')

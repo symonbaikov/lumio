@@ -127,6 +127,7 @@ export class FinancialAnalyzer implements InsightAnalyzer {
       .andWhere('t.transaction_date >= :start', { start })
       .andWhere('t.transaction_date <= :end', { end })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .groupBy('t.category_id')
       .addGroupBy('category.name')
       .addGroupBy("date_trunc('month', t.transaction_date)")
@@ -310,6 +311,7 @@ export class FinancialAnalyzer implements InsightAnalyzer {
       .andWhere('t.transaction_date >= :start', { start })
       .andWhere('t.transaction_date <= :end', { end })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .setParameters({ income: TransactionType.INCOME, expense: TransactionType.EXPENSE })
       .getRawOne<{ income: string; spent: string }>();
 

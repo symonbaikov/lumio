@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Data you can trust: transfers, reimbursements, category provenance (2026-10-01)
+
+- **Transfers between your own accounts** are paired automatically after every statement import
+  (same money, different account, within three days, exactly one counterpart) and by hand
+  (`POST /transactions/:id/link-transfer`, `unlink-transfer`, `transfer-candidates`,
+  `POST /transactions/transfers/detect`). Paired rows keep their direction but no longer count as
+  spend or income anywhere: dashboard, reports, budgets, goals, insights, subscriptions, tax drafts.
+  The list filter `type=transfer` shows them; unlinked pairs are never re-paired automatically.
+- **Reimbursements:** an incoming row can be linked to the expense it pays back
+  (`link-reimbursement`, `unlink-reimbursement`, `reimbursement-candidates`). A full repayment
+  becomes a `reimbursement` pair and leaves the aggregates; a partial one keeps the link and still
+  counts gross.
+- **Category provenance:** every transaction records which step set its category (`manual`, `rule`,
+  `keyword`, `learned`, `history`, `ai`, `default`) and why (the rule name, the learned payee, the
+  keyword, the model's confidence). The details drawer shows it. The order is fixed and stated in
+  Settings → Processing: your pick → rules → keywords → your corrections → payee history → AI →
+  "Uncategorised". A hand-picked category is sticky and bulk re-classification skips it.
+- **Switches** in Settings → Processing: AI categorisation (off means no model calls and no reuse of
+  what the model taught), AI merchant names, and learning from corrections.
+- **Learning guard:** one correction does not replace a payee's established category; the second
+  one does, and what you taught outranks what the model taught at any confidence.
+
+### Changed
+
+- Cross-statement duplicate detection no longer matches rows from two different accounts: the same
+  coffee on two cards is two coffees. Overlapping re-imports of one account are still caught.
+- The AI result is applied only where rules, keywords and your corrections found nothing; the
+  statement import and the custom-table conversion now agree on that order.
+
+### Fixed
+
+- Changing a transaction's category through `PUT /transactions/:id` or `bulk-update` answered with
+  the new category but wrote the old one back to the database (TypeORM preferred the loaded
+  relation over the changed id). Category, branch and wallet changes now persist.
+
 #### Income tax declaration (2026-09-14)
 
 - **Tax declaration wizard** (`/tax-declaration`, `GET/PUT/POST /income-tax/*`) drafts the annual
