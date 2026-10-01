@@ -65,6 +65,8 @@ type ScanParams = {
   file: Express.Multer.File;
   language?: string;
   captureLocation?: CaptureLocation;
+  /** Where the file came from; defaults to the in-app camera scan. */
+  source?: ReceiptSource;
 };
 
 const MANUAL_RECEIPT_WORKER_ID = 'manual-receipt-sync';
@@ -123,7 +125,7 @@ export class ReceiptsService {
     const receipt = this.buildReceipt({
       userId: params.userId,
       workspaceId: params.workspaceId,
-      source: ReceiptSource.SCAN,
+      source: params.source ?? ReceiptSource.SCAN,
       file: params.file,
       language: params.language,
       captureLocation: params.captureLocation,
@@ -647,7 +649,12 @@ export class ReceiptsService {
       gmailMessageId: null,
       gmailThreadId: null,
       subject: params.file.originalname,
-      sender: params.source === ReceiptSource.SCAN ? 'camera-scan' : 'manual-upload',
+      sender:
+        params.source === ReceiptSource.SCAN
+          ? 'camera-scan'
+          : params.source === ReceiptSource.TELEGRAM
+            ? 'telegram'
+            : 'manual-upload',
       receivedAt: new Date(),
       status: ReceiptStatus.NEW,
       attachmentPaths: [params.file.path],

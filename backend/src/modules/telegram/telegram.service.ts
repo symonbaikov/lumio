@@ -6,19 +6,25 @@ import * as path from 'path';
 import type { Repository } from 'typeorm';
 import { retry, TimeoutError } from '../../common/utils/async.util';
 import { formatMoney } from '../../common/utils/format-money.util';
+import { CategoryType } from '../../entities/category.entity';
 import type { Insight } from '../../entities/insight.entity';
+import { ReceiptSource } from '../../entities/receipt.entity';
 import { ReportStatus, ReportType, TelegramReport } from '../../entities/telegram-report.entity';
+import { Transaction, TransactionCategorySource } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
+import { ClassificationService } from '../classification/services/classification.service';
 import { GoalsService } from '../goals/goals.service';
 import { NetWorthService } from '../net-worth/net-worth.service';
+import { ReceiptsService } from '../receipts/receipts.service';
 import type { DailyReport } from '../reports/interfaces/daily-report.interface';
 import type { MonthlyReport } from '../reports/interfaces/monthly-report.interface';
 import { ReportsService } from '../reports/reports.service';
 import { StatementsService } from '../statements/statements.service';
 import type { ConnectTelegramDto } from './dto/connect-telegram.dto';
 import type { SendTelegramReportDto } from './dto/send-report.dto';
+import { parseExpenseText } from './telegram-inbound.util';
 import {
   renderTelegramMessage,
   resolveTelegramLocale,
@@ -40,16 +46,43 @@ interface TelegramFromPayload {
   language_code?: string;
 }
 
+interface TelegramPhotoSizePayload {
+  file_id: string;
+  file_size?: number;
+  width?: number;
+  height?: number;
+}
+
 interface TelegramMessagePayload {
   chat?: { id?: number | string };
   text?: string;
+  caption?: string;
   from?: TelegramFromPayload;
   document?: TelegramDocumentPayload;
+  /** Telegram sends every size of a photo; the last one is the largest. */
+  photo?: TelegramPhotoSizePayload[];
+}
+
+interface TelegramCallbackQueryPayload {
+  id: string;
+  from?: TelegramFromPayload;
+  message?: { chat?: { id?: number | string } };
+  data?: string;
 }
 
 export interface TelegramUpdatePayload {
   message?: TelegramMessagePayload;
+  callback_query?: TelegramCallbackQueryPayload;
 }
+
+/** An inline keyboard in Telegram's own shape, passed through as `reply_markup`. */
+interface TelegramReplyMarkup {
+  inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
+}
+
+const IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic']);
+/** Callback data is limited to 64 bytes by Telegram; `kind:action:id` fits a uuid. */
+const CALLBACK_PATTERN = /^(rcpt|stmt):del:([0-9a-f-]{36})$/;
 
 interface TelegramSendMessageResponse {
   ok: boolean;
@@ -103,6 +136,13 @@ export class TelegramService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     @Optional()
     private readonly applicationSettingsService?: ApplicationSettingsService,
+    @Optional()
+    private readonly receiptsService?: ReceiptsService,
+    @Optional()
+    private readonly classificationService?: ClassificationService,
+    @Optional()
+    @InjectRepository(Transaction)
+    private readonly transactionRepository?: Repository<Transaction>,
   ) {
     this.botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     this.apiBase = this.botToken ? `https://api.telegram.org/bot${this.botToken}` : undefined;
@@ -352,6 +392,7 @@ export class TelegramService {
     chatId: string,
     text: string,
     user?: User | null,
+    replyMarkup?: TelegramReplyMarkup,
   ): Promise<TelegramSendResult> {
     const settings = await this.applicationSettingsService?.getTelegramSettings(user);
     const botToken = settings?.botToken || this.botToken;
@@ -376,6 +417,7 @@ export class TelegramService {
             chat_id: chatId,
             text,
             disable_web_page_preview: true,
+            ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
           }),
           signal: controller.signal,
         });
@@ -424,6 +466,11 @@ export class TelegramService {
       return;
     }
 
+    if (update?.callback_query) {
+      await this.handleCallbackQuery(update.callback_query);
+      return;
+    }
+
     const message = update?.message;
     if (!message) {
       return;
@@ -456,7 +503,11 @@ export class TelegramService {
     }
 
     if (text?.startsWith('/help')) {
-      await this.sendMessage(chatId, renderTelegramMessage(locale, 'help'), knownUser);
+      await this.sendMessage(
+        chatId,
+        `${renderTelegramMessage(locale, 'help')}\n\n${renderTelegramMessage(locale, 'inbound_help')}`,
+        knownUser,
+      );
       return;
     }
 
@@ -475,13 +526,275 @@ export class TelegramService {
       return;
     }
 
+    if (message.photo?.length) {
+      const largest = message.photo[message.photo.length - 1];
+      await this.handleReceiptImage(
+        chatId,
+        telegramId,
+        {
+          file_id: largest.file_id,
+          file_name: `receipt-${largest.file_id}.jpg`,
+          mime_type: 'image/jpeg',
+        },
+        locale,
+      );
+      return;
+    }
+
     if (message.document) {
-      await this.handleDocumentUpload(chatId, telegramId, message.document, locale);
+      const mimeType = (message.document.mime_type || '').toLowerCase();
+      if (IMAGE_MIME_TYPES.has(mimeType)) {
+        await this.handleReceiptImage(chatId, telegramId, message.document, locale);
+      } else {
+        await this.handleDocumentUpload(chatId, telegramId, message.document, locale);
+      }
       return;
     }
 
     if (text?.startsWith('/')) {
       await this.sendMessage(chatId, renderTelegramMessage(locale, 'unknown_command'), knownUser);
+      return;
+    }
+
+    if (text) {
+      await this.handleExpenseText(chatId, telegramId, text, locale);
+    }
+  }
+
+  /** The user and workspace behind a chat, or a reply explaining why there is none. */
+  private async resolveSender(
+    chatId: string,
+    telegramId: string | null,
+    fallbackLocale: string,
+  ): Promise<{ user: User; workspaceId: string } | null> {
+    if (!telegramId) {
+      await this.sendMessage(
+        chatId,
+        renderTelegramMessage(fallbackLocale, 'document_telegram_id_unknown'),
+      );
+      return null;
+    }
+    const user = await this.findUserByTelegram(telegramId, chatId);
+    const workspaceId = user ? await this.resolveWorkspaceId(user) : null;
+    if (!(user && workspaceId)) {
+      await this.sendMessage(
+        chatId,
+        renderTelegramMessage(fallbackLocale, 'document_user_not_connected', { telegramId }),
+      );
+      return null;
+    }
+    return { user, workspaceId };
+  }
+
+  /**
+   * A photo (or an image sent as a file) is a receipt: it goes through the
+   * same scan pipeline as the in-app camera and lands in the review inbox.
+   */
+  private async handleReceiptImage(
+    chatId: string,
+    telegramId: string | null,
+    document: TelegramDocumentPayload,
+    fallbackLocale: string,
+  ): Promise<void> {
+    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale);
+    if (!sender) {
+      return;
+    }
+    const { user, workspaceId } = sender;
+    const locale = user.locale || 'en';
+    if (!this.receiptsService) {
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'receipt_photo_failed'), user);
+      return;
+    }
+
+    await this.sendMessage(chatId, renderTelegramMessage(locale, 'receipt_photo_received'), user);
+    try {
+      const fileName = this.sanitizeFileName(
+        document.file_name || `receipt-${document.file_id}.jpg`,
+      );
+      const mimeType = document.mime_type || 'image/jpeg';
+      const file = await this.downloadTelegramFile(document.file_id, fileName, mimeType);
+      const receipt = await this.receiptsService.createFromScan({
+        userId: user.id,
+        workspaceId,
+        file: file as Express.Multer.File,
+        language: locale,
+        source: ReceiptSource.TELEGRAM,
+      });
+      const amount = receipt.parsedData?.amount;
+      const text =
+        typeof amount === 'number' && Number.isFinite(amount)
+          ? renderTelegramMessage(locale, 'receipt_photo_done', {
+              vendor: receipt.parsedData?.vendor || '—',
+              amount: formatMoney(amount, locale),
+              currency: receipt.parsedData?.currency || '',
+              status: receipt.status,
+            })
+          : renderTelegramMessage(locale, 'receipt_photo_unreadable');
+      await this.sendMessage(chatId, text, user, {
+        inline_keyboard: [
+          [
+            {
+              text: renderTelegramMessage(locale, 'delete_button'),
+              callback_data: `rcpt:del:${receipt.id}`,
+            },
+          ],
+        ],
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to handle Telegram receipt image: ${message}`);
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'receipt_photo_failed'), user);
+    }
+  }
+
+  /**
+   * "coffee 4.50" books a manual expense with today's date. It is born
+   * unreviewed and uncategorised on purpose: the review inbox is where the
+   * category gets picked, with the keyboard, not in a chat.
+   */
+  private async handleExpenseText(
+    chatId: string,
+    telegramId: string | null,
+    text: string,
+    fallbackLocale: string,
+  ): Promise<void> {
+    const parsed = parseExpenseText(text);
+    if (!parsed) {
+      const user = telegramId ? await this.findUserByTelegram(telegramId, chatId) : null;
+      await this.sendMessage(
+        chatId,
+        renderTelegramMessage(user?.locale || fallbackLocale, 'expense_text_unparsed'),
+        user,
+      );
+      return;
+    }
+    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale);
+    if (!sender) {
+      return;
+    }
+    const { user, workspaceId } = sender;
+    const locale = user.locale || 'en';
+
+    try {
+      const categoryId = await this.classificationService?.ensureCategory(
+        user.id,
+        'Без категории',
+        CategoryType.EXPENSE,
+        undefined,
+        workspaceId,
+      );
+      if (!categoryId) {
+        throw new Error('No fallback category available');
+      }
+      const currency = parsed.currency || (await this.workspaceCurrency(workspaceId)) || 'KZT';
+      const statement = await this.statementsService.createManualExpense({
+        user,
+        workspaceId,
+        payload: {
+          amount: String(parsed.amount),
+          currency,
+          merchant: parsed.merchant || 'Telegram',
+          categoryId,
+          date: new Date().toISOString().slice(0, 10),
+          description: text.slice(0, 500),
+        },
+        files: [],
+      });
+      await this.transactionRepository?.update(
+        { statementId: statement.id, workspaceId },
+        {
+          isVerified: false,
+          categorySource: TransactionCategorySource.DEFAULT,
+          categoryReason: null,
+        },
+      );
+      await this.sendMessage(
+        chatId,
+        renderTelegramMessage(locale, 'expense_text_done', {
+          merchant: parsed.merchant || 'Telegram',
+          amount: formatMoney(parsed.amount, locale),
+          currency,
+        }),
+        user,
+        {
+          inline_keyboard: [
+            [
+              {
+                text: renderTelegramMessage(locale, 'delete_button'),
+                callback_data: `stmt:del:${statement.id}`,
+              },
+            ],
+          ],
+        },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Failed to book Telegram expense: ${message}`);
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'expense_text_failed'), user);
+    }
+  }
+
+  private async workspaceCurrency(workspaceId: string): Promise<string | null> {
+    const member = await this.workspaceMemberRepository.findOne({
+      where: { workspaceId },
+      relations: ['workspace'],
+    });
+    const currency = (member as { workspace?: { currency?: string | null } } | null)?.workspace
+      ?.currency;
+    return currency ?? null;
+  }
+
+  /** The delete button under a bot reply; anything else is acknowledged and ignored. */
+  private async handleCallbackQuery(query: TelegramCallbackQueryPayload): Promise<void> {
+    const chatId = query.message?.chat?.id ? String(query.message.chat.id) : null;
+    const telegramId = query.from?.id ? String(query.from.id) : null;
+    const match = query.data ? CALLBACK_PATTERN.exec(query.data) : null;
+    const fallbackLocale = resolveTelegramLocale(query.from?.language_code);
+    if (!(chatId && match)) {
+      await this.answerCallbackQuery(query.id);
+      return;
+    }
+    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale);
+    if (!sender) {
+      await this.answerCallbackQuery(query.id);
+      return;
+    }
+    const { user, workspaceId } = sender;
+    const locale = user.locale || 'en';
+    const [, kind, id] = match;
+    try {
+      if (kind === 'rcpt') {
+        if (!this.receiptsService) throw new Error('Receipts are not available');
+        await this.receiptsService.delete(id, workspaceId, user.id);
+      } else {
+        await this.statementsService.remove(id, user.id, workspaceId);
+      }
+      await this.answerCallbackQuery(query.id, renderTelegramMessage(locale, 'deleted'));
+      await this.sendMessage(chatId, renderTelegramMessage(locale, 'deleted'), user);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Telegram delete failed for ${kind} ${id}: ${message}`);
+      await this.answerCallbackQuery(query.id, renderTelegramMessage(locale, 'delete_failed'));
+    }
+  }
+
+  private async answerCallbackQuery(callbackQueryId: string, text?: string): Promise<void> {
+    const settings = await this.applicationSettingsService?.getTelegramSettings();
+    const botToken = settings?.botToken || this.botToken;
+    if (!botToken) {
+      return;
+    }
+    try {
+      await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callback_query_id: callbackQueryId, ...(text ? { text } : {}) }),
+      });
+    } catch (error) {
+      this.logger.warn(
+        `answerCallbackQuery failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Telegram inbound (2026-10-01)
+
+- **Send the bot a photo of a receipt** (or an image as a file): it goes through the same scan
+  pipeline as the in-app camera, lands in the review inbox, and the bot answers with the vendor,
+  the amount and a delete button. PDFs still go to statement import.
+- **Type an expense**: "coffee 4.50", "taxi 15 EUR", "такси 1500 тг" books a manual expense dated
+  today, unreviewed and uncategorised on purpose, so the category is picked in the review inbox.
+  The reply carries a delete button. `/help` explains both.
+
 #### Receipts meet bank rows (2026-10-01)
 
 - **Receipt → transaction match:** after parsing, a receipt is matched to the bank row it documents
