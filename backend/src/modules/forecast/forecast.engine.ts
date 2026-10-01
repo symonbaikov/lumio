@@ -53,8 +53,6 @@ export interface ForecastInput {
   events: ForecastEvent[];
   /** Everyday spending per month, from history, net of the committed items. */
   everydayMonthly: number;
-  /** Average monthly net result (income − expenses) from history; drives the runway. */
-  monthlyNet: number;
   scenario?: ForecastScenario;
 }
 
@@ -165,7 +163,7 @@ export function computeForecast(input: ForecastInput): ForecastResult {
     lowestBalanceDate,
     shortfallDate,
     safeToSpend: safeToSpend(input.today, horizonEnd, input.openingBalance, events),
-    runwayMonths: runwayMonths(input.openingBalance, input.monthlyNet, expenseFactor, incomeFactor),
+    runwayMonths: runwayMonths(input.openingBalance, balance, horizonDays),
   };
 }
 
@@ -196,18 +194,19 @@ function safeToSpend(
   };
 }
 
-/** How many months the balance lasts at the historical net burn, after the scenario's factors. */
+/**
+ * How many months the balance lasts at the pace the projection falls over the
+ * horizon — the same line the chart draws, so the two never disagree. Null
+ * when the projection does not fall.
+ */
 function runwayMonths(
   openingBalance: number,
-  monthlyNet: number,
-  expenseFactor: number,
-  incomeFactor: number,
+  closingBalance: number,
+  horizonDays: number,
 ): number | null {
-  // monthlyNet = income − expenses; split the factors across the two sides
-  // only when the sign is known, otherwise scale the net as a whole.
-  const adjusted = monthlyNet >= 0 ? monthlyNet * incomeFactor : monthlyNet * expenseFactor;
-  if (adjusted >= 0 || openingBalance <= 0) return null;
-  return round(openingBalance / -adjusted);
+  const monthlyDecline = (openingBalance - closingBalance) / (horizonDays / DAYS_PER_MONTH);
+  if (!(monthlyDecline > 0) || openingBalance <= 0) return null;
+  return round(openingBalance / monthlyDecline);
 }
 
 function factor(value: number | undefined): number {

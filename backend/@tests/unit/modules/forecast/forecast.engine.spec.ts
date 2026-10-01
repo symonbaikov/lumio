@@ -24,7 +24,6 @@ describe('computeForecast', () => {
       openingBalance: 1000,
       events: [event('2026-10-03', -400), event('2026-10-08', 900)],
       everydayMonthly: 304.375, // 10 a day
-      monthlyNet: 0,
     });
 
     expect(result.days).toHaveLength(10);
@@ -46,7 +45,6 @@ describe('computeForecast', () => {
       openingBalance: 100,
       events: [event('2026-10-02', -80), event('2026-10-04', -50)],
       everydayMonthly: 0,
-      monthlyNet: 0,
     });
     expect(result.shortfallDate).toBe('2026-10-04');
     expect(result.lowestBalance).toBe(-30);
@@ -59,7 +57,6 @@ describe('computeForecast', () => {
       openingBalance: 500,
       events: [event('2026-10-05', -200), event('2026-10-10', 2000), event('2026-10-12', -900)],
       everydayMonthly: 3000, // would eat everything, must not count
-      monthlyNet: 0,
     });
     expect(result.safeToSpend).toEqual({
       amount: 300,
@@ -73,7 +70,6 @@ describe('computeForecast', () => {
       openingBalance: 100,
       events: [event('2026-10-05', -200), event('2026-10-10', 2000)],
       everydayMonthly: 0,
-      monthlyNet: 0,
     });
     expect(broke.safeToSpend.amount).toBe(0);
   });
@@ -89,7 +85,6 @@ describe('computeForecast', () => {
         event('2026-10-10', 1000, { sourceId: 'salary' }),
       ],
       everydayMonthly: 0,
-      monthlyNet: 0,
       scenario: {
         exclude: ['netflix'],
         incomeFactor: 0.8,
@@ -105,26 +100,39 @@ describe('computeForecast', () => {
     expect(result.closingBalance).toBe(1200);
   });
 
-  it('reads the runway off the historical burn and says nothing when not burning', () => {
+  it('reads the runway off the projected balance, the same line the chart draws', () => {
+    // 12,000 falling by ~4,000 a month: everyday spending only, nothing scheduled.
     const burning = computeForecast({
       today,
-      horizonDays: 1,
+      horizonDays: 90,
       openingBalance: 12000,
       events: [],
-      everydayMonthly: 0,
-      monthlyNet: -4000,
+      everydayMonthly: 4000,
     });
     expect(burning.runwayMonths).toBe(3);
 
     const growing = computeForecast({
       today,
-      horizonDays: 1,
+      horizonDays: 90,
       openingBalance: 12000,
-      events: [],
-      everydayMonthly: 0,
-      monthlyNet: 500,
+      events: [event('2026-10-25', 5000)],
+      everydayMonthly: 1000,
     });
     expect(growing.runwayMonths).toBeNull();
+  });
+
+  it('never calls a falling projection growing', () => {
+    // Pay of 5,127 a month against bills and everyday spending of ~8,000: the line goes down.
+    const result = computeForecast({
+      today,
+      horizonDays: 90,
+      openingBalance: 93000,
+      events: [event('2026-10-03', 5127), event('2026-11-03', 5127), event('2026-12-03', 5127)],
+      everydayMonthly: 7987.5,
+    });
+    expect(result.closingBalance).toBeLessThan(result.openingBalance);
+    expect(result.runwayMonths).not.toBeNull();
+    expect(result.runwayMonths).toBeGreaterThan(30);
   });
 });
 

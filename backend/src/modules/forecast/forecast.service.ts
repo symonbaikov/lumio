@@ -110,7 +110,6 @@ export class ForecastService {
       openingBalance: commitments.openingBalance,
       events: [...committed, ...invoices, ...goals, ...incomeEvents],
       everydayMonthly,
-      monthlyNet: history.monthlyIncome - history.monthlyExpense,
       scenario: {
         exclude: query.exclude,
         incomeFactor: query.incomeFactor,
