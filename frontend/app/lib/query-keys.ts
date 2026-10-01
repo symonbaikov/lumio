@@ -84,6 +84,8 @@ export const queryKeys = {
     ['subscriptions', o.workspaceId, 'list', o.status] as const,
   subscriptionsSummary: (workspaceId: string | null) =>
     ['subscriptions', workspaceId, 'summary'] as const,
+  subscriptionsDuplicates: (workspaceId: string | null) =>
+    ['subscriptions', workspaceId, 'duplicates'] as const,
   subscriptionsChargeCalendar: (o: { workspaceId: string | null; months: number }) =>
     ['subscriptions', o.workspaceId, 'charge-calendar', o.months] as const,
   auditEvents: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>

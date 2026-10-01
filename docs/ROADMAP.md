@@ -22,9 +22,9 @@ that document has the evidence behind every line here. Dates are intentions, not
 - [x] Receipt → transaction match and one-click split by line-item category; Amazon orders matched to
       several charges; receipts embedded in email bodies, not only attachments (2026-10-01).
 - [x] Telegram inbound: send a photo, a PDF or "coffee 4.50" to the bot and it lands in the review queue (2026-10-01).
-- [ ] Subscriptions 2.0: price-change alerts with the yearly effect, duplicate subscriptions, cost per
-      use, a calendar of upcoming charges, sinking-fund suggestions for annual bills, an off switch
-      for "is this recurring?" prompts.
+- [x] Subscriptions 2.0: price-change alerts with the yearly effect, duplicate subscriptions, cost per
+      use, bills and invoices in the charge calendar, sinking-fund goals for annual bills, an off switch
+      for "is this recurring?" prompts (2026-10-01).
 - [ ] Budget mechanics: rollover, "refill up to" goals, parent-category budgets, a warning when a manual
       entry would overdraw the account.
 - [ ] Workspace profile Home / Business: the home profile hides invoices, payables, ledger, tax and

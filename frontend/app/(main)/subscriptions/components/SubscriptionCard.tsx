@@ -5,7 +5,7 @@ import { Pencil, Trash2 } from '@/app/components/icons';
 import { VendorIcon } from '@/app/components/VendorIcon';
 import { useIntlayer } from '@/app/i18n';
 import { formatStoredDateWithOptions } from '@/app/lib/user-format-store';
-import type { SubscriptionItem } from '../hooks/useSubscriptionsPage';
+import { priceChangeOf, type SubscriptionItem } from '../hooks/useSubscriptionsPage';
 
 interface SubscriptionCardProps {
   subscription: SubscriptionItem;
@@ -13,6 +13,16 @@ interface SubscriptionCardProps {
   onDelete: () => void;
   onConfirm: () => void;
   onDismiss: () => void;
+  onUse?: () => void;
+  onSinkingFund?: () => void;
+  duplicate?: boolean;
+}
+
+/** What to put aside each month so a quarterly or annual charge does not land as a surprise. */
+export function monthlySetAsideOf(subscription: SubscriptionItem): number | null {
+  if (subscription.frequency === 'annual') return subscription.amount / 12;
+  if (subscription.frequency === 'quarterly') return subscription.amount / 3;
+  return null;
 }
 
 const STATUS_COLORS: Record<string, 'warning' | 'success' | 'default' | 'error'> = {
@@ -48,10 +58,20 @@ export function SubscriptionCard({
   onDelete,
   onConfirm,
   onDismiss,
+  onUse,
+  onSinkingFund,
+  duplicate = false,
 }: SubscriptionCardProps) {
   const t = useIntlayer('subscriptionsPage');
   const formatAmount = (amount: number, currency: string) =>
     `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(amount)} ${currency}`;
+  const priceChange = priceChangeOf(subscription);
+  const setAside = monthlySetAsideOf(subscription);
+  const fill = (template: string, values: Record<string, string>) =>
+    Object.entries(values).reduce(
+      (text, [key, value]) => text.replaceAll(`{{${key}}}`, value),
+      template,
+    );
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
@@ -86,13 +106,28 @@ export function SubscriptionCard({
               </Typography>
             </Typography>
           </Box>
-          <Chip
-            label={t[STATUS_LABELS[subscription.status]].value}
-            size="small"
-            color={STATUS_COLORS[subscription.status] ?? 'default'}
-            variant="outlined"
-          />
+          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {duplicate && (
+              <Chip label={t.duplicateChip.value} size="small" color="warning" variant="outlined" />
+            )}
+            <Chip
+              label={t[STATUS_LABELS[subscription.status]].value}
+              size="small"
+              color={STATUS_COLORS[subscription.status] ?? 'default'}
+              variant="outlined"
+            />
+          </Box>
         </Box>
+        {priceChange && subscription.riskStatus === 'price_changed' && (
+          <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+            {fill(t.priceChangeDetail.value, {
+              previous: formatAmount(priceChange.previous, subscription.currency),
+              current: formatAmount(priceChange.current, subscription.currency),
+              delta: formatAmount(priceChange.delta, subscription.currency),
+              yearly: formatAmount(priceChange.yearlyDelta, subscription.currency),
+            })}
+          </Typography>
+        )}
 
         {/* Details */}
         <Box sx={{ display: 'flex', gap: 2, mb: 1.5 }}>
@@ -104,6 +139,14 @@ export function SubscriptionCard({
           {subscription.category && (
             <Typography variant="body2" color="text.secondary">
               {subscription.category.name}
+            </Typography>
+          )}
+          {typeof subscription.costPerUse === 'number' && (
+            <Typography variant="body2" color="text.secondary">
+              {fill(t.costPerUse.value, {
+                amount: formatAmount(subscription.costPerUse, subscription.currency),
+                count: String(subscription.usageCount ?? 0),
+              })}
             </Typography>
           )}
         </Box>
@@ -118,6 +161,26 @@ export function SubscriptionCard({
               <Button size="small" variant="outlined" color="inherit" onClick={onDismiss}>
                 {t.dismiss}
               </Button>
+            </Box>
+          ) : subscription.status === 'active' ? (
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {onUse && (
+                <Button size="small" variant="outlined" color="inherit" onClick={onUse}>
+                  {t.usedIt}
+                </Button>
+              )}
+              {setAside !== null &&
+                (subscription.sinkingGoalId ? (
+                  <Chip label={t.sinkingFundLinked.value} size="small" variant="outlined" />
+                ) : (
+                  onSinkingFund && (
+                    <Button size="small" variant="outlined" color="inherit" onClick={onSinkingFund}>
+                      {fill(t.setAside.value, {
+                        amount: formatAmount(setAside, subscription.currency),
+                      })}
+                    </Button>
+                  )
+                ))}
             </Box>
           ) : (
             <Box />

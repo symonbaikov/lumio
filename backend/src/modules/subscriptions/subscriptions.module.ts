@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Invoice } from '../../entities/invoice.entity';
+import { Payable } from '../../entities/payable.entity';
 import { Subscription } from '../../entities/subscription.entity';
 import { SubscriptionCharge } from '../../entities/subscription-charge.entity';
 import { SubscriptionDecision } from '../../entities/subscription-decision.entity';
@@ -8,6 +10,7 @@ import { Workspace } from '../../entities/workspace.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditModule } from '../audit/audit.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
+import { GoalsModule } from '../goals/goals.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SubscriptionDetectionService } from './subscription-detection.service';
 import { SubscriptionEventsListener } from './subscription-events.listener';
@@ -23,9 +26,12 @@ import { SubscriptionsService } from './subscriptions.service';
       Transaction,
       Workspace,
       WorkspaceMember,
+      Payable,
+      Invoice,
     ]),
     NotificationsModule,
     ExchangeRatesModule,
+    GoalsModule,
     AuditModule,
   ],
   controllers: [SubscriptionsController],

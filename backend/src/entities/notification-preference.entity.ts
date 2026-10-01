@@ -70,6 +70,10 @@ export class NotificationPreference {
   @Column({ name: 'uncategorized_items', type: 'boolean', default: true })
   uncategorizedItems: boolean;
 
+  /** "Looks like a subscription — confirm?" prompts after an import. */
+  @Column({ name: 'subscription_prompts', type: 'boolean', default: true })
+  subscriptionPrompts: boolean;
+
   /**
    * Per-event delivery matrix, the source of truth since the channels migration.
    * The booleans above are kept only so a rollback does not lose settings.

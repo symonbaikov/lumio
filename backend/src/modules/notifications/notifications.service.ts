@@ -30,7 +30,8 @@ type NotificationPreferenceKey =
   | 'workspaceUpdated'
   | 'parsingErrors'
   | 'importFailures'
-  | 'uncategorizedItems';
+  | 'uncategorizedItems'
+  | 'subscriptionPrompts';
 
 /** Anything that is not a real boolean leaves the current setting alone — a
  * truthy string must not be able to switch a channel on. */
@@ -47,6 +48,7 @@ const NOTIFICATION_PREFERENCE_KEYS: NotificationPreferenceKey[] = [
   'parsingErrors',
   'importFailures',
   'uncategorizedItems',
+  'subscriptionPrompts',
 ];
 
 const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferenceKey> = {
@@ -71,8 +73,9 @@ const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferen
   [NotificationType.TAX_THRESHOLD_WARNING]: 'workspaceUpdated',
   [NotificationType.TAX_THRESHOLD_REACHED]: 'workspaceUpdated',
   [NotificationType.BUDGET_EXCEEDED]: 'workspaceUpdated',
-  [NotificationType.SUBSCRIPTION_DETECTED]: 'workspaceUpdated',
+  [NotificationType.SUBSCRIPTION_DETECTED]: 'subscriptionPrompts',
   [NotificationType.SUBSCRIPTION_UPCOMING]: 'workspaceUpdated',
+  [NotificationType.SUBSCRIPTION_PRICE_CHANGED]: 'workspaceUpdated',
 };
 
 export interface CreateNotificationPayload {

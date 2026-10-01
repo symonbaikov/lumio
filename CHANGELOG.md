@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Subscriptions 2.0 (2026-10-01)
+
+- **Price change with the yearly effect**: when the last two charges of a known subscription settle
+  on a new price (more than 5% off the old one), the row is flagged, the delta per charge and per
+  year is shown on the card, and the workspace gets a notification saying both numbers. A change is
+  announced once; "Keep" clears the flag.
+- **Possible duplicates**: two active or detected rows of one service (same domain, or the same
+  name without plan words such as Premium/Basic) are grouped under `GET /subscriptions/duplicates`,
+  counted on the page and marked on the row.
+- **Cost per use**: a "Used it" tap on the card counts a use; the card then shows the price per use
+  since the first tap, so "is Netflix worth it" has a number.
+- **Set aside for annual and quarterly bills**: the card offers the monthly amount that covers the
+  next charge by its date; one tap creates a savings goal linked to the subscription
+  (`POST /subscriptions/:id/sinking-fund`, idempotent; `GET /subscriptions/sinking-funds` lists them).
+- **Bills and invoices in the charge calendar**: open payables appear next to subscriptions with a
+  "bill" label; sent invoices appear as money coming in and stay out of the month totals.
+- **Switch for "is this a subscription?" prompts** in Settings → Notifications (`subscriptionPrompts`).
+
 #### Telegram inbound (2026-10-01)
 
 - **Send the bot a photo of a receipt** (or an image as a file): it goes through the same scan

@@ -60,14 +60,17 @@ describe('SubscriptionsService', () => {
 
   describe('getSummary', () => {
     it('normalizes active subscription costs to monthly and sums them', async () => {
-      subscriptionRepository.find.mockResolvedValue([
-        {
-          amount: 100,
-          currency: 'USD',
-          frequency: SubscriptionFrequency.MONTHLY,
-          status: SubscriptionStatus.ACTIVE,
-        },
-      ]);
+      // First call lists active rows, the second lists detected ones.
+      subscriptionRepository.find
+        .mockResolvedValueOnce([
+          {
+            amount: 100,
+            currency: 'USD',
+            frequency: SubscriptionFrequency.MONTHLY,
+            status: SubscriptionStatus.ACTIVE,
+          },
+        ])
+        .mockResolvedValueOnce([]);
       subscriptionRepository.count.mockResolvedValue(0);
 
       const result = await service.getSummary('workspace-1');
@@ -78,8 +81,10 @@ describe('SubscriptionsService', () => {
         upcomingCount: 0,
         upcoming30DaysCount: 0,
         priceChangeCount: 0,
+        priceChangeYearlyEffect: 0,
         overdueReviewCount: 0,
         realizedAnnualSavings: 0,
+        duplicateCount: 0,
       });
     });
 

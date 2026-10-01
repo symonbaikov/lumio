@@ -23,6 +23,7 @@ export type NotificationMessageKey =
   | 'budget.warning'
   | 'subscription.detected'
   | 'subscription.upcoming'
+  | 'subscription.price_changed'
   | 'tax.threshold.warning'
   | 'tax.threshold.reached'
   | 'review.waiting';
@@ -35,6 +36,11 @@ interface TranslationEntry {
 type TranslationMap = Record<NotificationMessageKey, TranslationEntry>;
 
 const ru: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Подписка подорожала',
+    message:
+      '{{vendor}}: было {{previous}}, стало {{current}} {{currency}} ({{delta}} за списание, {{yearly}} в год)',
+  },
   'review.waiting': {
     title: 'Ждут разбора',
     message: '{{count}} элементов ждут решения во входящих на разбор',
@@ -125,6 +131,11 @@ const ru: TranslationMap = {
 };
 
 const en: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Subscription price changed',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} per charge, {{yearly}} a year)',
+  },
   'review.waiting': {
     title: 'Items waiting for review',
     message: '{{count}} items are waiting in the review inbox',
@@ -219,6 +230,11 @@ const en: TranslationMap = {
 };
 
 const kk: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Жазылым бағасы өзгерді',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} (бір төлемде {{delta}}, жылына {{yearly}})',
+  },
   'review.waiting': {
     title: 'Қарауды күтуде',
     message: '{{count}} элемент қарау кіріс жәшігінде күтіп тұр',
@@ -306,6 +322,11 @@ const kk: TranslationMap = {
 };
 
 const de: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Abo-Preis geändert',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} pro Abbuchung, {{yearly}} im Jahr)',
+  },
   'review.waiting': {
     title: 'Zur Durchsicht wartend',
     message: '{{count}} Einträge warten im Prüf-Posteingang',
@@ -409,6 +430,11 @@ const de: TranslationMap = {
 };
 
 const fr: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Prix d’abonnement modifié',
+    message:
+      '{{vendor}} : {{previous}} → {{current}} {{currency}} ({{delta}} par prélèvement, {{yearly}} par an)',
+  },
   'review.waiting': {
     title: 'En attente de revue',
     message: '{{count}} éléments attendent dans la boîte de revue',
@@ -509,6 +535,11 @@ const fr: TranslationMap = {
 };
 
 const es: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Cambio de precio de suscripción',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} por cargo, {{yearly}} al año)',
+  },
   'review.waiting': {
     title: 'Pendientes de revisión',
     message: '{{count}} elementos esperan en la bandeja de revisión',
@@ -609,6 +640,11 @@ const es: TranslationMap = {
 };
 
 const pt: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Preço da subscrição alterado',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} por cobrança, {{yearly}} por ano)',
+  },
   'review.waiting': {
     title: 'Aguardando revisão',
     message: '{{count}} itens aguardam na caixa de revisão',
@@ -709,6 +745,11 @@ const pt: TranslationMap = {
 };
 
 const tr: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Abonelik fiyatı değişti',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} (tahsilat başına {{delta}}, yılda {{yearly}})',
+  },
   'review.waiting': {
     title: 'İnceleme bekliyor',
     message: '{{count}} öğe inceleme gelen kutusunda bekliyor',
@@ -802,6 +843,11 @@ const tr: TranslationMap = {
 };
 
 const uk: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Підписка подорожчала',
+    message:
+      '{{vendor}}: було {{previous}}, стало {{current}} {{currency}} ({{delta}} за списання, {{yearly}} на рік)',
+  },
   'review.waiting': {
     title: 'Чекають на розбір',
     message: '{{count}} елементів чекають у вхідних на розбір',
@@ -895,6 +941,11 @@ const uk: TranslationMap = {
 };
 
 const zh: TranslationMap = {
+  'subscription.price_changed': {
+    title: '订阅价格变动',
+    message:
+      '{{vendor}}：{{previous}} → {{current}} {{currency}}（每次 {{delta}}，每年 {{yearly}}）',
+  },
   'review.waiting': {
     title: '待审核项目',
     message: '{{count}} 个项目在审核收件箱中等待',
@@ -958,6 +1009,11 @@ const zh: TranslationMap = {
 };
 
 const ar: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'تغيّر سعر الاشتراك',
+    message:
+      '{{vendor}}: {{previous}} ← {{current}} {{currency}} ({{delta}} لكل خصم، {{yearly}} سنويًا)',
+  },
   'review.waiting': {
     title: 'عناصر بانتظار المراجعة',
     message: '{{count}} عنصرًا بانتظارك في صندوق المراجعة',
@@ -1042,6 +1098,11 @@ const ar: TranslationMap = {
 };
 
 const pl: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Zmiana ceny subskrypcji',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} za obciążenie, {{yearly}} rocznie)',
+  },
   'review.waiting': {
     title: 'Oczekują na przegląd',
     message: '{{count}} pozycji czeka w skrzynce przeglądu',
@@ -1144,6 +1205,11 @@ const pl: TranslationMap = {
 };
 
 const it: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Prezzo abbonamento cambiato',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} per addebito, {{yearly}} all’anno)',
+  },
   'review.waiting': {
     title: 'In attesa di revisione',
     message: '{{count}} elementi attendono nella posta di revisione',
@@ -1244,6 +1310,11 @@ const it: TranslationMap = {
 };
 
 const sk: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Cena predplatného sa zmenila',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} za platbu, {{yearly}} ročne)',
+  },
   'review.waiting': {
     title: 'Čakajú na kontrolu',
     message: '{{count}} položiek čaká v schránke na kontrolu',
@@ -1340,6 +1411,11 @@ const sk: TranslationMap = {
 };
 
 const ja: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'サブスク料金が変わりました',
+    message:
+      '{{vendor}}：{{previous}} → {{current}} {{currency}}（1 回あたり {{delta}}、年間 {{yearly}}）',
+  },
   'review.waiting': {
     title: '確認待ちの項目',
     message: '{{count}} 件が確認用受信箱で待っています',
@@ -1445,6 +1521,11 @@ const ja: TranslationMap = {
 };
 
 const ko: TranslationMap = {
+  'subscription.price_changed': {
+    title: '구독 가격 변경',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} (결제당 {{delta}}, 연간 {{yearly}})',
+  },
   'review.waiting': {
     title: '검토 대기 항목',
     message: '{{count}}개 항목이 검토함에서 기다리고 있습니다',
@@ -1535,6 +1616,11 @@ const ko: TranslationMap = {
 };
 
 const hi: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'सदस्यता मूल्य बदला',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} (प्रति शुल्क {{delta}}, सालाना {{yearly}})',
+  },
   'review.waiting': {
     title: 'समीक्षा की प्रतीक्षा',
     message: '{{count}} आइटम समीक्षा इनबॉक्स में प्रतीक्षा कर रहे हैं',
@@ -1622,6 +1708,11 @@ const hi: TranslationMap = {
 };
 
 const nl: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Abonnementsprijs gewijzigd',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} per afschrijving, {{yearly}} per jaar)',
+  },
   'review.waiting': {
     title: 'Wachten op beoordeling',
     message: '{{count}} items wachten in het beoordelingspostvak',
@@ -1728,6 +1819,11 @@ const nl: TranslationMap = {
 };
 
 const sv: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Prenumerationspris ändrat',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} per debitering, {{yearly}} per år)',
+  },
   'review.waiting': {
     title: 'Väntar på granskning',
     message: '{{count}} poster väntar i granskningsinkorgen',
@@ -1825,6 +1921,11 @@ const sv: TranslationMap = {
 };
 
 const vi: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Giá đăng ký thay đổi',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} mỗi lần, {{yearly}} mỗi năm)',
+  },
   'review.waiting': {
     title: 'Đang chờ xem xét',
     message: '{{count}} mục đang chờ trong hộp thư xem xét',
@@ -1918,6 +2019,11 @@ const vi: TranslationMap = {
 };
 
 const id: TranslationMap = {
+  'subscription.price_changed': {
+    title: 'Harga langganan berubah',
+    message:
+      '{{vendor}}: {{previous}} → {{current}} {{currency}} ({{delta}} per tagihan, {{yearly}} per tahun)',
+  },
   'review.waiting': {
     title: 'Menunggu peninjauan',
     message: '{{count}} item menunggu di kotak masuk peninjauan',
