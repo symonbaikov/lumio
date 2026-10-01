@@ -163,7 +163,7 @@ describe('ClassificationService', () => {
       jest.spyOn<any, any>(service as any, 'getClassificationRules').mockResolvedValue([]);
       autoCategorySpy = jest
         .spyOn<any, any>(service as any, 'autoClassifyCategory')
-        .mockResolvedValue('cat-1');
+        .mockResolvedValue({ categoryId: 'cat-1', source: 'keyword', reason: null });
     });
 
     it('should determine transaction type from debit', async () => {
@@ -194,7 +194,7 @@ describe('ClassificationService', () => {
     });
 
     it('does not reuse cached classification for temp transactions without id', async () => {
-      autoCategorySpy.mockResolvedValueOnce('cat-expense').mockResolvedValueOnce('cat-income');
+      autoCategorySpy.mockResolvedValueOnce({ categoryId: 'cat-expense', source: 'keyword', reason: null }).mockResolvedValueOnce({ categoryId: 'cat-income', source: 'keyword', reason: null });
 
       const expenseResult = await service.classifyTransaction(
         {
@@ -478,7 +478,11 @@ describe('ClassificationService', () => {
         'ws-1',
       );
 
-      expect(result).toBe('workspace-cat-1');
+      expect(result).toEqual({
+        categoryId: 'workspace-cat-1',
+        source: 'keyword',
+        reason: 'IT услуги',
+      });
       expect(categoriesService.findAll).toHaveBeenCalledWith('ws-1', CategoryType.EXPENSE);
       expect(categoryRepository.create).not.toHaveBeenCalled();
     });

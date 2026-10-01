@@ -54,5 +54,35 @@ describe('ClassificationController', () => {
     expect(transactionRepository.findOne).toHaveBeenNthCalledWith(2, {
       where: { id: 'tx-1', workspaceId: 'ws-1' },
     });
+    expect(classificationService.classifyTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'tx-1' }),
+      'u1',
+      null,
+      { bypassCache: true },
+    );
+  });
+
+  it('leaves a hand-picked category alone during bulk re-classification', async () => {
+    const transactionRepository = createRepoMock();
+    const classificationService = { classifyTransaction: jest.fn() };
+    transactionRepository.findOne.mockResolvedValue({
+      id: 'tx-1',
+      workspaceId: 'ws-1',
+      categorySource: 'manual',
+    });
+    const controller = new ClassificationController(
+      classificationService as any,
+      transactionRepository as any,
+    );
+
+    const result = await controller.classifyBulk(
+      { transactionIds: ['tx-1'] },
+      { id: 'u1' } as any,
+      'ws-1',
+    );
+
+    expect(result).toMatchObject({ total: 1, successful: 0, keptManual: 1 });
+    expect(classificationService.classifyTransaction).not.toHaveBeenCalled();
+    expect(transactionRepository.save).not.toHaveBeenCalled();
   });
 });

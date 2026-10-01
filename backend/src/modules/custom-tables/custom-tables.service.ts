@@ -36,7 +36,11 @@ import { CustomTableRow } from '../../entities/custom-table-row.entity';
 import { DataEntry, DataEntryType } from '../../entities/data-entry.entity';
 import { DataEntryCustomField } from '../../entities/data-entry-custom-field.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../entities/statement.entity';
-import { Transaction, TransactionType } from '../../entities/transaction.entity';
+import {
+  Transaction,
+  TransactionCategorySource,
+  TransactionType,
+} from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
@@ -314,12 +318,31 @@ export class CustomTablesService {
         userId,
       );
       for (const [index, transaction] of pending.entries()) {
-        // Batch (AI) result first; otherwise rules, learned patterns and history.
-        const categoryId =
-          results.get(index)?.categoryId ??
-          (await this.classificationService.classifyTransaction(transaction, userId)).categoryId;
+        // Same order as a statement import: rules, keywords and what the user
+        // taught first; the model only where those fell through to "uncategorised".
+        const classification = await this.classificationService.classifyTransaction(
+          transaction,
+          userId,
+        );
+        let { categoryId, categorySource, categoryReason } = classification;
+        const aiResult = results.get(index);
+        if (aiResult && (!categoryId || categorySource === TransactionCategorySource.DEFAULT)) {
+          categoryId = aiResult.categoryId;
+          categorySource = TransactionCategorySource.AI;
+          categoryReason =
+            aiResult.enrichment?.confidence !== undefined
+              ? `confidence ${aiResult.enrichment.confidence.toFixed(2)}`
+              : null;
+        }
         if (categoryId) {
-          await this.transactionRepository.update({ id: transaction.id }, { categoryId });
+          await this.transactionRepository.update(
+            { id: transaction.id },
+            {
+              categoryId,
+              categorySource: categorySource ?? null,
+              categoryReason: categoryReason ?? null,
+            },
+          );
         }
       }
     } catch (error) {

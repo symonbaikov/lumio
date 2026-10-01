@@ -56,6 +56,15 @@ export function TransactionDetailsTab({
     await onSplitDone?.();
   }, [onSplitDone]);
   const { split, unsplit, saving: splitSaving } = useTransactionSplit(handleSplitDone);
+  const categorySourceLabels = {
+    manual: t.categorySource.manual.value,
+    rule: t.categorySource.rule.value,
+    keyword: t.categorySource.keyword.value,
+    learned: t.categorySource.learned.value,
+    history: t.categorySource.history.value,
+    ai: t.categorySource.ai.value,
+    default: t.categorySource.default.value,
+  };
   const {
     candidates: transferCandidates,
     loadCandidates: loadTransferCandidates,
@@ -350,6 +359,16 @@ export function TransactionDetailsTab({
             <span style={{ fontSize: 14, color: c.ink500 }}>{t.noCategory.value}</span>
           )}
         </div>
+        {transaction.categorySource && (
+          <div
+            className="lumio-tx-detail__value"
+            style={{ marginTop: 8, fontSize: 12, color: 'var(--muted-foreground)' }}
+            data-testid="category-source"
+          >
+            {t.categorySource.label.value}: {categorySourceLabels[transaction.categorySource]}
+            {transaction.categoryReason ? ` · ${transaction.categoryReason}` : ''}
+          </div>
+        )}
       </div>
 
       {/* Actions */}

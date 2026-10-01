@@ -350,6 +350,29 @@ describe('TransactionsService', () => {
       );
     });
 
+    it('drops the loaded category object so the new id is what gets saved', async () => {
+      jest.spyOn(transactionRepository, 'findOne').mockImplementation(
+        async () =>
+          ({
+            ...mockTransaction,
+            categoryId: 'cat-1',
+            category: { id: 'cat-1', name: 'Old' },
+          }) as Transaction,
+      );
+      jest
+        .spyOn(transactionRepository, 'save')
+        .mockImplementation(async entity => entity as Transaction);
+
+      const saved = await service.update('1', 'ws-1', '1', { categoryId: 'cat-2' });
+
+      // With the stale relation still attached TypeORM would write cat-1 back.
+      expect(transactionRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ categoryId: 'cat-2', category: undefined }),
+      );
+      expect(saved.categorySource).toBe('manual');
+      expect(saved.categoryReason).toBeNull();
+    });
+
     it('does not trigger learning when categoryId is unchanged', async () => {
       jest.spyOn(transactionRepository, 'save').mockResolvedValue({
         ...mockTransaction,

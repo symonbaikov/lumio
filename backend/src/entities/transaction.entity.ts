@@ -38,6 +38,20 @@ export enum TransactionType {
   EXPENSE = 'expense',
 }
 
+/**
+ * Which step of the classification chain set `categoryId`, in order of
+ * precedence. `manual` is sticky: re-classification never overrides it.
+ */
+export enum TransactionCategorySource {
+  MANUAL = 'manual',
+  RULE = 'rule',
+  KEYWORD = 'keyword',
+  LEARNED = 'learned',
+  HISTORY = 'history',
+  AI = 'ai',
+  DEFAULT = 'default',
+}
+
 /** How the two legs of a transfer came to be linked. */
 export enum TransferPairSource {
   AUTO = 'auto',
@@ -198,6 +212,14 @@ export class Transaction {
 
   @Column({ name: 'category_hint', nullable: true })
   categoryHint: string | null;
+
+  /** See `TransactionCategorySource`. Null on rows classified before it was recorded. */
+  @Column({ name: 'category_source', type: 'varchar', length: 16, nullable: true })
+  categorySource: TransactionCategorySource | null;
+
+  /** The "why" shown next to the category: a rule name, a learned payee, a matched keyword. */
+  @Column({ name: 'category_reason', type: 'varchar', length: 255, nullable: true })
+  categoryReason: string | null;
 
   @Column({ name: 'transaction_nature', nullable: true })
   transactionNature: string | null;

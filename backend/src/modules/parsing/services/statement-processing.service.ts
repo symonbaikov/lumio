@@ -13,7 +13,11 @@ import { extractTextFromPdf } from '../../../common/utils/pdf-parser.util';
 import { Semaphore } from '../../../common/utils/semaphore.util';
 import { ImportSessionMode } from '../../../entities/import-session.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
-import { Transaction, TransactionType } from '../../../entities/transaction.entity';
+import {
+  Transaction,
+  TransactionCategorySource,
+  TransactionType,
+} from '../../../entities/transaction.entity';
 import { User } from '../../../entities/user.entity';
 import { extractTaxFromPurpose } from '../../classification/helpers/tax-extractor.util';
 import type { TransactionEnrichment } from '../../classification/interfaces/transaction-enrichment.interface';
@@ -1106,11 +1110,23 @@ export class StatementProcessingService {
 
       if (manualCategorySelectionRequired) {
         classification.categoryId = undefined;
+        classification.categorySource = null;
+        classification.categoryReason = null;
       }
 
+      // The model is the last resort before "uncategorised": rules, keywords and
+      // what the user taught all come first.
       const aiBatchResult = aiBatchResults.get(i);
-      if (!(manualCategorySelectionRequired || classification.categoryId) && aiBatchResult) {
+      const fellThrough =
+        !classification.categoryId ||
+        classification.categorySource === TransactionCategorySource.DEFAULT;
+      if (!manualCategorySelectionRequired && fellThrough && aiBatchResult) {
         classification.categoryId = aiBatchResult.categoryId;
+        classification.categorySource = TransactionCategorySource.AI;
+        classification.categoryReason =
+          aiBatchResult.enrichment?.confidence !== undefined
+            ? `confidence ${aiBatchResult.enrichment.confidence.toFixed(2)}`
+            : null;
       }
 
       const currency =
