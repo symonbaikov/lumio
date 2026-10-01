@@ -48,6 +48,12 @@ export enum RiskLevel {
   HIGH = 'high',
 }
 
+/** What an asset account holds; set only on the investment sub-accounts people create. */
+export enum BalanceAccountKind {
+  INVESTMENT = 'investment',
+  RETIREMENT = 'retirement',
+}
+
 export enum BalanceAutoSource {
   WALLETS = 'wallets',
   STATEMENTS = 'statements',
@@ -146,6 +152,10 @@ export class BalanceAccount {
     nullable: true,
   })
   riskLevel: RiskLevel | null;
+
+  /** Null for every line of the sheet except investment and retirement accounts. */
+  @Column({ name: 'account_kind', type: 'varchar', length: 16, nullable: true })
+  accountKind: BalanceAccountKind | null;
 
   @Column({ default: 0 })
   position: number;

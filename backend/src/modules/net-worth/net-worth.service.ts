@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import {
@@ -13,6 +13,7 @@ import {
 import { BalanceService, CASH_ACCOUNT_CODE } from '../balance/balance.service';
 import { CurrencyConverter, normalizeCurrencyCode } from '../exchange-rates/currency-converter';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
+import { InvestmentsService } from '../investments/investments.service';
 import type { NetWorthRange } from './dto/net-worth-query.dto';
 
 export interface NetWorthPoint {
@@ -64,15 +65,24 @@ export interface NetWorthResponse {
   assetLines: NetWorthAssetLine[];
   /** Currencies left out of the figures because no rate to `currency` was found. */
   missingRates: string[];
+  /** The highest sampled net worth over the whole history, and when. */
+  allTimeHigh: { value: number; date: string } | null;
+  /** Investment holdings by asset class; cash and the other sheet lines keep their own buckets. */
+  byAssetClass: NetWorthClassificationItem[];
 }
 
 /** Days back from today for each range. `all` is resolved from the data. */
 const RANGE_DAYS: Record<Exclude<NetWorthRange, 'all'>, number> = {
   '30d': 30,
   '90d': 90,
+  '180d': 180,
   '1y': 365,
+  '3y': 365 * 3,
   '5y': 365 * 5,
 };
+
+/** Points sampled over the whole history to find the all-time high. */
+const ALL_TIME_HIGH_POINTS = 37;
 
 /**
  * How many points a series carries. Net worth moves when a snapshot is
@@ -107,6 +117,8 @@ export class NetWorthService {
     private readonly workspaceRepository: Repository<Workspace>,
     private readonly balanceService: BalanceService,
     private readonly exchangeRatesService: ExchangeRatesService,
+    @Optional()
+    private readonly investmentsService?: InvestmentsService,
   ) {}
 
   async getNetWorth(
@@ -187,6 +199,23 @@ export class NetWorthService {
     const previous = series[0]?.value ?? 0;
     const change = round2(current - previous);
 
+    // The high is a property of the whole history, not of the window shown.
+    const allTimeHigh = await this.findAllTimeHigh(
+      workspaceId,
+      to,
+      range === 'all' ? series : null,
+      leaves,
+      snapshotsByAccount,
+      currency,
+    );
+    const byAssetClass = await this.buildAssetClasses(
+      workspaceId,
+      leaves,
+      valueAt,
+      to,
+      assetsTotal,
+    );
+
     const assetLines = leaves
       .filter(leaf => leaf.accountType === BalanceAccountType.ASSET)
       .map(leaf => ({
@@ -230,7 +259,110 @@ export class NetWorthService {
       ),
       assetLines,
       missingRates: converter.missing,
+      allTimeHigh,
+      byAssetClass,
     };
+  }
+
+  /** Samples the whole history (unless the `all` series is already at hand) and keeps the peak. */
+  private async findAllTimeHigh(
+    workspaceId: string,
+    to: string,
+    allSeries: NetWorthPoint[] | null,
+    leaves: BalanceAccount[],
+    snapshotsByAccount: Map<string, BalanceSnapshot[]>,
+    currency: string,
+  ): Promise<NetWorthResponse['allTimeHigh']> {
+    let series = allSeries;
+    if (!series) {
+      const from = await this.resolveFrom(workspaceId, 'all', to);
+      const dates = samplePoints(from, to, ALL_TIME_HIGH_POINTS);
+      const cashByDate = await this.balanceService.getCashSeries(workspaceId, dates);
+      const snapshotCurrencies = [
+        ...new Set(
+          [...snapshotsByAccount.values()]
+            .flat()
+            .map(snapshot => normalizeCurrencyCode(snapshot.currency || currency)),
+        ),
+      ];
+      const converter = await CurrencyConverter.load(
+        this.exchangeRatesService,
+        currency,
+        dates.flatMap(date =>
+          [...(cashByDate.get(date)?.keys() ?? []), ...snapshotCurrencies].map(code => ({
+            currency: code,
+            date,
+          })),
+        ),
+      );
+      series = dates.map(date => {
+        let value = 0;
+        for (const leaf of leaves) {
+          const sign =
+            leaf.accountType === BalanceAccountType.ASSET
+              ? 1
+              : leaf.accountType === BalanceAccountType.LIABILITY
+                ? -1
+                : 0;
+          if (sign === 0) continue;
+          if (leaf.code === CASH_ACCOUNT_CODE) {
+            value += sign * converter.convertAll(cashByDate.get(date) ?? new Map(), date);
+            continue;
+          }
+          const snapshot = latestOnOrBefore(snapshotsByAccount.get(leaf.id), date);
+          if (snapshot) {
+            value +=
+              sign *
+              converter.convert(
+                toNumber(snapshot.amount),
+                normalizeCurrencyCode(snapshot.currency || currency),
+                date,
+              );
+          }
+        }
+        return { date, value: round2(value) };
+      });
+    }
+    let best: NetWorthPoint | null = null;
+    for (const point of series) {
+      if (!best || point.value > best.value) best = point;
+    }
+    return best && best.value > 0 ? { value: best.value, date: best.date } : null;
+  }
+
+  /**
+   * Assets by class: investment holdings by their own class, the cash line as
+   * cash, everything else on the sheet as "other". The investment accounts'
+   * own snapshot lines are left out so their holdings are not counted twice.
+   */
+  private async buildAssetClasses(
+    workspaceId: string,
+    leaves: BalanceAccount[],
+    valueAt: (accountId: string, code: string, date: string) => number,
+    to: string,
+    assetsTotal: number,
+  ): Promise<NetWorthClassificationItem[]> {
+    const totals = new Map<string, number>();
+    const add = (key: string, amount: number) => totals.set(key, (totals.get(key) ?? 0) + amount);
+    const holdings = this.investmentsService
+      ? await this.investmentsService.valueByAssetClass(workspaceId)
+      : new Map<string, number>();
+    for (const [assetClass, amount] of holdings) add(assetClass, amount);
+    for (const leaf of leaves) {
+      if (leaf.accountType !== BalanceAccountType.ASSET) continue;
+      if (leaf.accountKind) continue;
+      const amount = valueAt(leaf.id, leaf.code, to);
+      if (amount === 0) continue;
+      add(leaf.code === CASH_ACCOUNT_CODE ? 'cash' : 'other', amount);
+    }
+    return [...totals.entries()]
+      .map(([key, amount]) => ({
+        key,
+        amount: round2(amount),
+        percent: assetsTotal > 0 ? round2((amount / assetsTotal) * 100) : 0,
+      }))
+      .filter(item => item.amount !== 0)
+      .sort((a, b) => b.amount - a.amount);
   }
 
   /** Asset totals grouped under the top-level section each leaf belongs to. */

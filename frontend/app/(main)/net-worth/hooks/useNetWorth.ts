@@ -7,9 +7,9 @@ import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
 
-export type NetWorthRange = '30d' | '90d' | '1y' | '5y' | 'all';
+export type NetWorthRange = '30d' | '90d' | '180d' | '1y' | '3y' | '5y' | 'all';
 
-export const NET_WORTH_RANGES: NetWorthRange[] = ['30d', '90d', '1y', '5y', 'all'];
+export const NET_WORTH_RANGES: NetWorthRange[] = ['30d', '90d', '180d', '1y', '3y', '5y', 'all'];
 
 export interface NetWorthPoint {
   date: string;
@@ -65,6 +65,10 @@ export interface NetWorthData {
   assetLines: NetWorthAssetLine[];
   /** Currencies left out of the figures because no exchange rate was found. */
   missingRates?: string[];
+  /** The highest sampled net worth over the whole history, and when. */
+  allTimeHigh?: { value: number; date: string } | null;
+  /** Investment holdings by asset class, plus cash and the other sheet lines. */
+  byAssetClass?: NetWorthClassificationItem[];
 }
 
 export type ClassificationPatch = {

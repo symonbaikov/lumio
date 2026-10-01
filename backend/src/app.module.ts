@@ -87,6 +87,7 @@ import { GoalsModule } from './modules/goals/goals.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { IncomeTaxModule } from './modules/income-tax/income-tax.module';
 import { InsightsModule } from './modules/insights/insights.module';
+import { InvestmentsModule } from './modules/investments/investments.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
 import { MapsModule } from './modules/maps/maps.module';
@@ -257,6 +258,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     SubscriptionsModule,
     ReviewInboxModule,
     ForecastModule,
+    InvestmentsModule,
     CryptoModule,
     WebhooksModule,
     ApiKeysModule,

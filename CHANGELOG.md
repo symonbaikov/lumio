@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Investments v1 (2026-10-01)
+
+- **Investment and retirement accounts** under the balance sheet's Investments section, with
+  holdings entered by hand (ticker, class, quantity, price). The account's value is written as
+  today's balance snapshot on every change, so the balance sheet and net worth read the same number.
+- **Prices by ticker** from Stooq (free, no key; `AAPL` → `AAPL.US`, `VWCE.DE`), crypto from
+  CoinGecko; cached fifteen minutes, egress-guarded. A price that cannot be fetched is simply kept.
+- **Contributions count as transfers**: "Mark as a contribution" on an expense in the transaction
+  drawer turns it into a one-leg transfer of kind `investment`. It leaves every spending aggregate;
+  the account shows contributed, value and gain.
+- **Net worth**: ranges 1M / 3M / 6M / 1Y / 3Y / 5Y / All, the all-time high with its date, and an
+  allocation by asset class (stocks, ETFs, funds, bonds, crypto, cash, real estate, other).
+- Endpoints under `/investments` (accounts, holdings, `refresh-prices`, `contributions`).
+
 #### Cash-flow forecast (2026-10-01)
 
 - **`/forecast`**: the balance 30, 90 or 365 days ahead, day by day, from unpaid bills, active
