@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Budget mechanics (2026-10-01)
+
+- **Rollover**: a budget now says what happens to unspent money. *Resets* is the old behaviour;
+  *Carries over* moves leftover and overspend whole into the next period (the envelope for
+  irregular costs); *Refills to the limit* tops the budget back up but never above it, and still
+  deducts an overspend. The card shows the amount available this period and what was carried in.
+- **Parent-category budgets**: a budget on "Food" counts "Groceries" and "Restaurants" too, and
+  a spend in a subcategory is checked against every budget up the tree.
+- **"What would this do"** under the category field of a manual expense: which budgets it pushes over
+  (and by how much), and whether it takes the default account below zero. Advice, never a gate
+  (`GET /budgets/impact`).
+
 #### Subscriptions 2.0 (2026-10-01)
 
 - **Price change with the yearly effect**: when the last two charges of a known subscription settle

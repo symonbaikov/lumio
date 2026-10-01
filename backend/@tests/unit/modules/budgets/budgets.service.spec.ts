@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { AuditAction, EntityType } from '@/entities/audit-event.entity';
-import { BudgetPeriodType } from '@/entities/budget.entity';
+import { BudgetPeriodType, BudgetRolloverMode } from '@/entities/budget.entity';
 import { BudgetsService } from '@/modules/budgets/budgets.service';
 
 const createRepoMock = () => ({
@@ -363,6 +363,129 @@ describe('BudgetsService', () => {
       await service.checkBudgetAlerts('workspace-1');
 
       expect(notificationsService.createForWorkspaceMembers).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('subcategories and rollover', () => {
+    const categoryRepository = { find: jest.fn(), findOne: jest.fn() };
+    const walletRepository = { findOne: jest.fn() };
+
+    const withTree = () =>
+      new BudgetsService(
+        budgetRepository as any,
+        transactionRepository as any,
+        goalRepository as any,
+        notificationsService as any,
+        auditService as any,
+        categoryRepository as any,
+        walletRepository as any,
+      );
+
+    const monthly = (extra: Record<string, unknown> = {}) => ({
+      id: 'budget-1',
+      workspaceId: 'workspace-1',
+      categoryId: 'food',
+      name: 'Food',
+      limitAmount: 100,
+      currency: 'USD',
+      periodType: BudgetPeriodType.MONTHLY,
+      currentPeriodStart: new Date('2026-05-01T00:00:00.000Z'),
+      startsOn: null,
+      endsOn: null,
+      createdAt: new Date('2026-02-10T00:00:00.000Z'),
+      ...extra,
+    });
+
+    beforeEach(() => {
+      categoryRepository.find.mockReset();
+      categoryRepository.findOne.mockReset();
+      walletRepository.findOne.mockReset();
+    });
+
+    it('counts spending in subcategories against a budget on the parent', async () => {
+      budgetRepository.find.mockResolvedValue([monthly()]);
+      categoryRepository.find
+        .mockResolvedValueOnce([{ id: 'groceries' }, { id: 'restaurants' }])
+        .mockResolvedValueOnce([]);
+      const builder = createQueryBuilderMock('40');
+      transactionRepository.createQueryBuilder.mockReturnValue(builder);
+
+      const [budget] = await withTree().findAll('workspace-1');
+
+      expect(budget.spentAmount).toBe(40);
+      expect(builder.andWhere).toHaveBeenCalledWith('t.category_id IN (:...categoryIds)', {
+        categoryIds: ['food', 'groceries', 'restaurants'],
+      });
+    });
+
+    it('carries the leftover of earlier periods into the current one', async () => {
+      budgetRepository.find.mockResolvedValue([monthly({ rolloverMode: BudgetRolloverMode.CARRY })]);
+      categoryRepository.find.mockResolvedValue([]);
+      const current = createQueryBuilderMock('50');
+      const history = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        // February (budget created on the 10th), March, April: 100 − 30, 100 − 0, 100 − 120.
+        getRawMany: jest.fn().mockResolvedValue([
+          { date: '2026-02-20', amount: '30' },
+          { date: '2026-04-15', amount: '120' },
+        ]),
+      };
+      transactionRepository.createQueryBuilder
+        .mockReturnValueOnce(current)
+        .mockReturnValueOnce(history);
+
+      const [budget] = await withTree().findAll('workspace-1');
+
+      // Feb 100 − 30 = 70, Mar 170 − 0 = 170, Apr 270 − 120 = 150 carried → 250 available.
+      expect(budget.carriedAmount).toBe(150);
+      expect(budget.availableAmount).toBe(250);
+      expect(budget.percentUsed).toBe(20);
+      // History starts with the period the budget was created in, whole, like the current one.
+      expect(history.andWhere).toHaveBeenCalledWith('t.transaction_date >= :start', {
+        start: new Date(2026, 1, 1),
+      });
+    });
+
+    it('tells what an expense would do to the budgets up the category tree and to the account', async () => {
+      categoryRepository.findOne
+        .mockResolvedValueOnce({ id: 'groceries', parentId: 'food' })
+        .mockResolvedValueOnce({ id: 'food', parentId: null });
+      budgetRepository.find.mockResolvedValue([monthly({ category: { name: 'Food' } })]);
+      categoryRepository.find.mockResolvedValue([]);
+      walletRepository.findOne.mockResolvedValue({
+        id: 'wallet-1',
+        name: 'Cash',
+        currency: 'USD',
+        initialBalance: 10,
+      });
+      const spent = createQueryBuilderMock('80');
+      const sums = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getRawOne: jest.fn().mockResolvedValue({ credit: '5', debit: '0' }),
+      };
+      transactionRepository.createQueryBuilder.mockReturnValueOnce(spent).mockReturnValueOnce(sums);
+
+      const impact = await withTree().getImpact('workspace-1', {
+        categoryId: 'groceries',
+        amount: 30,
+        currency: 'USD',
+      });
+
+      expect(budgetRepository.find).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ workspaceId: 'workspace-1' }) }),
+      );
+      expect(impact.budgets).toEqual([
+        expect.objectContaining({ id: 'budget-1', remainingAfter: -10, exceeds: true }),
+      ]);
+      expect(impact.account).toEqual(
+        expect.objectContaining({ name: 'Cash', balance: 15, balanceAfter: -15, overdraws: true }),
+      );
     });
   });
 

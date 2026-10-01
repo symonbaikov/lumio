@@ -1,4 +1,5 @@
-import { IsDateString, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { BudgetRolloverMode } from '../../../entities/budget.entity';
 
 export class UpdateBudgetDto {
   @IsString()
@@ -13,6 +14,10 @@ export class UpdateBudgetDto {
   @IsString()
   @IsOptional()
   currency?: string;
+
+  @IsEnum(BudgetRolloverMode)
+  @IsOptional()
+  rolloverMode?: BudgetRolloverMode;
 
   /** Explicit null detaches the budget from its goal; omitting it changes nothing. */
   @IsUUID()

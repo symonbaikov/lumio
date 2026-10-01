@@ -45,6 +45,8 @@ export function BudgetCard({ budget, stoicClass = null, onEdit, onDelete }: Budg
   const t = useIntlayer('budgetsPage');
   const color = getProgressColor(budget.percentUsed);
   const progressValue = Math.min(budget.percentUsed, 100);
+  const availableAmount = budget.availableAmount ?? budget.limitAmount;
+  const carriedAmount = budget.carriedAmount ?? 0;
 
   return (
     <Box
@@ -95,12 +97,24 @@ export function BudgetCard({ budget, stoicClass = null, onEdit, onDelete }: Budg
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography variant="body2" color="text.secondary">
           {formatAmount(budget.spentAmount, budget.currency)} /{' '}
-          {formatAmount(budget.limitAmount, budget.currency)}
+          {formatAmount(availableAmount, budget.currency)}
         </Typography>
         <Typography variant="body2" fontWeight={600} color={`${color}.main`}>
           {Math.round(budget.percentUsed)}%
         </Typography>
       </Box>
+      {carriedAmount !== 0 && (
+        <Typography
+          variant="caption"
+          color={carriedAmount > 0 ? 'text.secondary' : 'error.main'}
+          sx={{ display: 'block', mt: 0.5 }}
+        >
+          {(carriedAmount > 0 ? t.carriedIn : t.overspendCarriedIn).value.replace(
+            '{{amount}}',
+            formatAmount(Math.abs(carriedAmount), budget.currency),
+          )}
+        </Typography>
+      )}
     </Box>
   );
 }
