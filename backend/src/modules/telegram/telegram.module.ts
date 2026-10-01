@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { IdempotencyKey } from '../../entities/idempotency-key.entity';
 import { TelegramReport } from '../../entities/telegram-report.entity';
 import { Transaction } from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
@@ -21,7 +22,7 @@ import { TelegramWebhookGuard } from './telegram-webhook.guard';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([TelegramReport, User, WorkspaceMember, Transaction]),
+    TypeOrmModule.forFeature([TelegramReport, User, WorkspaceMember, Transaction, IdempotencyKey]),
     ApplicationSettingsModule,
     ReportsModule,
     StatementsModule,

@@ -33,6 +33,18 @@ function createService(options: { users?: Partial<User>[] } = {}) {
   } as any;
   const classificationService = { ensureCategory: jest.fn(async () => 'cat-none') } as any;
   const transactionRepository = { update: jest.fn(async () => ({ affected: 1 })) } as any;
+  // Behaves like the unique (key, user_id, workspace_id) constraint.
+  const claimedKeys = new Set<string>();
+  const idempotencyKeyRepository = {
+    insert: jest.fn(async (row: any) => {
+      const id = `${row.key}|${row.userId}|${row.workspaceId}`;
+      if (claimedKeys.has(id)) {
+        throw Object.assign(new Error('duplicate key'), { code: '23505' });
+      }
+      claimedKeys.add(id);
+      return { identifiers: [] };
+    }),
+  } as any;
   const workspaceMemberRepository = {
     findOne: jest.fn(async () => ({ role: 'owner', workspace: { currency: 'KZT' } })),
   } as any;
@@ -50,6 +62,7 @@ function createService(options: { users?: Partial<User>[] } = {}) {
     receiptsService,
     classificationService,
     transactionRepository,
+    idempotencyKeyRepository,
   );
   jest
     .spyOn(service as any, 'downloadTelegramFile')
@@ -77,6 +90,30 @@ const connectedUser = {
 } as User;
 
 describe('TelegramService inbound', () => {
+  it('books a redelivered update once and replies only the first time', async () => {
+    const calls = mockFetch();
+    const { service, statementsService, receiptsService } = createService({
+      users: [connectedUser],
+    });
+    const text = { update_id: 501, message: { chat: { id: 'chat-1' }, from: { id: 'tg-1' }, text: 'coffee 4.50' } };
+    const photo = {
+      update_id: 502,
+      message: { chat: { id: 'chat-1' }, from: { id: 'tg-1' }, photo: [{ file_id: 'large' }] },
+    };
+
+    await service.handleUpdate(text);
+    await service.handleUpdate(text);
+    await service.handleUpdate(photo);
+    await service.handleUpdate(photo);
+    expect(statementsService.createManualExpense).toHaveBeenCalledTimes(1);
+    expect(receiptsService.createFromScan).toHaveBeenCalledTimes(1);
+    // Text: one confirmation. Photo: "reading…" and the result. Redeliveries: nothing.
+    expect(calls.filter(call => call.url.endsWith('/sendMessage'))).toHaveLength(3);
+
+    await service.handleUpdate({ ...text, update_id: 503 });
+    expect(statementsService.createManualExpense).toHaveBeenCalledTimes(2);
+  });
+
   it('turns a photo into a telegram-sourced receipt and replies with what it read', async () => {
     const calls = mockFetch();
     const { service, receiptsService } = createService({ users: [connectedUser] });
