@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Reports: cash-flow map (2026-10-01)
+
+- **Cash flow** tab on the reports page: a Sankey of income sources → income → categories →
+  subcategories, a treemap of spending by size (click a category for its subcategories), and a
+  by-category table with the period before and the change.
+- Period presets or custom dates, a **"compare with the period before"** switch, an **"include
+  transfers and investments"** switch (off by default: they are not spending), category chips
+  with All / None, and a CSV export of the table.
+- `GET /reports/cash-flow-map?dateFrom&dateTo&compare&includeTransfers&categories&format=csv`.
+
 #### Investments v1 (2026-10-01)
 
 - **Investment and retirement accounts** under the balance sheet's Investments section, with

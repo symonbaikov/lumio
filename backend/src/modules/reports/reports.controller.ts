@@ -19,6 +19,9 @@ import { Permission } from '../../common/enums/permissions.enum';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CashFlowMapService } from './cash-flow-map.service';
+import { cashFlowMapToCsv } from './cash-flow-map.util';
+import { CashFlowMapQueryDto } from './dto/cash-flow-map-query.dto';
 import { type CustomReportDto, ReportFormat } from './dto/custom-report.dto';
 import {
   CustomTablesReportDrillDownDto,
@@ -42,6 +45,7 @@ export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly reportSchedules: ReportSchedulesService,
+    private readonly cashFlowMapService: CashFlowMapService,
   ) {}
 
   private scheduleTempFileCleanup(fileStream: fs.ReadStream, filePath: string) {
@@ -65,6 +69,27 @@ export class ReportsController {
     @Query('days', new DefaultValuePipe(30), ParseIntPipe) days?: number,
   ) {
     return this.reportsService.getStatementsSummary(workspaceId, days);
+  }
+
+  /** Income sources → categories → subcategories, a treemap and a period comparison; `format=csv` exports the table. */
+  @Get('cash-flow-map')
+  @WorkspaceAuth(Permission.REPORT_VIEW)
+  async getCashFlowMap(
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+    @Query() query: CashFlowMapQueryDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const map = await this.cashFlowMapService.getMap(workspaceId, query, user.locale);
+    if (query.format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="cash-flow-${map.period.from}-${map.period.to}.csv"`,
+      );
+      return cashFlowMapToCsv(map, map.currency);
+    }
+    return map;
   }
 
   @Get('top-categories')

@@ -37,7 +37,8 @@ that document has the evidence behind every line here. Dates are intentions, not
 - [x] Investments v1: investment and retirement accounts with manual holdings and ticker prices;
       contributions count as transfers; net worth with 1M–5Y/All ranges, an all-time high and an
       asset-class split (2026-10-01).
-- [ ] Reports: cash-flow Sankey, treemap, period comparison, "exclude transfers and investments".
+- [x] Reports: cash-flow Sankey, treemap, period comparison, "include transfers and investments"
+      switch, category All/None filters, CSV export (2026-10-01).
 - [ ] MCP and AI as a trusted agent: scoped API keys, every AI write audited and undoable, a public
       security posture page.
 - [ ] Small-business pack: bank reconciliation screen, AR/AP ageing, dunning reminders, duplicate

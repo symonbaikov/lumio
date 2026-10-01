@@ -93,6 +93,8 @@ export const queryKeys = {
   forecast: (o: { workspaceId: string | null; days: number; scenario: string }) =>
     ['forecast', o.workspaceId, o.days, o.scenario] as const,
   investments: (workspaceId: string | null) => ['investments', workspaceId] as const,
+  cashFlowMap: (o: { workspaceId: string | null; params: string }) =>
+    ['reports', o.workspaceId, 'cash-flow-map', o.params] as const,
   netWorth: (o: { workspaceId: string | null; range: string }) =>
     ['net-worth', o.workspaceId, o.range] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,
