@@ -103,15 +103,21 @@ function timeAgo(dateStr: string | null, t: McpServerText): string {
 
 export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDrawerProps) {
   const t = useIntlayer('mcpServerDrawer');
-  const { keys, loading, newKey, isActive, create, revoke, clearNewKey } = useApiKeys();
+  const { keys, loading, newKey, isActive, scopes, create, revoke, clearNewKey } = useApiKeys();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [keyName, setKeyName] = useState('');
+  // Read-only is the safe default; a wider key is a deliberate choice.
+  const [scopeMode, setScopeMode] = useState<'read' | 'write' | 'custom'>('read');
+  const [customScopes, setCustomScopes] = useState<string[]>([]);
+  const selectedScopes = scopeMode === 'custom' ? customScopes : (scopes?.presets[scopeMode] ?? []);
   const [confirmRevokeId, setConfirmRevokeId] = useState<string | null>(null);
 
   const handleCreate = async () => {
-    if (!keyName.trim()) return;
-    await create(keyName.trim());
+    if (!keyName.trim() || selectedScopes.length === 0) return;
+    await create(keyName.trim(), selectedScopes);
     setKeyName('');
+    setScopeMode('read');
+    setCustomScopes([]);
     setShowCreateForm(false);
   };
 
@@ -243,56 +249,121 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
 
             {/* Create form */}
             {showCreateForm && (
-              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                <TextField
-                  size="small"
-                  placeholder={t.keyNamePlaceholder.value}
-                  value={keyName}
-                  onChange={e => setKeyName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') void handleCreate();
-                  }}
-                  autoFocus
-                  fullWidth
-                  sx={{ fontSize: 13 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => void handleCreate()}
-                  disabled={!keyName.trim()}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: tokens.radius.full,
-                    border: 'none',
-                    background: 'var(--primary-fill)',
-                    color: tokens.color.primaryContrast,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: keyName.trim() ? 'pointer' : 'not-allowed',
-                    opacity: keyName.trim() ? 1 : 0.5,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {t.create}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setKeyName('');
-                  }}
-                  style={{
-                    padding: '6px 10px',
-                    borderRadius: tokens.radius.full,
-                    border: '1px solid var(--border-color, #e5e7eb)',
-                    background: 'transparent',
-                    fontSize: 12,
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  {t.cancel}
-                </button>
+              <Box sx={{ display: 'grid', gap: 1, mb: 2 }}>
+                <Typography variant="caption" sx={{ color: 'var(--text-secondary)' }}>
+                  {t.scopeLabel} · {t.scopeHint}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }} role="radiogroup">
+                  {(['read', 'write', 'custom'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      type="button"
+                      role="radio"
+                      aria-checked={scopeMode === mode}
+                      onClick={() => setScopeMode(mode)}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: tokens.radius.full,
+                        border: '1px solid var(--border-color, #e5e7eb)',
+                        background: scopeMode === mode ? 'var(--primary-fill)' : 'transparent',
+                        color:
+                          scopeMode === mode
+                            ? tokens.color.primaryContrast
+                            : 'var(--text-secondary)',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {mode === 'read'
+                        ? t.scopeRead
+                        : mode === 'write'
+                          ? t.scopeWrite
+                          : t.scopeCustom}
+                    </button>
+                  ))}
+                </Box>
+                {scopeMode === 'custom' && scopes && (
+                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                    {scopes.all.map(scope => {
+                      const on = customScopes.includes(scope);
+                      return (
+                        <button
+                          key={scope}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={on}
+                          onClick={() =>
+                            setCustomScopes(current =>
+                              on ? current.filter(item => item !== scope) : [...current, scope],
+                            )
+                          }
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: tokens.radius.full,
+                            border: '1px solid var(--border-color, #e5e7eb)',
+                            background: on ? 'var(--primary-fill)' : 'transparent',
+                            color: on ? tokens.color.primaryContrast : 'var(--text-secondary)',
+                            fontSize: 11,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {scope}
+                        </button>
+                      );
+                    })}
+                  </Box>
+                )}
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <TextField
+                    size="small"
+                    placeholder={t.keyNamePlaceholder.value}
+                    value={keyName}
+                    onChange={e => setKeyName(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') void handleCreate();
+                    }}
+                    autoFocus
+                    fullWidth
+                    sx={{ fontSize: 13 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleCreate()}
+                    disabled={!keyName.trim() || selectedScopes.length === 0}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: tokens.radius.full,
+                      border: 'none',
+                      background: 'var(--primary-fill)',
+                      color: tokens.color.primaryContrast,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: keyName.trim() ? 'pointer' : 'not-allowed',
+                      opacity: keyName.trim() ? 1 : 0.5,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {t.create}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      setKeyName('');
+                    }}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: tokens.radius.full,
+                      border: '1px solid var(--border-color, #e5e7eb)',
+                      background: 'transparent',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    {t.cancel}
+                  </button>
+                </Box>
               </Box>
             )}
 
@@ -329,7 +400,10 @@ export function McpServerDrawer({ isOpen, onClose, onBack, zIndex }: McpServerDr
                           fontFamily: 'monospace',
                         }}
                       >
-                        lum_{key.prefix}•••• · {timeAgo(key.lastUsedAt, t)}
+                        lum_{key.prefix}•••• · {timeAgo(key.lastUsedAt, t)} ·{' '}
+                        {key.scopes
+                          ? t.scopeCount.value.replace('{count}', String(key.scopes.length))
+                          : t.scopeLegacy.value}
                       </Typography>
                     </Box>
                     <button

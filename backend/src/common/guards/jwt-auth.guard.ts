@@ -59,6 +59,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     request.user = apiKey.user as AuthenticatedUser;
     request.apiKeyWorkspaceId = apiKey.workspaceId;
+    request.apiKey = {
+      id: apiKey.id,
+      name: apiKey.name,
+      prefix: apiKey.prefix,
+      scopes: apiKey.scopes ?? null,
+    };
 
     const requestedWorkspaceId = request.headers['x-workspace-id'];
     if (requestedWorkspaceId && String(requestedWorkspaceId) !== apiKey.workspaceId) {

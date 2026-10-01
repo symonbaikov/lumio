@@ -17,6 +17,14 @@ export interface ApiKeyItem {
   lastUsedAt: string | null;
   expiresAt: string | null;
   createdAt: string;
+  /** null = a key made before scopes existed: the owner's full reach. */
+  scopes: string[] | null;
+}
+
+export interface ApiKeyScopes {
+  all: string[];
+  groups: Record<string, string[]>;
+  presets: { read: string[]; write: string[] };
 }
 
 export interface CreatedApiKey {
@@ -47,7 +55,7 @@ export function useApiKeys() {
   const keys = query.data ?? [];
 
   const createMutation = useMutation({
-    mutationFn: (name: string) => apiClient.post('/api-keys', { name }),
+    mutationFn: (input: { name: string; scopes: string[] }) => apiClient.post('/api-keys', input),
     onSuccess: response => {
       setNewKey(response.data as CreatedApiKey);
       toast.success(t.toasts.keyCreated.value);
@@ -67,9 +75,16 @@ export function useApiKeys() {
     onError: () => toast.error(t.toasts.revokeFailed.value),
   });
 
+  const scopesQuery = useQuery({
+    queryKey: [...queryKeys.apiKeys(workspaceId), 'scopes'],
+    queryFn: ({ signal }) => apiQuery<ApiKeyScopes>({ url: '/api-keys/scopes', signal }),
+    enabled: canManageKeys,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+
   const create = useCallback(
-    async (name: string) => {
-      createMutation.mutate(name);
+    async (name: string, scopes: string[]) => {
+      createMutation.mutate({ name, scopes });
     },
     [createMutation.mutate],
   );
@@ -95,6 +110,7 @@ export function useApiKeys() {
     loading: canManageKeys && query.isPending,
     newKey,
     isActive,
+    scopes: scopesQuery.data ?? null,
     create,
     revoke,
     clearNewKey,

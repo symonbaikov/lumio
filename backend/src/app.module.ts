@@ -16,6 +16,7 @@ import { CommonModule } from './common/common.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { AuditActorInterceptor } from './common/interceptors/audit-actor.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { getDatabaseConfig } from './config/database.config';
 import {
@@ -277,6 +278,11 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: HttpMetricsInterceptor,
+    },
+    // Before AuditInterceptor: the actor must be known when events are written.
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditActorInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

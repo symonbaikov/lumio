@@ -12,6 +12,8 @@ export interface AuthenticatedRequest extends Request {
   workspaceRole?: WorkspaceRole;
   workspaceMemberPermissions?: WorkspaceMemberPermissions | null;
   apiKeyWorkspaceId?: string;
+  /** Set when the request authenticated with an API key; `scopes` null = unrestricted (legacy key). */
+  apiKey?: { id: string; name: string; prefix: string; scopes: string[] | null };
   requestId?: string;
   traceId?: string;
 }

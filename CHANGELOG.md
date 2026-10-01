@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### MCP and AI as a trusted agent (2026-10-01)
+
+- **Scoped API keys**: a key names what it may do (the same strings as the permissions the routes
+  check), with *Read only* / *Read and write* / hand-picked presets in the MCP panel. A key is never
+  wider than its owner's role; managing keys, people, workspace settings or integrations is never
+  granted to a key. `GET /api-keys/scopes`; new keys require `scopes`. Keys made before scopes keep
+  their owner's full reach (`scopes: null`).
+- **Every agent write is on the record and undoable**: requests authenticated with an API key are
+  audited as the actor *Integration* with the key's name and prefix; the in-app assistant's writes
+  carry `X-Lumio-Actor: ai-chat` and are audited as the new actor *AI assistant*. Both record whom
+  they acted for and are undoable wherever rollback knows the entity. The activity log filters by
+  *AI assistant*.
+- The assistant is told that every number in a reply comes from a tool result, never from an estimate.
+- Docs: *MCP and API keys* (Claude Code / Claude Desktop setup, scopes) and *Security posture*
+  (threat model, what is encrypted, what leaves the server and when, how to switch AI off entirely).
+
 #### Reports: cash-flow map (2026-10-01)
 
 - **Cash flow** tab on the reports page: a Sankey of income sources → income → categories →

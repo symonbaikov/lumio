@@ -34,6 +34,16 @@ export class PermissionsGuard implements CanActivate {
     if (!user) {
       throw new ForbiddenException('User not authenticated');
     }
+    // A scoped API key is narrower than its owner, admin or not.
+    const apiKey = request.apiKey as { scopes: string[] | null } | undefined;
+    if (apiKey?.scopes && apiKey.scopes.length > 0) {
+      const missing = requiredPermissions.filter(
+        permission => !apiKey.scopes?.includes(permission),
+      );
+      if (missing.length > 0) {
+        throw new ForbiddenException(`API key scope missing: ${missing.join(', ')}`);
+      }
+    }
 
     // Admin has all permissions
     if (user.role === UserRole.ADMIN) {

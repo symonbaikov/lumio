@@ -5,6 +5,7 @@ import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator'
 import { Permission } from '../../common/enums/permissions.enum';
 import { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { GRANTABLE_SCOPES, groupScopes, SCOPE_PRESETS } from './api-key-scopes';
 import { ApiKeysService } from './api-keys.service';
 import { CreateApiKeyDto } from './dto/create-api-key.dto';
 
@@ -21,7 +22,18 @@ export class ApiKeysController {
     @WorkspaceId() workspaceId: string,
     @CurrentUser() user: User,
   ) {
-    return this.apiKeysService.generate(workspaceId, user.id, dto.name);
+    return this.apiKeysService.generate(workspaceId, user.id, dto.name, {
+      scopes: dto.scopes,
+      expiresAt: dto.expiresAt,
+    });
+  }
+
+  /** Every scope a key may carry, with the read-only and read-and-write presets. */
+  @Get('scopes')
+  @WorkspaceAuth(Permission.API_KEY_MANAGE)
+  @ApiOperation({ summary: 'List grantable API key scopes and presets' })
+  scopes() {
+    return { all: GRANTABLE_SCOPES, groups: groupScopes(GRANTABLE_SCOPES), presets: SCOPE_PRESETS };
   }
 
   @Get()

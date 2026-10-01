@@ -39,8 +39,8 @@ that document has the evidence behind every line here. Dates are intentions, not
       asset-class split (2026-10-01).
 - [x] Reports: cash-flow Sankey, treemap, period comparison, "include transfers and investments"
       switch, category All/None filters, CSV export (2026-10-01).
-- [ ] MCP and AI as a trusted agent: scoped API keys, every AI write audited and undoable, a public
-      security posture page.
+- [x] MCP and AI as a trusted agent: scoped API keys, every AI/MCP write audited as its actor and
+      undoable, MCP setup and security posture pages on the website (2026-10-01).
 - [ ] Small-business pack: bank reconciliation screen, AR/AP ageing, dunning reminders, duplicate
       payables, a business-subscriptions report.
 
