@@ -81,6 +81,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DataEntryModule } from './modules/data-entry/data-entry.module';
 import { DropboxModule } from './modules/dropbox/dropbox.module';
 import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module';
+import { ForecastModule } from './modules/forecast/forecast.module';
 import { GmailModule } from './modules/gmail/gmail.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
@@ -255,6 +256,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ExchangeRatesModule,
     SubscriptionsModule,
     ReviewInboxModule,
+    ForecastModule,
     CryptoModule,
     WebhooksModule,
     ApiKeysModule,

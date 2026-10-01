@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Cash-flow forecast (2026-10-01)
+
+- **`/forecast`**: the balance 30, 90 or 365 days ahead, day by day, from unpaid bills, active
+  subscriptions, sent invoices, dated goals (what each needs per month), paydays detected from
+  history and the everyday spending average of the last three months. The low point and its day,
+  the first day the balance goes negative, the closing balance.
+- **Safe to spend** until the next payday (committed items only, never below zero) for a home
+  workspace; **runway** in months at the current burn for a business one.
+- **Scenarios**: untick any item ("what if I cancel Netflix"), scale income (50–150%) and spending
+  (50–150%). `GET /forecast?days=&exclude=&incomeFactor=&expenseFactor=`.
+- The dashboard's cash runway card now opens the forecast.
+
 #### Workspace profile: Home or Business (2026-10-01)
 
 - A workspace now says what it is for. **Home** hides invoices, the ledger, the tax declaration and

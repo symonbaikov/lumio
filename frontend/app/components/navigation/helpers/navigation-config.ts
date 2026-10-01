@@ -70,6 +70,7 @@ export function buildNavItems(nav: {
   reports: unknown;
   taxDeclaration: unknown;
   netWorth: unknown;
+  forecast: unknown;
   advice: unknown;
   budgets: unknown;
   goals: unknown;
@@ -141,6 +142,13 @@ export function buildNavItems(nav: {
       icon: React.createElement(TrendingUp, { size: 18 }),
       // Matches the endpoint's own guard (Permission.REPORT_VIEW) so the item
       // is not offered to roles that would only get a 403 from it.
+      permission: 'report.view',
+    },
+    {
+      label: nav.forecast as ReactNode,
+      path: '/forecast',
+      icon: React.createElement(TrendingUp, { size: 18 }),
+      // Reads the same aggregates as the dashboard and net worth (Permission.REPORT_VIEW).
       permission: 'report.view',
     },
     {

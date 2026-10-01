@@ -32,8 +32,8 @@ that document has the evidence behind every line here. Dates are intentions, not
 
 ## Phase 2 — planning ahead
 
-- [ ] Cash-flow forecast for 30/90/365 days from subscriptions, payables, invoices, goals and category
-      averages; "safe to spend"; scenarios; runway for a business.
+- [x] Cash-flow forecast for 30/90/365 days from subscriptions, payables, invoices, goals, detected
+      paydays and the everyday average; "safe to spend"; scenarios; runway for a business (2026-10-01).
 - [ ] Investments v1: investment and retirement accounts with manual holdings and prices; contributions
       count as transfers; net worth with more date ranges and an all-time high.
 - [ ] Reports: cash-flow Sankey, treemap, period comparison, "exclude transfers and investments".
