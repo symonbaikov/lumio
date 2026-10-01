@@ -17,7 +17,7 @@ import {
   Wallet,
 } from '../../entities';
 import { StatementsService } from '../statements/statements.service';
-import { buildOfxStatement, ofxFileName } from './bank-sync-ofx.util';
+import { buildOfxStatement, ofxFileName, providerRowKey } from './bank-sync-ofx.util';
 import { type BankSyncAccount, BankSyncAuthError } from './bank-sync-provider.interface';
 import type { UpdateBankSyncSettingsDto } from './dto/bank-sync.dto';
 import { SimpleFinProvider } from './simplefin.provider';
@@ -223,7 +223,7 @@ export class BankSyncService {
       const candidates = remote.transactions.filter(
         item => !item.pending && item.posted.getTime() >= floor,
       );
-      const fresh = await this.withoutKnownRows(workspaceId, candidates);
+      const fresh = await this.withoutKnownRows(workspaceId, account.id, candidates);
       let statementId: string | null = null;
       let error: string | undefined;
       if (fresh.length > 0) {
@@ -344,14 +344,15 @@ export class BankSyncService {
     }
   }
 
-  /** Drops rows whose provider id is already a document number in this workspace. */
+  /** Drops rows whose account-scoped provider id is already a document number in this workspace. */
   private async withoutKnownRows<T extends { id: string }>(
     workspaceId: string,
+    accountId: string,
     rows: T[],
   ): Promise<T[]> {
     if (rows.length === 0) return rows;
     const known = new Set<string>();
-    const ids = rows.map(row => row.id);
+    const ids = rows.map(row => providerRowKey(accountId, row.id));
     for (let offset = 0; offset < ids.length; offset += 500) {
       const existing = await this.transactionRepository.find({
         where: { workspaceId, documentNumber: In(ids.slice(offset, offset + 500)) },
@@ -361,7 +362,7 @@ export class BankSyncService {
         if (row.documentNumber) known.add(row.documentNumber);
       }
     }
-    return rows.filter(row => !known.has(row.id));
+    return rows.filter(row => !known.has(providerRowKey(accountId, row.id)));
   }
 
   /** Runs a provider call; a rejected credential flips the integration to "needs re-auth". */

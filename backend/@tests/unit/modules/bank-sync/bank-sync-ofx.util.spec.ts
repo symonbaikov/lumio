@@ -40,7 +40,7 @@ describe('buildOfxStatement', () => {
     expect(parsed.metadata.balanceEnd).toBe(1234.5);
     expect(parsed.transactions).toHaveLength(2);
     expect(parsed.transactions[0]).toMatchObject({
-      documentNumber: 'TRN-1',
+      documentNumber: 'ACT-1:TRN-1',
       counterpartyName: 'Coffee & Co',
       paymentPurpose: 'card 1234',
       debit: 42.5,
@@ -48,7 +48,7 @@ describe('buildOfxStatement', () => {
     });
     expect(parsed.transactions[0].transactionDate.toISOString()).toBe('2026-09-03T00:00:00.000Z');
     expect(parsed.transactions[1]).toMatchObject({
-      documentNumber: 'TRN-2',
+      documentNumber: 'ACT-1:TRN-2',
       counterpartyName: 'ACME PAYROLL',
       credit: 3000,
     });

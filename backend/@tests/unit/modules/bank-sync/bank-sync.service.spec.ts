@@ -128,7 +128,7 @@ describe('BankSyncService', () => {
         ],
       }),
     ]);
-    transactionRepository.find.mockResolvedValue([{ documentNumber: 'TRN-old' }]);
+    transactionRepository.find.mockResolvedValue([{ documentNumber: 'ACT-1:TRN-old' }]);
 
     const result = await service().sync(user, workspaceId);
 
@@ -141,7 +141,7 @@ describe('BankSyncService', () => {
       string | undefined,
     ];
     expect(file.originalname).toMatch(/^demo-bank-checking-\d{8}\.ofx$/);
-    expect(file.buffer.toString()).toContain('<FITID>TRN-new');
+    expect(file.buffer.toString()).toContain('<FITID>ACT-1:TRN-new');
     expect(file.buffer.toString()).not.toContain('TRN-old');
     expect(file.buffer.toString()).not.toContain('TRN-pending');
     expect(walletId).toBeUndefined();
@@ -149,6 +149,36 @@ describe('BankSyncService', () => {
     expect(config.accounts[0].lastSyncAt).not.toBeNull();
     expect(config.accounts[0].balance).toBe(50);
     expect(config.lastSyncAt).not.toBeNull();
+  });
+
+  it('keeps a transaction id seen on another account: ids are unique per account only', async () => {
+    connected();
+    settings = {
+      ...settings,
+      config: {
+        ...(settings?.config as Record<string, unknown>),
+        accounts: [
+          { id: 'ACT-1', name: 'Checking', enabled: true, walletId: null, lastSyncAt: null },
+          { id: 'ACT-2', name: 'Savings', enabled: true, walletId: null, lastSyncAt: null },
+        ],
+      },
+    };
+    const row = { id: 'TRN-1', posted: new Date(), amount: -5, description: 'x', pending: false };
+    provider.fetchAccounts.mockResolvedValue([
+      remoteAccount({ transactions: [row] }),
+      remoteAccount({ id: 'ACT-2', name: 'Savings', transactions: [row] }),
+    ]);
+    // ACT-1's row is already in the workspace; ACT-2's row of the same id is not.
+    transactionRepository.find.mockImplementation(async ({ where }: { where: { documentNumber: { value: string[] } } }) =>
+      where.documentNumber.value.includes('ACT-1:TRN-1') ? [{ documentNumber: 'ACT-1:TRN-1' }] : [],
+    );
+
+    const result = await service().sync(user, workspaceId);
+
+    expect(result.accounts).toEqual([
+      expect.objectContaining({ id: 'ACT-1', imported: 0 }),
+      expect.objectContaining({ id: 'ACT-2', imported: 1 }),
+    ]);
   });
 
   it('asks the provider from a week before the last pull, and 90 days back the first time', async () => {

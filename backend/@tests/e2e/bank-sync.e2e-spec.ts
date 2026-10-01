@@ -152,8 +152,8 @@ describe('Bank sync through SimpleFIN (e2e)', () => {
       const rows = await as(owner, request(server()).get(`/transactions?statementId=${statementId}`)).expect(200);
       expect(rows.body.data).toHaveLength(2);
       expect(rows.body.data.map((row: { documentNumber: string }) => row.documentNumber).sort()).toEqual([
-        'TRN-1',
-        'TRN-2',
+        'ACT-1:TRN-1',
+        'ACT-1:TRN-2',
       ]);
 
       // The same rows again: nothing new, no second statement.

@@ -1,6 +1,15 @@
 import type { BankSyncAccount, BankSyncTransaction } from './bank-sync-provider.interface';
 
 /**
+ * A provider's transaction id is unique within its account only (SimpleFIN
+ * says so), so the key that becomes FITID and the document number carries
+ * the account too: two accounts may report the same id.
+ */
+export function providerRowKey(accountId: string, transactionId: string): string {
+  return `${accountId}:${transactionId}`;
+}
+
+/**
  * A pulled account becomes an OFX statement and goes through the same import
  * as a file the user uploads: the OFX parser, dedupe, rules, the review inbox.
  * The aggregator's transaction id travels as FITID, so a row already in the
@@ -42,7 +51,7 @@ export function buildOfxStatement(
       `<TRNTYPE>${item.amount < 0 ? 'DEBIT' : 'CREDIT'}`,
       `<DTPOSTED>${ofxDate(item.posted)}`,
       `<TRNAMT>${item.amount.toFixed(2)}`,
-      `<FITID>${escapeOfx(item.id)}`,
+      `<FITID>${escapeOfx(providerRowKey(account.id, item.id))}`,
       `<NAME>${escapeOfx(name)}`,
       ...(memo && memo !== name ? [`<MEMO>${escapeOfx(memo)}`] : []),
       '</STMTTRN>',
