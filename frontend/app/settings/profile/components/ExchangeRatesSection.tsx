@@ -7,6 +7,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 
 type Tx = (path: string[], fallback: string) => string;
@@ -28,6 +29,9 @@ export function ExchangeRatesSection({ tx }: { tx: Tx }) {
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const { locale } = useLocale();
+  const formatRate = (rate: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(rate);
 
   const load = async () => {
     await apiClient
@@ -92,7 +96,7 @@ export function ExchangeRatesSection({ tx }: { tx: Tx }) {
           >
             {item.rate === null
               ? tx(['exchangeRatesCard', 'missing'], 'no rate')
-              : `1 ${item.currency} = ${item.rate} ${coverage.currency}${
+              : `1 ${item.currency} = ${formatRate(item.rate)} ${coverage.currency}${
                   item.rateDate && item.stale
                     ? ` · ${tx(['exchangeRatesCard', 'stale'], 'rate from {{date}}').replace('{{date}}', item.rateDate)}`
                     : ''
@@ -108,7 +112,7 @@ export function ExchangeRatesSection({ tx }: { tx: Tx }) {
             onChange={event =>
               setDrafts(current => ({ ...current, [item.currency]: event.target.value }))
             }
-            inputProps={{ inputMode: 'decimal', 'aria-label': `rate-${item.currency}` }}
+            inputProps={{ inputMode: 'decimal' }}
             sx={{ width: 160 }}
           />
           <Button
