@@ -24,7 +24,8 @@ export type NotificationMessageKey =
   | 'subscription.detected'
   | 'subscription.upcoming'
   | 'tax.threshold.warning'
-  | 'tax.threshold.reached';
+  | 'tax.threshold.reached'
+  | 'review.waiting';
 
 interface TranslationEntry {
   title: string;
@@ -34,6 +35,10 @@ interface TranslationEntry {
 type TranslationMap = Record<NotificationMessageKey, TranslationEntry>;
 
 const ru: TranslationMap = {
+  'review.waiting': {
+    title: 'Ждут разбора',
+    message: '{{count}} элементов ждут решения во входящих на разбор',
+  },
   'note.mentioned': {
     title: 'Вас упомянули в заметке',
     message: '{{actorName}} упомянул(а) вас: {{excerpt}}',
@@ -120,6 +125,10 @@ const ru: TranslationMap = {
 };
 
 const en: TranslationMap = {
+  'review.waiting': {
+    title: 'Items waiting for review',
+    message: '{{count}} items are waiting in the review inbox',
+  },
   'note.mentioned': {
     title: 'You were mentioned in a note',
     message: '{{actorName}} mentioned you: {{excerpt}}',
@@ -210,6 +219,10 @@ const en: TranslationMap = {
 };
 
 const kk: TranslationMap = {
+  'review.waiting': {
+    title: 'Қарауды күтуде',
+    message: '{{count}} элемент қарау кіріс жәшігінде күтіп тұр',
+  },
   'note.mentioned': {
     title: 'Сізді жазбада атап өтті',
     message: '{{actorName}} сізді атап өтті: {{excerpt}}',
@@ -293,6 +306,10 @@ const kk: TranslationMap = {
 };
 
 const de: TranslationMap = {
+  'review.waiting': {
+    title: 'Zur Durchsicht wartend',
+    message: '{{count}} Einträge warten im Prüf-Posteingang',
+  },
   'note.mentioned': {
     title: 'Sie wurden in einer Notiz erwähnt',
     message: '{{actorName}} hat Sie erwähnt: {{excerpt}}',
@@ -392,6 +409,10 @@ const de: TranslationMap = {
 };
 
 const fr: TranslationMap = {
+  'review.waiting': {
+    title: 'En attente de revue',
+    message: '{{count}} éléments attendent dans la boîte de revue',
+  },
   'note.mentioned': {
     title: 'Vous avez été mentionné dans une note',
     message: '{{actorName}} vous a mentionné : {{excerpt}}',
@@ -488,6 +509,10 @@ const fr: TranslationMap = {
 };
 
 const es: TranslationMap = {
+  'review.waiting': {
+    title: 'Pendientes de revisión',
+    message: '{{count}} elementos esperan en la bandeja de revisión',
+  },
   'note.mentioned': {
     title: 'Te mencionaron en una nota',
     message: '{{actorName}} te mencionó: {{excerpt}}',
@@ -584,6 +609,10 @@ const es: TranslationMap = {
 };
 
 const pt: TranslationMap = {
+  'review.waiting': {
+    title: 'Aguardando revisão',
+    message: '{{count}} itens aguardam na caixa de revisão',
+  },
   'note.mentioned': {
     title: 'Você foi mencionado numa nota',
     message: '{{actorName}} mencionou você: {{excerpt}}',
@@ -680,6 +709,10 @@ const pt: TranslationMap = {
 };
 
 const tr: TranslationMap = {
+  'review.waiting': {
+    title: 'İnceleme bekliyor',
+    message: '{{count}} öğe inceleme gelen kutusunda bekliyor',
+  },
   'note.mentioned': {
     title: 'Bir notta sizden bahsedildi',
     message: '{{actorName}} sizden bahsetti: {{excerpt}}',
@@ -769,6 +802,10 @@ const tr: TranslationMap = {
 };
 
 const uk: TranslationMap = {
+  'review.waiting': {
+    title: 'Чекають на розбір',
+    message: '{{count}} елементів чекають у вхідних на розбір',
+  },
   'note.mentioned': {
     title: 'Вас згадали в нотатці',
     message: '{{actorName}} згадав(ла) вас: {{excerpt}}',
@@ -858,6 +895,10 @@ const uk: TranslationMap = {
 };
 
 const zh: TranslationMap = {
+  'review.waiting': {
+    title: '待审核项目',
+    message: '{{count}} 个项目在审核收件箱中等待',
+  },
   'note.mentioned': {
     title: '有人在备注中提到了你',
     message: '{{actorName}} 提到了你：{{excerpt}}',
@@ -917,6 +958,10 @@ const zh: TranslationMap = {
 };
 
 const ar: TranslationMap = {
+  'review.waiting': {
+    title: 'عناصر بانتظار المراجعة',
+    message: '{{count}} عنصرًا بانتظارك في صندوق المراجعة',
+  },
   'note.mentioned': {
     title: 'تمت الإشارة إليك في ملاحظة',
     message: 'أشار إليك {{actorName}}: {{excerpt}}',
@@ -997,6 +1042,10 @@ const ar: TranslationMap = {
 };
 
 const pl: TranslationMap = {
+  'review.waiting': {
+    title: 'Oczekują na przegląd',
+    message: '{{count}} pozycji czeka w skrzynce przeglądu',
+  },
   'note.mentioned': {
     title: 'Wspomniano o Tobie w notatce',
     message: '{{actorName}} wspomniał(a) o Tobie: {{excerpt}}',
@@ -1095,6 +1144,10 @@ const pl: TranslationMap = {
 };
 
 const it: TranslationMap = {
+  'review.waiting': {
+    title: 'In attesa di revisione',
+    message: '{{count}} elementi attendono nella posta di revisione',
+  },
   'note.mentioned': {
     title: 'Sei stato menzionato in una nota',
     message: '{{actorName}} ti ha menzionato: {{excerpt}}',
@@ -1191,6 +1244,10 @@ const it: TranslationMap = {
 };
 
 const sk: TranslationMap = {
+  'review.waiting': {
+    title: 'Čakajú na kontrolu',
+    message: '{{count}} položiek čaká v schránke na kontrolu',
+  },
   'note.mentioned': {
     title: 'Spomenuli vás v poznámke',
     message: '{{actorName}} vás spomenul(a): {{excerpt}}',
@@ -1283,6 +1340,10 @@ const sk: TranslationMap = {
 };
 
 const ja: TranslationMap = {
+  'review.waiting': {
+    title: '確認待ちの項目',
+    message: '{{count}} 件が確認用受信箱で待っています',
+  },
   'note.mentioned': {
     title: 'メモであなたがメンションされました',
     message: '{{actorName}} があなたをメンションしました: {{excerpt}}',
@@ -1384,6 +1445,10 @@ const ja: TranslationMap = {
 };
 
 const ko: TranslationMap = {
+  'review.waiting': {
+    title: '검토 대기 항목',
+    message: '{{count}}개 항목이 검토함에서 기다리고 있습니다',
+  },
   'note.mentioned': {
     title: '메모에서 회원님이 언급되었습니다',
     message: '{{actorName}}님이 회원님을 언급했습니다: {{excerpt}}',
@@ -1470,6 +1535,10 @@ const ko: TranslationMap = {
 };
 
 const hi: TranslationMap = {
+  'review.waiting': {
+    title: 'समीक्षा की प्रतीक्षा',
+    message: '{{count}} आइटम समीक्षा इनबॉक्स में प्रतीक्षा कर रहे हैं',
+  },
   'note.mentioned': {
     title: 'एक नोट में आपका उल्लेख किया गया',
     message: '{{actorName}} ने आपका उल्लेख किया: {{excerpt}}',
@@ -1553,6 +1622,10 @@ const hi: TranslationMap = {
 };
 
 const nl: TranslationMap = {
+  'review.waiting': {
+    title: 'Wachten op beoordeling',
+    message: '{{count}} items wachten in het beoordelingspostvak',
+  },
   'note.mentioned': {
     title: 'Je bent genoemd in een notitie',
     message: '{{actorName}} heeft je genoemd: {{excerpt}}',
@@ -1655,6 +1728,10 @@ const nl: TranslationMap = {
 };
 
 const sv: TranslationMap = {
+  'review.waiting': {
+    title: 'Väntar på granskning',
+    message: '{{count}} poster väntar i granskningsinkorgen',
+  },
   'note.mentioned': {
     title: 'Du nämndes i en anteckning',
     message: '{{actorName}} nämnde dig: {{excerpt}}',
@@ -1748,6 +1825,10 @@ const sv: TranslationMap = {
 };
 
 const vi: TranslationMap = {
+  'review.waiting': {
+    title: 'Đang chờ xem xét',
+    message: '{{count}} mục đang chờ trong hộp thư xem xét',
+  },
   'note.mentioned': {
     title: 'Bạn được nhắc đến trong một ghi chú',
     message: '{{actorName}} đã nhắc đến bạn: {{excerpt}}',
@@ -1837,6 +1918,10 @@ const vi: TranslationMap = {
 };
 
 const id: TranslationMap = {
+  'review.waiting': {
+    title: 'Menunggu peninjauan',
+    message: '{{count}} item menunggu di kotak masuk peninjauan',
+  },
   'note.mentioned': {
     title: 'Anda disebut dalam sebuah catatan',
     message: '{{actorName}} menyebut Anda: {{excerpt}}',

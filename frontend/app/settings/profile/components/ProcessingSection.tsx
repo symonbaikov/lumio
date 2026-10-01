@@ -69,7 +69,11 @@ function ThresholdField({
   );
 }
 
-type SwitchKey = 'aiCategorization' | 'aiMerchantNormalization' | 'merchantLearning';
+type SwitchKey =
+  | 'aiCategorization'
+  | 'aiMerchantNormalization'
+  | 'merchantLearning'
+  | 'autoApproveAiPicks';
 
 const SWITCHES: Array<{
   key: SwitchKey;
@@ -101,6 +105,14 @@ const SWITCHES: Array<{
     labelFallback: 'Learn from my corrections',
     helpFallback:
       'Reuse a category you picked for the same payee on later imports. One correction does not replace an established category; the second one does.',
+  },
+  {
+    key: 'autoApproveAiPicks',
+    label: 'autoApproveLabel',
+    help: 'autoApproveHelp',
+    labelFallback: 'Trust AI picks',
+    helpFallback:
+      'Keep transactions the model categorised out of the review inbox. Off means every AI pick waits for a look.',
   },
 ];
 

@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Review inbox (2026-10-01)
+
+- **One queue for everything that needs a decision** at `/review` (`GET /review-inbox`,
+  `GET /review-inbox/counts`): transactions nobody categorised or the model categorised, receipts
+  without an amount, suspected duplicates, detected subscriptions. Read from the existing rows,
+  so an item leaves the queue the moment it is resolved anywhere.
+- Keyboard-first on desktop (`j`/`k`, `x`, `a`, `c`, `Esc`), group by payee with one-click group
+  selection, a date range for "everything from the trip → Vacation", approve with a category or as
+  is (`POST /review-inbox/transactions/approve`, which records a manual pick and learns from it),
+  keep or confirm a duplicate (`POST /review-inbox/duplicates/:id/resolve`), approve receipts,
+  confirm or dismiss subscriptions. On mobile, swipe right approves and left skips.
+- Settings → Processing: "Trust AI picks" keeps the model's categories out of the queue.
+- A weekly notification "N items are waiting for review" (Monday morning, through the existing
+  "uncategorised items" preference and digest mode).
+
 #### Data you can trust: transfers, reimbursements, category provenance (2026-10-01)
 
 - **Transfers between your own accounts** are paired automatically after every statement import

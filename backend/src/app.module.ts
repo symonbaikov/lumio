@@ -99,6 +99,7 @@ import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ReviewInboxModule } from './modules/review-inbox/review-inbox.module';
 import { SearchModule } from './modules/search/search.module';
 import { StatementsModule } from './modules/statements/statements.module';
 import { StorageModule } from './modules/storage/storage.module';
@@ -253,6 +254,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     InvoicesModule,
     ExchangeRatesModule,
     SubscriptionsModule,
+    ReviewInboxModule,
     CryptoModule,
     WebhooksModule,
     ApiKeysModule,

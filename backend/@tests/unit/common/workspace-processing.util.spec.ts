@@ -12,6 +12,7 @@ describe('readProcessingSettings', () => {
       aiCategorization: true,
       aiMerchantNormalization: true,
       merchantLearning: true,
+      autoApproveAiPicks: false,
     });
     expect(readProcessingSettings({ settings: null })).toEqual(DEFAULT_PROCESSING_SETTINGS);
     expect(readProcessingSettings({ settings: {} })).toEqual(DEFAULT_PROCESSING_SETTINGS);
@@ -33,6 +34,7 @@ describe('readProcessingSettings', () => {
       aiCategorization: false,
       aiMerchantNormalization: true,
       merchantLearning: false,
+      autoApproveAiPicks: false,
     });
   });
 
@@ -75,6 +77,7 @@ describe('mergeProcessingSettings', () => {
       aiCategorization: true,
       aiMerchantNormalization: true,
       merchantLearning: true,
+      autoApproveAiPicks: false,
     });
   });
 
@@ -85,6 +88,7 @@ describe('mergeProcessingSettings', () => {
       aiCategorization: true,
       aiMerchantNormalization: true,
       merchantLearning: true,
+      autoApproveAiPicks: false,
     });
   });
 

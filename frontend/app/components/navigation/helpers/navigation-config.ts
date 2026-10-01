@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   Flag,
+  Inbox,
   Landmark,
   LayoutDashboard,
   Lightbulb,
@@ -51,6 +52,7 @@ export function buildNavItems(nav: {
   crypto: unknown;
   ledger: unknown;
   invoices: unknown;
+  review: unknown;
 }): NavItem[] {
   return [
     {
@@ -64,6 +66,12 @@ export function buildNavItems(nav: {
       path: '/statements',
       icon: React.createElement(FileText, { size: 18 }),
       permission: 'statement.view',
+    },
+    {
+      label: nav.review as ReactNode,
+      path: '/review',
+      icon: React.createElement(Inbox, { size: 18 }),
+      permission: 'transaction.view',
     },
     {
       label: nav.tables as ReactNode,

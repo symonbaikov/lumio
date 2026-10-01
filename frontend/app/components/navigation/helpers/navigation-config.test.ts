@@ -17,6 +17,7 @@ const nav = {
   crypto: 'Crypto',
   ledger: 'Ledger',
   invoices: 'Invoices',
+  review: 'Review',
 };
 
 const userMenuNav = {

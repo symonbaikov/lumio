@@ -20,6 +20,8 @@ export type WorkspaceProcessingSettings = {
   aiMerchantNormalization: boolean;
   /** Remember manual corrections and reuse them on later imports. */
   merchantLearning: boolean;
+  /** Keep the model's category picks out of the review inbox. */
+  autoApproveAiPicks: boolean;
 };
 
 export const DEFAULT_PROCESSING_SETTINGS: WorkspaceProcessingSettings = {
@@ -28,6 +30,7 @@ export const DEFAULT_PROCESSING_SETTINGS: WorkspaceProcessingSettings = {
   aiCategorization: true,
   aiMerchantNormalization: true,
   merchantLearning: true,
+  autoApproveAiPicks: false,
 };
 
 const PROCESSING_KEY = 'processing';
@@ -75,6 +78,10 @@ export const readProcessingSettings = (
     merchantLearning: readFlag(
       stored.merchantLearning,
       DEFAULT_PROCESSING_SETTINGS.merchantLearning,
+    ),
+    autoApproveAiPicks: readFlag(
+      stored.autoApproveAiPicks,
+      DEFAULT_PROCESSING_SETTINGS.autoApproveAiPicks,
     ),
   };
 };
