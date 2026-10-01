@@ -1,14 +1,171 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "650d4bba29525036757f6790817ef854e7025f34"
+      "main": "c1c8f4bcede1db2afa2247c37c9063cfc3db0b96"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-09-30T12:30:25.743Z",
+    "lastGeneratedAt": "2026-10-01T10:17:15.808Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-10-01-c1c8f4b",
+      "version": "main-c1c8f4b",
+      "branch": "main",
+      "date": "2026-10-01T10:17:15.808Z",
+      "title": "Release update - October 1, 2026",
+      "summary": "This release includes 4 features.",
+      "markdown": "## Features\n- **notifications**: Open the related page and ring the item on click\n- **transactions**: Pair the legs of transfers between own accounts\n- **classification**: Record where a category came from, add switches, guard learning\n- **transactions**: Reimbursement links, account-aware duplicates, roadmap",
+      "commits": [
+        {
+          "sha": "6e6496fe77475dbfd6990cbc8be505dd6f151b51",
+          "shortSha": "6e6496fe",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-09-30T12:30:26Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "6c4fa14c175057b455f21971214caa90f1b0caff",
+          "shortSha": "6c4fa14c",
+          "subject": "feat(notifications): open the related page and ring the item on click",
+          "author": "Symon Baikov",
+          "date": "2026-09-30T19:25:33+03:00",
+          "files": [
+            "backend/src/modules/budgets/budgets.service.ts",
+            "backend/src/modules/payables/payables.scheduler.ts",
+            "backend/src/modules/payables/payables.service.ts",
+            "frontend/app/(main)/reports/components/TaxReturnView.tsx",
+            "frontend/app/(main)/reports/page.tsx",
+            "frontend/app/(main)/statements/components/payables/PayablesList.tsx",
+            "frontend/app/(main)/statements/components/payables/PayablesView.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionCard.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionsContent.tsx",
+            "frontend/app/(main)/subscriptions/page.tsx",
+            "frontend/app/components/NotificationDropdown.tsx",
+            "frontend/app/components/notifications/notification-href.test.ts",
+            "frontend/app/components/notifications/notification-href.ts",
+            "frontend/app/hooks/useAttentionFocus.ts"
+          ]
+        },
+        {
+          "sha": "85b5e31b687212ba4c185df7dbf147a9e239c394",
+          "shortSha": "85b5e31b",
+          "subject": "feat(transactions): pair the legs of transfers between own accounts",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T12:20:57+03:00",
+          "files": [
+            "backend/@tests/e2e/transfer-pairing.e2e-spec.ts",
+            "backend/@tests/unit/modules/reports/reports.service.spec.ts",
+            "backend/@tests/unit/modules/transactions/transfer-pairing.matcher.spec.ts",
+            "backend/@tests/unit/modules/transactions/transfer-pairing.service.spec.ts",
+            "backend/src/entities/statement.entity.ts",
+            "backend/src/entities/transaction.entity.ts",
+            "backend/src/migrations/1786700000000-AddTransactionTransferPair.ts",
+            "backend/src/modules/budgets/budgets.service.ts",
+            "backend/src/modules/budgets/stoic/stoic-ledger.service.ts",
+            "backend/src/modules/dashboard/dashboard.service.ts",
+            "backend/src/modules/goals/goal-flow.service.ts",
+            "backend/src/modules/goals/goal-plan.service.ts",
+            "backend/src/modules/income-tax/income-tax-draft.service.ts",
+            "backend/src/modules/insights/analyzers/financial.analyzer.ts",
+            "backend/src/modules/insights/stoic/stoic-behavior.service.ts",
+            "backend/src/modules/parsing/services/statement-processing.service.ts",
+            "backend/src/modules/reports/reports.service.ts",
+            "backend/src/modules/subscriptions/subscription-detection.service.ts",
+            "backend/src/modules/transactions/dto/transfer-actions.dto.ts",
+            "backend/src/modules/transactions/services/transfer-pairing.matcher.ts",
+            "backend/src/modules/transactions/services/transfer-pairing.service.ts",
+            "backend/src/modules/transactions/transactions.controller.ts",
+            "backend/src/modules/transactions/transactions.module.ts",
+            "backend/src/modules/transactions/transactions.service.ts",
+            "frontend/app/components/transactions/TransactionDetailsTab.tsx",
+            "frontend/app/components/transactions/TransactionRow.tsx",
+            "frontend/app/components/transactions/detailsDrawer.content.ts",
+            "frontend/app/components/transactions/helpers/transactionMapper.ts",
+            "frontend/app/components/transactions/hooks/useTransferLink.test.ts",
+            "frontend/app/components/transactions/hooks/useTransferLink.ts",
+            "frontend/app/components/transactions/transactionsTable.content.ts",
+            "frontend/app/components/transactions/types.ts"
+          ]
+        },
+        {
+          "sha": "f3c9912b9645c581dcd469ce5471e2fb88609d46",
+          "shortSha": "f3c9912b",
+          "subject": "feat(classification): record where a category came from, add switches, guard learning",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T12:45:26+03:00",
+          "files": [
+            "backend/@tests/e2e/category-source.e2e-spec.ts",
+            "backend/@tests/unit/common/workspace-processing.util.spec.ts",
+            "backend/@tests/unit/custom-tables/custom-tables.service.spec.ts",
+            "backend/@tests/unit/modules/classification/classification.controller.spec.ts",
+            "backend/@tests/unit/modules/classification/services/classification.service.provenance.spec.ts",
+            "backend/@tests/unit/modules/classification/services/classification.service.spec.ts",
+            "backend/@tests/unit/modules/transactions/transactions.service.spec.ts",
+            "backend/src/common/utils/workspace-processing.util.ts",
+            "backend/src/entities/transaction.entity.ts",
+            "backend/src/migrations/1786710000000-AddTransactionCategorySource.ts",
+            "backend/src/modules/classification/classification.controller.ts",
+            "backend/src/modules/classification/services/classification.service.ts",
+            "backend/src/modules/custom-tables/custom-tables.service.ts",
+            "backend/src/modules/parsing/services/statement-processing.service.ts",
+            "backend/src/modules/transactions/transactions.service.ts",
+            "backend/src/modules/workspaces/dto/workspace-processing.dto.ts",
+            "frontend/app/components/transactions/TransactionDetailsTab.tsx",
+            "frontend/app/components/transactions/detailsDrawer.content.ts",
+            "frontend/app/components/transactions/helpers/transactionMapper.ts",
+            "frontend/app/components/transactions/types.ts",
+            "frontend/app/settings/profile/components/ProcessingSection.tsx",
+            "frontend/app/settings/profile/hooks/useProcessing.ts",
+            "frontend/app/settings/profile/page.content.ts"
+          ]
+        },
+        {
+          "sha": "4f5fb0c3bd50fc579130e263b0b38362d2f24747",
+          "shortSha": "4f5fb0c3",
+          "subject": "feat(transactions): reimbursement links, account-aware duplicates, roadmap",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T12:58:17+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "README.md",
+            "backend/@tests/e2e/transfer-pairing.e2e-spec.ts",
+            "backend/@tests/unit/modules/transactions/cross-statement-deduplication.golden.spec.ts",
+            "backend/@tests/unit/modules/transactions/transfer-pairing.matcher.spec.ts",
+            "backend/@tests/unit/modules/transactions/transfer-pairing.service.spec.ts",
+            "backend/src/entities/transaction.entity.ts",
+            "backend/src/migrations/1786720000000-AddTransactionReimbursement.ts",
+            "backend/src/modules/transactions/dto/transfer-actions.dto.ts",
+            "backend/src/modules/transactions/services/cross-statement-deduplication.service.ts",
+            "backend/src/modules/transactions/services/transfer-pairing.matcher.ts",
+            "backend/src/modules/transactions/services/transfer-pairing.service.ts",
+            "backend/src/modules/transactions/transactions.controller.ts",
+            "backend/src/modules/transactions/transactions.service.ts",
+            "docs/ROADMAP.md",
+            "docs/ui-principles.md",
+            "frontend/app/components/transactions/TransactionDetailsTab.tsx",
+            "frontend/app/components/transactions/TransactionRow.tsx",
+            "frontend/app/components/transactions/detailsDrawer.content.ts",
+            "frontend/app/components/transactions/helpers/transactionMapper.ts",
+            "frontend/app/components/transactions/hooks/useTransferLink.ts",
+            "frontend/app/components/transactions/transactionsTable.content.ts",
+            "frontend/app/components/transactions/types.ts"
+          ]
+        },
+        {
+          "sha": "c1c8f4bcede1db2afa2247c37c9063cfc3db0b96",
+          "shortSha": "c1c8f4bc",
+          "subject": "Merge pull request #232 from symonbaikov/feat/transfer-pairing",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T13:16:50+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-09-30-650d4bb",
       "version": "main-650d4bb",
