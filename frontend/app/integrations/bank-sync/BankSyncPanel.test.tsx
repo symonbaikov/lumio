@@ -74,10 +74,11 @@ describe('BankSyncPanel', () => {
     });
 
     expect(container.textContent).toContain('Not connected');
+    const setupToken = btoa('https://bridge');
     const tokenInput = container.querySelector('[data-testid="bank-sync-token"]') as HTMLTextAreaElement;
     const nativeSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
     await act(async () => {
-      nativeSetter?.call(tokenInput, ' aHR0cHM6Ly9icmlkZ2U= ');
+      nativeSetter?.call(tokenInput, ` ${setupToken} `);
       tokenInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
     const connectButton = Array.from(container.querySelectorAll('button')).find(
@@ -88,9 +89,7 @@ describe('BankSyncPanel', () => {
       await flushPromises();
     });
 
-    expect(apiPost).toHaveBeenCalledWith('/integrations/simplefin/connect', {
-      setupToken: 'aHR0cHM6Ly9icmlkZ2U=',
-    });
+    expect(apiPost).toHaveBeenCalledWith('/integrations/simplefin/connect', { setupToken });
     expect(onConnectionChange).toHaveBeenCalled();
     expect(container.textContent).toContain('Checking');
     expect(container.textContent).toContain('Demo Bank');
