@@ -27,8 +27,8 @@ that document has the evidence behind every line here. Dates are intentions, not
       for "is this recurring?" prompts (2026-10-01).
 - [x] Budget mechanics: rollover (carry / refill up to the limit), parent-category budgets, a warning
       under a manual entry when it would push a budget over or overdraw the account (2026-10-01).
-- [ ] Workspace profile Home / Business: the home profile hides invoices, payables, ledger, tax and
-      custom tables.
+- [x] Workspace profile Home / Business: the home profile hides invoices, ledger, tax declaration and
+      custom tables from the menu; picked at creation, switchable in Settings (2026-10-01).
 
 ## Phase 2 — planning ahead
 

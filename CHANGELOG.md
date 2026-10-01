@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Workspace profile: Home or Business (2026-10-01)
+
+- A workspace now says what it is for. **Home** hides invoices, the ledger, the tax declaration and
+  custom tables from the menu (and from the welcome tutorial); nothing is deleted and every page
+  still opens by link. **Business** is the default and is how every workspace behaved before.
+- Chosen when creating a workspace (first step) and changed any time in Settings → Data →
+  Workspace profile (`PATCH /workspaces/:id { profile }`, stored in `settings.profile`).
+
 #### Budget mechanics (2026-10-01)
 
 - **Rollover**: a budget now says what happens to unspent money. *Resets* is the old behaviour;

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildNavItems, buildUserMenuNavItems, isNavItemActive } from './navigation-config';
+import {
+  buildNavItems,
+  buildUserMenuNavItems,
+  isNavItemActive,
+  isNavItemVisible,
+  workspaceProfileOf,
+} from './navigation-config';
 
 const nav = {
   dashboard: 'Dashboard',
@@ -27,6 +33,41 @@ const userMenuNav = {
   aiAnalysis: 'AI analysis',
   chatMode: 'Chat mode',
 };
+
+describe('workspace profile', () => {
+  const allowAll = () => true;
+
+  it('reads home off the settings and treats everything else as business', () => {
+    expect(workspaceProfileOf({ settings: { profile: 'home' } })).toBe('home');
+    expect(workspaceProfileOf({ settings: { profile: 'business' } })).toBe('business');
+    expect(workspaceProfileOf({ settings: null })).toBe('business');
+    expect(workspaceProfileOf(null)).toBe('business');
+  });
+
+  it('hides invoices, the ledger, the tax declaration and tables at home, nothing else', () => {
+    const items = buildNavItems(nav);
+    const hiddenAtHome = items
+      .filter(item => !isNavItemVisible(item, { hasPermission: allowAll, experimentalMode: true, profile: 'home' }))
+      .map(item => item.path)
+      .sort();
+    expect(hiddenAtHome).toEqual(['/custom-tables', '/invoices', '/ledger', '/tax-declaration']);
+
+    const hiddenInBusiness = items.filter(
+      item => !isNavItemVisible(item, { hasPermission: allowAll, experimentalMode: true, profile: 'business' }),
+    );
+    expect(hiddenInBusiness).toEqual([]);
+  });
+
+  it('still respects permission and experimental mode', () => {
+    const ledger = buildNavItems(nav).find(item => item.path === '/ledger')!;
+    expect(
+      isNavItemVisible(ledger, { hasPermission: allowAll, experimentalMode: false, profile: 'business' }),
+    ).toBe(false);
+    expect(
+      isNavItemVisible(ledger, { hasPermission: () => false, experimentalMode: true, profile: 'business' }),
+    ).toBe(false);
+  });
+});
 
 describe('buildNavItems', () => {
   it('offers the ledger only in experimental mode, behind its own view permission', () => {
