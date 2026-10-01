@@ -38,7 +38,7 @@ export interface CashFlowMap {
     nodes: Array<{
       id: string;
       name: string;
-      kind: 'source' | 'total' | 'category' | 'subcategory' | 'transfers';
+      kind: 'source' | 'balance' | 'total' | 'category' | 'subcategory' | 'transfers' | 'saved';
     }>;
     links: Array<{ source: string; target: string; value: number }>;
   };
@@ -51,7 +51,14 @@ export interface CashFlowMap {
 }
 
 export interface CashFlowMapOptions {
-  labels: { uncategorised: string; otherSources: string; total: string; transfers: string };
+  labels: {
+    uncategorised: string;
+    otherSources: string;
+    total: string;
+    transfers: string;
+    fromBalance: string;
+    leftOver: string;
+  };
   /** How many income payers get their own node before the rest is rolled up. */
   maxSources?: number;
 }
@@ -161,6 +168,8 @@ export function buildCashFlowMap(
   const previousExpense = previous ? [...previous.roots.values()].reduce((s, v) => s + v, 0) : null;
 
   // Sankey: sources → total → root categories → subcategories (+ transfers out of total).
+  // Both sides of the hub carry the same amount: spending beyond income comes in
+  // from the balance, income left unspent goes out as left over.
   const nodes: CashFlowMap['sankey']['nodes'] = [];
   const links: CashFlowMap['sankey']['links'] = [];
   const totalId = 'total';
@@ -185,6 +194,14 @@ export function buildCashFlowMap(
   if (transfers > 0) {
     nodes.push({ id: 'transfers', name: options.labels.transfers, kind: 'transfers' });
     links.push({ source: totalId, target: 'transfers', value: round(transfers) });
+  }
+  const gap = round(expenseTotal + transfers - incomeTotal);
+  if (gap > 0) {
+    nodes.push({ id: 'balance', name: options.labels.fromBalance, kind: 'balance' });
+    links.push({ source: 'balance', target: totalId, value: gap });
+  } else if (gap < 0) {
+    nodes.push({ id: 'saved', name: options.labels.leftOver, kind: 'saved' });
+    links.push({ source: totalId, target: 'saved', value: -gap });
   }
 
   return {

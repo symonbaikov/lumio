@@ -30,7 +30,7 @@ export interface CashFlowMapData {
     nodes: Array<{
       id: string;
       name: string;
-      kind: 'source' | 'total' | 'category' | 'subcategory' | 'transfers';
+      kind: 'source' | 'balance' | 'total' | 'category' | 'subcategory' | 'transfers' | 'saved';
     }>;
     links: Array<{ source: string; target: string; value: number }>;
   };
