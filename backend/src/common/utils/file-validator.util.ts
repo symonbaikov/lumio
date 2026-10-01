@@ -191,11 +191,28 @@ export function textStatementFormatOf(file: {
 }
 
 /** `pdf`, `csv`, …, or one of the interchange formats; `unknown` otherwise. */
+/**
+ * Windows hands a .csv to the browser as application/vnd.ms-excel when Excel is
+ * installed. Such a file is text, not an OLE workbook: take it as the CSV it is.
+ */
+function isCsvDeclaredAsExcel(file: {
+  mimetype: string;
+  originalname?: string | null;
+  path?: string | null;
+}): boolean {
+  if (file.mimetype !== AllowedFileType.XLS || !/\.csv$/i.test(file.originalname ?? '')) {
+    return false;
+  }
+  const signature = file.path ? readSignature(file.path) : null;
+  return !(signature && MAGIC_BYTES.get(AllowedFileType.XLS)?.(signature));
+}
+
 export function resolveFileType(file: {
   mimetype: string;
   originalname?: string | null;
   path?: string | null;
 }): string {
+  if (isCsvDeclaredAsExcel(file)) return 'csv';
   const byMime = getFileTypeFromMime(file.mimetype);
   if (byMime !== 'unknown' && !LOOSE_TEXT_MIMES.has(file.mimetype)) return byMime;
   return textStatementFormatOf(file) ?? byMime;
@@ -224,7 +241,9 @@ export function validateFile(file: Express.Multer.File): void {
     );
   }
 
-  const checkSignature = MAGIC_BYTES.get(file.mimetype as AllowedFileType);
+  const checkSignature = isCsvDeclaredAsExcel(file)
+    ? undefined
+    : MAGIC_BYTES.get(file.mimetype as AllowedFileType);
   if (checkSignature && file.path) {
     const signature = readSignature(file.path);
     if (signature && !checkSignature(signature)) {
