@@ -431,7 +431,10 @@ export class LedgerEntriesService {
 
     const rates = new Map<string, number>();
     for (const currency of new Set(legs.map(leg => leg.currency))) {
-      rates.set(currency, await this.postingService.rateFor(currency, baseCurrency, entryDate));
+      rates.set(
+        currency,
+        await this.postingService.rateFor(currency, baseCurrency, entryDate, workspaceId),
+      );
     }
     return manualBaseLines(legs, baseCurrency, currency => rates.get(currency) ?? Number.NaN);
   }

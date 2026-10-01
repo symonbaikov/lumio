@@ -194,6 +194,7 @@ export class GoalFlowService {
         ...budgets.map(budget => budget.currency),
       ],
       currency,
+      workspaceId,
     );
     const convert = (amount: string | number, from: string): number =>
       convertWith(rates, amount, from);

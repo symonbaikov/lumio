@@ -117,7 +117,7 @@ describe('IncomeTaxDraftService', () => {
     const draft = await service.compute('ws-1', 2025);
     const figure = (key: string) => draft.figures.find(f => f.key === key);
 
-    expect(exchangeRates.getRateOrNull).toHaveBeenCalledWith('USD', 'EUR', '2025-03-10');
+    expect(exchangeRates.getRateOrNull).toHaveBeenCalledWith('USD', 'EUR', '2025-03-10', 'ws-1');
     expect(figure('revenue_vatable')?.amount).toBe(1000);
     expect(figure('rent')).toMatchObject({ amount: 80, transactionCount: 2 });
     expect(figure('profit')?.amount).toBe(920);

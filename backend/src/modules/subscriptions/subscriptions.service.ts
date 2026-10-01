@@ -420,6 +420,7 @@ export class SubscriptionsService {
           sub.currency,
           workspaceCurrency,
           new Date(),
+          workspaceId,
         );
         return converted.converted;
       }),
@@ -459,6 +460,7 @@ export class SubscriptionsService {
           sub.currency,
           workspaceCurrency,
           new Date(),
+          workspaceId,
         );
         return converted.converted;
       }),
@@ -541,6 +543,7 @@ export class SubscriptionsService {
             sub.currency,
             workspaceCurrency,
             new Date(),
+            workspaceId,
           );
           amount = converted.converted;
         }
@@ -603,7 +606,13 @@ export class SubscriptionsService {
     const convert = async (amount: number, currency: string): Promise<number> => {
       if (!workspaceCurrency || currency.toUpperCase() === workspaceCurrency) return amount;
       return (
-        await this.exchangeRatesService.convert(amount, currency, workspaceCurrency, new Date())
+        await this.exchangeRatesService.convert(
+          amount,
+          currency,
+          workspaceCurrency,
+          new Date(),
+          workspaceId,
+        )
       ).converted;
     };
     const rows: Array<{
@@ -685,6 +694,7 @@ export class SubscriptionsService {
           sub.currency,
           currency,
           new Date(),
+          workspaceId,
         );
         monthly = converted.converted;
       }

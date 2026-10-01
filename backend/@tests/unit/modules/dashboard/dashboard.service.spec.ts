@@ -544,7 +544,7 @@ describe('DashboardService', () => {
       unapprovedCash: 500,
       currency: 'KZT',
     });
-    expect(exchangeRatesService.getRate).toHaveBeenCalledWith('USD', 'KZT');
+    expect(exchangeRatesService.getRate).toHaveBeenCalledWith('USD', 'KZT', undefined, 'ws-1');
   });
 
   it('getSnapshot excludes error and processing statements from period totals', async () => {

@@ -49,8 +49,9 @@ export class TransferPairingService {
     private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
-  private readonly lookupRate: RateLookup = (from, to, date) =>
-    this.exchangeRatesService.getRateOrNull(from, to, date);
+  private lookupRateIn(workspaceId: string): RateLookup {
+    return (from, to, date) => this.exchangeRatesService.getRateOrNull(from, to, date, workspaceId);
+  }
 
   /**
    * Rows that may still take part in a pair, with the account their statement
@@ -97,7 +98,7 @@ export class TransferPairingService {
       .andWhere('t.transactionDate BETWEEN :since AND :until', { since, until })
       .getMany();
 
-    return matchTransferPairs(toCheck, pool, this.lookupRate);
+    return matchTransferPairs(toCheck, pool, this.lookupRateIn(workspaceId));
   }
 
   /**

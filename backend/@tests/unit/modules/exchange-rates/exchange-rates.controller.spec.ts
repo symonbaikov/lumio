@@ -17,7 +17,7 @@ describe('ExchangeRatesController', () => {
   describe('getRate', () => {
     it('returns rate for a currency pair', async () => {
       exchangeRatesService.getRateQuote.mockResolvedValue({ rate: 3.67, rateDate: '2025-06-15', stale: false });
-      const result = await controller.getRate('USD', 'ILS');
+      const result = await controller.getRate('ws-1', 'USD', 'ILS');
 
       expect(result).toEqual({
         from: 'USD',
@@ -28,24 +28,27 @@ describe('ExchangeRatesController', () => {
         stale: false,
         missing: false,
       });
-      expect(exchangeRatesService.getRateQuote).toHaveBeenCalledWith('USD', 'ILS', undefined);
+      expect(exchangeRatesService.getRateQuote).toHaveBeenCalledWith('USD', 'ILS', undefined, {
+        workspaceId: 'ws-1',
+      });
     });
 
     it('passes date when provided', async () => {
       exchangeRatesService.getRateQuote.mockResolvedValue({ rate: 3.6, rateDate: '2025-06-15', stale: false });
-      const result = await controller.getRate('USD', 'ILS', '2025-06-15');
+      const result = await controller.getRate('ws-1', 'USD', 'ILS', '2025-06-15');
 
       expect(result.date).toBe('2025-06-15');
       expect(exchangeRatesService.getRateQuote).toHaveBeenCalledWith(
         'USD',
         'ILS',
         new Date('2025-06-15'),
+        { workspaceId: 'ws-1' },
       );
     });
 
     it('says so when no rate exists instead of a silent 1', async () => {
       exchangeRatesService.getRateQuote.mockResolvedValue(null);
-      const result = await controller.getRate('ZZX', 'USD');
+      const result = await controller.getRate('ws-1', 'ZZX', 'USD');
       expect(result).toMatchObject({ rate: 1, missing: true, rateDate: null });
     });
   });
@@ -62,12 +65,13 @@ describe('ExchangeRatesController', () => {
         targetCurrency: 'ILS',
       };
 
-      const result = await controller.bulkConvert(dto);
+      const result = await controller.bulkConvert('ws-1', dto);
 
       expect(result).toEqual({ targetCurrency: 'ILS', results: mockResults });
       expect(exchangeRatesService.bulkConvert).toHaveBeenCalledWith(
         [{ amount: 100, currency: 'USD', date: new Date('2025-06-15') }],
         'ILS',
+        'ws-1',
       );
     });
 
@@ -78,11 +82,12 @@ describe('ExchangeRatesController', () => {
         targetCurrency: 'USD',
       };
 
-      await controller.bulkConvert(dto);
+      await controller.bulkConvert('ws-1', dto);
 
       expect(exchangeRatesService.bulkConvert).toHaveBeenCalledWith(
         [{ amount: 50, currency: 'EUR', date: undefined }],
         'USD',
+        'ws-1',
       );
     });
   });

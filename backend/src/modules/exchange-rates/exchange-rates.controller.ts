@@ -17,15 +17,20 @@ export class ExchangeRatesController {
     private readonly workspaceRepository: Repository<Workspace>,
   ) {}
 
-  /** The rate, or `missing: true` with rate 1 when none exists — never a silent 1. */
+  /**
+   * The rate, or `missing: true` with rate 1 when none exists — never a silent 1.
+   * The workspace's hand-entered rates count.
+   */
   @Get()
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
   async getRate(
+    @WorkspaceId() workspaceId: string,
     @Query('from') from: string,
     @Query('to') to: string,
     @Query('date') date?: string,
   ) {
     const rateDate = date ? new Date(date) : undefined;
-    const quote = await this.exchangeRatesService.getRateQuote(from, to, rateDate);
+    const quote = await this.exchangeRatesService.getRateQuote(from, to, rateDate, { workspaceId });
     return {
       from: from.toUpperCase(),
       to: to.toUpperCase(),
@@ -54,21 +59,32 @@ export class ExchangeRatesController {
     };
   }
 
-  /** A rate entered by hand for one day; wins over the provider for that day. */
+  /** A rate entered by hand for one day; wins over the provider for that day, in this workspace. */
   @Post('manual')
   @WorkspaceAuth(Permission.WORKSPACE_SETTINGS_MANAGE)
-  async setManual(@Body() dto: ManualRateDto) {
-    return this.exchangeRatesService.setManualRate(dto.from, dto.to, dto.rate, dto.date);
+  async setManual(@WorkspaceId() workspaceId: string, @Body() dto: ManualRateDto) {
+    return this.exchangeRatesService.setManualRate(
+      workspaceId,
+      dto.from,
+      dto.to,
+      dto.rate,
+      dto.date,
+    );
   }
 
   @Post('convert')
-  async bulkConvert(@Body() dto: BulkConvertDto) {
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async bulkConvert(@WorkspaceId() workspaceId: string, @Body() dto: BulkConvertDto) {
     const items = dto.items.map(item => ({
       amount: item.amount,
       currency: item.currency,
       date: item.date ? new Date(item.date) : undefined,
     }));
-    const results = await this.exchangeRatesService.bulkConvert(items, dto.targetCurrency);
+    const results = await this.exchangeRatesService.bulkConvert(
+      items,
+      dto.targetCurrency,
+      workspaceId,
+    );
     return { targetCurrency: dto.targetCurrency, results };
   }
 }

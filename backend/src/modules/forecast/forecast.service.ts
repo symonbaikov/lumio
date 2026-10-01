@@ -147,7 +147,12 @@ export class ForecastService {
       const due = String(invoice.dueDate).slice(0, 10);
       const date = due < today ? today : due;
       if (date > horizonEnd) continue;
-      const amount = await this.convert(Number(invoice.total), invoice.currency, currency);
+      const amount = await this.convert(
+        Number(invoice.total),
+        invoice.currency,
+        currency,
+        workspaceId,
+      );
       if (amount === 0) continue;
       events.push({
         date,
@@ -179,7 +184,12 @@ export class ForecastService {
       const target = String(goal.targetDate).slice(0, 10);
       if (target <= today) continue;
       const months = Math.max(1, monthsUntil(today, target));
-      const monthly = await this.convert(Number(goal.remaining) / months, goal.currency, currency);
+      const monthly = await this.convert(
+        Number(goal.remaining) / months,
+        goal.currency,
+        currency,
+        workspaceId,
+      );
       if (monthly <= 0) continue;
       let date = firstOfNextMonth(today);
       while (date <= horizonEnd && date <= target) {
@@ -232,8 +242,18 @@ export class ForecastService {
     let income = 0;
     let expense = 0;
     for (const row of rows) {
-      income += await this.convert(Number.parseFloat(row.income), row.currency, currency);
-      expense += await this.convert(Number.parseFloat(row.expense), row.currency, currency);
+      income += await this.convert(
+        Number.parseFloat(row.income),
+        row.currency,
+        currency,
+        workspaceId,
+      );
+      expense += await this.convert(
+        Number.parseFloat(row.expense),
+        row.currency,
+        currency,
+        workspaceId,
+      );
     }
     const earliest = await this.transactionRepository
       .createQueryBuilder('t')
@@ -295,11 +315,12 @@ export class ForecastService {
     amount: number,
     from: string | null | undefined,
     to: string,
+    workspaceId: string,
   ): Promise<number> {
     if (!Number.isFinite(amount) || amount === 0) return 0;
     const source = normalizeCurrency(from);
     if (source === to) return amount;
-    const rate = await this.exchangeRatesService.getRate(source, to);
+    const rate = await this.exchangeRatesService.getRate(source, to, undefined, workspaceId);
     return amount * rate;
   }
 }

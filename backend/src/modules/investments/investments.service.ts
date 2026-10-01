@@ -335,7 +335,12 @@ export class InvestmentsService {
   private async holdingView(holding: InvestmentHolding, currency: string): Promise<HoldingView> {
     const quantity = Number(holding.quantity);
     const price = Number(holding.price);
-    const value = await this.convert(quantity * price, holding.priceCurrency, currency);
+    const value = await this.convert(
+      quantity * price,
+      holding.priceCurrency,
+      currency,
+      holding.workspaceId,
+    );
     return {
       id: holding.id,
       symbol: holding.symbol,
@@ -387,7 +392,12 @@ export class InvestmentsService {
       .getRawMany<{ accountId: string; currency: string; total: string }>();
     const result = new Map<string, number>();
     for (const row of rows) {
-      const amount = await this.convert(Number.parseFloat(row.total), row.currency, currency);
+      const amount = await this.convert(
+        Number.parseFloat(row.total),
+        row.currency,
+        currency,
+        workspaceId,
+      );
       result.set(row.accountId, (result.get(row.accountId) ?? 0) + amount);
     }
     return result;
@@ -418,11 +428,16 @@ export class InvestmentsService {
     return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
   }
 
-  private async convert(amount: number, from: string, to: string): Promise<number> {
+  private async convert(
+    amount: number,
+    from: string,
+    to: string,
+    workspaceId: string,
+  ): Promise<number> {
     if (!Number.isFinite(amount) || amount === 0) return 0;
     const source = (from || to).toUpperCase();
     if (source === to) return amount;
-    const rate = await this.exchangeRatesService.getRateOrNull(source, to);
+    const rate = await this.exchangeRatesService.getRateOrNull(source, to, undefined, workspaceId);
     return rate === null ? 0 : amount * rate;
   }
 }

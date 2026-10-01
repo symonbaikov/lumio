@@ -26,6 +26,41 @@ function createConfigMock(apiKey?: string) {
   } as any;
 }
 
+/** An in-memory workspace_exchange_rates table, enough for findOne/count/upsert/delete. */
+function createWorkspaceRateRepo() {
+  const rows: any[] = [];
+  const day = (value: any) => new Date(value).toISOString().slice(0, 10);
+  const matches = (row: any, where: any) =>
+    Object.entries(where).every(([key, expected]: [string, any]) => {
+      if (key !== 'rateDate') return row[key] === expected;
+      if (expected?.type === 'lessThanOrEqual') return day(row.rateDate) <= day(expected.value);
+      return day(row.rateDate) === day(expected);
+    });
+  return {
+    rows,
+    findOne: jest.fn(async ({ where, order }: any) => {
+      const found = rows.filter(row => matches(row, where));
+      if (order?.rateDate === 'DESC') found.sort((a, b) => day(b.rateDate).localeCompare(day(a.rateDate)));
+      return found[0] ?? null;
+    }),
+    count: jest.fn(async ({ where }: any) => rows.filter(row => matches(row, where)).length),
+    upsert: jest.fn(async (row: any) => {
+      const index = rows.findIndex(
+        existing =>
+          existing.workspaceId === row.workspaceId &&
+          existing.baseCurrency === row.baseCurrency &&
+          existing.targetCurrency === row.targetCurrency &&
+          day(existing.rateDate) === day(row.rateDate),
+      );
+      if (index >= 0) rows[index] = { ...rows[index], ...row };
+      else rows.push({ ...row });
+    }),
+    delete: jest.fn(async (where: any) => {
+      for (let i = rows.length - 1; i >= 0; i--) if (matches(rows[i], where)) rows.splice(i, 1);
+    }),
+  } as any;
+}
+
 describe('ExchangeRatesService', () => {
   let service: ExchangeRatesService;
   let repo: ReturnType<typeof createRepoMock>;
@@ -418,6 +453,87 @@ describe('ExchangeRatesService', () => {
 
       global.fetch = jest.fn().mockRejectedValue(new Error('Network error')) as any;
       await expect(serviceWithKey.fetchAndCacheRates()).resolves.toBeUndefined();
+    });
+  });
+
+  // ─── workspace manual rates ────────────────────────────────
+
+  describe('manual rates', () => {
+    let workspaceRates: ReturnType<typeof createWorkspaceRateRepo>;
+    let scoped: ExchangeRatesService;
+
+    beforeEach(() => {
+      workspaceRates = createWorkspaceRateRepo();
+      repo.findOne.mockResolvedValue(null);
+      repo.delete = jest.fn();
+      cache.del = jest.fn();
+      scoped = new ExchangeRatesService(repo, cache, createConfigMock(), undefined, workspaceRates);
+    });
+
+    it('stores the rate for its workspace and leaves the shared provider cache alone', async () => {
+      await scoped.setManualRate('ws-a', 'zzx', 'usd', 0.25, '2025-03-10');
+
+      expect(workspaceRates.rows).toHaveLength(1);
+      expect(workspaceRates.rows[0]).toMatchObject({
+        workspaceId: 'ws-a',
+        baseCurrency: 'ZZX',
+        targetCurrency: 'USD',
+        rate: 0.25,
+      });
+      expect(repo.delete).not.toHaveBeenCalled();
+      expect(repo.createQueryBuilder).not.toHaveBeenCalled();
+    });
+
+    it('applies only inside the workspace that entered it', async () => {
+      await scoped.setManualRate('ws-a', 'ZZX', 'USD', 0.25, '2025-03-10');
+
+      await expect(
+        scoped.getRateQuote('ZZX', 'USD', '2025-03-10', { workspaceId: 'ws-a' }),
+      ).resolves.toEqual({ rate: 0.25, rateDate: '2025-03-10', stale: false });
+      await expect(
+        scoped.getRateQuote('ZZX', 'USD', '2025-03-10', { workspaceId: 'ws-b' }),
+      ).resolves.toBeNull();
+      await expect(scoped.getRateQuote('ZZX', 'USD', '2025-03-10')).resolves.toBeNull();
+    });
+
+    it('wins over the provider rate for its day', async () => {
+      repo.findOne.mockResolvedValue({ rate: '0.30' });
+      await scoped.setManualRate('ws-a', 'ZZX', 'USD', 0.25, '2025-03-10');
+
+      await expect(scoped.getRate('ZZX', 'USD', '2025-03-10', 'ws-a')).resolves.toBe(0.25);
+      await expect(scoped.getRate('ZZX', 'USD', '2025-03-10', 'ws-b')).resolves.toBe(0.3);
+    });
+
+    it('answers the reverse pair with the inverse rate', async () => {
+      await scoped.setManualRate('ws-a', 'ZZX', 'USD', 0.25, '2025-03-10');
+
+      await expect(scoped.getRateOrNull('USD', 'ZZX', '2025-03-10', 'ws-a')).resolves.toBe(4);
+    });
+
+    it('replaces the same day, also when entered for the reverse pair', async () => {
+      await scoped.setManualRate('ws-a', 'ZZX', 'USD', 0.25, '2025-03-10');
+      await scoped.setManualRate('ws-a', 'USD', 'ZZX', 5, '2025-03-10');
+
+      expect(workspaceRates.rows).toHaveLength(1);
+      await expect(scoped.getRateOrNull('ZZX', 'USD', '2025-03-10', 'ws-a')).resolves.toBe(0.2);
+    });
+
+    it('lends an earlier manual rate to a later day that has none', async () => {
+      await scoped.setManualRate('ws-a', 'ZZX', 'USD', 0.25, '2025-03-01');
+
+      await expect(
+        scoped.getRateQuote('ZZX', 'USD', '2025-03-10', { workspaceId: 'ws-a' }),
+      ).resolves.toEqual({ rate: 0.25, rateDate: '2025-03-01', stale: true });
+      await expect(
+        scoped.getRateQuote('ZZX', 'USD', '2025-03-10', { workspaceId: 'ws-a', maxStaleDays: 7 }),
+      ).resolves.toBeNull();
+    });
+
+    it('does not query manual rates for a workspace that has none', async () => {
+      await scoped.getRateQuote('ZZX', 'USD', '2025-03-10', { workspaceId: 'ws-empty' });
+      await scoped.getRateQuote('ZZX', 'USD', '2025-03-11', { workspaceId: 'ws-empty' });
+
+      expect(workspaceRates.findOne).not.toHaveBeenCalled();
     });
   });
 });

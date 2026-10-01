@@ -180,7 +180,12 @@ export class CashFlowMapService {
           source,
           source === currency
             ? 1
-            : ((await this.exchangeRatesService.getRateOrNull(source, currency)) ?? 0),
+            : ((await this.exchangeRatesService.getRateOrNull(
+                source,
+                currency,
+                undefined,
+                workspaceId,
+              )) ?? 0),
         );
       }
       const rate = rates.get(source) ?? 0;

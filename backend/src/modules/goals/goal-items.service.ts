@@ -233,6 +233,7 @@ export class GoalItemsService {
       this.exchangeRatesService,
       items.map(item => item.currency),
       normalizeCurrency(currency),
+      workspaceId,
     );
 
     return round2(
@@ -248,6 +249,7 @@ export class GoalItemsService {
       this.exchangeRatesService,
       items.map(item => item.currency),
       currency,
+      goal.workspaceId,
     );
 
     let estimatedTotal = 0;

@@ -21,8 +21,12 @@ describe('Exchange rates: coverage and manual rates (e2e)', () => {
   let app: INestApplication;
   let dataSource: DataSource;
   const stamp = Date.now();
-  const emails = { owner: `fx-owner-${stamp}@example.com` };
+  const emails = {
+    owner: `fx-owner-${stamp}@example.com`,
+    other: `fx-other-${stamp}@example.com`,
+  };
   let owner: E2eAccount;
+  let other: E2eAccount;
   // A code no provider knows, so the test never depends on the network.
   const EXOTIC = 'ZZX';
 
@@ -41,6 +45,7 @@ describe('Exchange rates: coverage and manual rates (e2e)', () => {
     dataSource = moduleFixture.get<DataSource>(DataSource);
 
     owner = await registerAccount(app, emails.owner, 'FX Owner');
+    other = await registerAccount(app, emails.other, 'FX Other');
     await dataSource.getRepository(User).update({ email: emails.owner }, { role: UserRole.ADMIN });
     await as(owner, request(server()).patch(`/workspaces/${owner.workspaceId}`))
       .send({ currency: 'USD' })
@@ -97,6 +102,30 @@ describe('Exchange rates: coverage and manual rates (e2e)', () => {
     expect(coverage.body.currencies.find((item: { currency: string }) => item.currency === EXOTIC)).toMatchObject({
       rate: 0.25,
     });
+  });
+
+  it('keeps a hand-entered rate inside the workspace that entered it', async () => {
+    const rate = await as(other, request(server()).get(`/exchange-rates?from=${EXOTIC}&to=USD`)).expect(
+      200,
+    );
+    expect(rate.body).toMatchObject({ rate: 1, missing: true });
+
+    const converted = await as(other, request(server()).post('/exchange-rates/convert'))
+      .send({ items: [{ amount: 100, currency: EXOTIC }], targetCurrency: 'USD' })
+      .expect(201);
+    expect(converted.body.results[0].converted).toBe(100);
+
+    const own = await as(owner, request(server()).post('/exchange-rates/convert'))
+      .send({ items: [{ amount: 100, currency: EXOTIC }], targetCurrency: 'USD' })
+      .expect(201);
+    expect(own.body.results[0].converted).toBe(25);
+  });
+
+  it('needs a workspace to quote a rate', () => {
+    return request(server())
+      .get(`/exchange-rates?from=${EXOTIC}&to=USD`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .expect(403);
   });
 
   it('rejects a rate that is not positive', () => {

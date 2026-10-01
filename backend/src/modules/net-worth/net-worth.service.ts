@@ -155,6 +155,7 @@ export class NetWorthService {
           date,
         })),
       ),
+      workspaceId,
     );
 
     const valueAt = (accountId: string, code: string, date: string): number => {
@@ -294,6 +295,7 @@ export class NetWorthService {
             date,
           })),
         ),
+        workspaceId,
       );
       series = dates.map(date => {
         let value = 0;

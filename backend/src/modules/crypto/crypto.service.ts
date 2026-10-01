@@ -306,6 +306,7 @@ export class CryptoService {
       portfolioChangeSinceYesterday: await this.getPortfolioChangeSinceYesterday(
         holdings,
         currency,
+        workspaceId,
       ),
     };
   }
@@ -357,12 +358,18 @@ export class CryptoService {
   private async getPortfolioChangeSinceYesterday(
     holdings: CryptoHolding[],
     currency: string,
+    workspaceId: string,
   ): Promise<number | null> {
     if (holdings.length === 0) {
       return null;
     }
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const usdToCurrency = await this.exchangeRatesService.getRate('USD', currency);
+    const usdToCurrency = await this.exchangeRatesService.getRate(
+      'USD',
+      currency,
+      undefined,
+      workspaceId,
+    );
 
     let now = 0;
     let before = 0;
@@ -440,7 +447,12 @@ export class CryptoService {
     }
 
     const usdPrices = await this.priceService.getCurrentUsdPrices([...amountByAsset.keys()]);
-    const usdToCurrency = await this.exchangeRatesService.getRate('USD', currency);
+    const usdToCurrency = await this.exchangeRatesService.getRate(
+      'USD',
+      currency,
+      undefined,
+      workspaceId,
+    );
 
     return [...amountByAsset.entries()]
       .filter(([asset, amount]) => Number(amount) > 0 && usdPrices[asset] !== undefined)
