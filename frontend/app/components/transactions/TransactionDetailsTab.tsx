@@ -18,6 +18,7 @@ import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { tokens } from '@/lib/theme-tokens';
 import { formatAmount, formatDate } from './helpers/transactionFormatters';
 import { useTransactionSplit } from './hooks/useTransactionSplit';
+import { useTransferLink } from './hooks/useTransferLink';
 import { SplitTransactionDialog } from './SplitTransactionDialog';
 import type { Category, Transaction } from './types';
 
@@ -55,6 +56,15 @@ export function TransactionDetailsTab({
     await onSplitDone?.();
   }, [onSplitDone]);
   const { split, unsplit, saving: splitSaving } = useTransactionSplit(handleSplitDone);
+  const {
+    candidates: transferCandidates,
+    loadCandidates: loadTransferCandidates,
+    clearCandidates: clearTransferCandidates,
+    link: linkTransfer,
+    unlink: unlinkTransfer,
+    loading: transferLoading,
+    saving: transferSaving,
+  } = useTransferLink(handleSplitDone);
 
   // The pre-split total the backend validates against: the positive side of the
   // row, not `transaction.amount`, which the mappers sign for display.
@@ -343,6 +353,12 @@ export function TransactionDetailsTab({
       </div>
 
       {/* Actions */}
+      {transaction.transferPairId && (
+        <div className="lumio-tx-detail__cat-badge" data-testid="transfer-badge">
+          {t.transfer.badge.value}
+        </div>
+      )}
+
       <div className="lumio-tx-detail__actions">
         <div style={{ fontSize: 14, fontWeight: 600, color: c.ink900 }}>{t.actions.value}</div>
 
@@ -402,6 +418,30 @@ export function TransactionDetailsTab({
             </button>
           ))}
 
+        {/* Transfer between own accounts */}
+        {onSplitDone &&
+          (transaction.transferPairId ? (
+            <button
+              type="button"
+              onClick={() => unlinkTransfer(transaction.id)}
+              disabled={transferSaving}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              {transferSaving ? t.transfer.unlinking.value : t.transfer.unlink.value}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                void loadTransferCandidates(transaction.id);
+              }}
+              disabled={transferSaving || transferLoading || Boolean(transaction.splitGroupId)}
+              className="lumio-tx-detail__ignore-btn"
+            >
+              {t.transfer.link.value}
+            </button>
+          ))}
+
         {/* Mark as Ignored */}
         {onMarkIgnored && (
           <button type="button" onClick={handleMarkIgnored} className="lumio-tx-detail__ignore-btn">
@@ -409,6 +449,41 @@ export function TransactionDetailsTab({
           </button>
         )}
       </div>
+
+      {transferCandidates && (
+        <div className="lumio-tx-detail__section" data-testid="transfer-candidates">
+          <div className="lumio-tx-detail__label">{t.transfer.pick.value}</div>
+          {transferCandidates.length === 0 ? (
+            <div className="lumio-tx-detail__value">{t.transfer.noCandidates.value}</div>
+          ) : (
+            transferCandidates.map(candidate => (
+              <button
+                key={candidate.id}
+                type="button"
+                onClick={() => linkTransfer(transaction.id, candidate.id)}
+                disabled={transferSaving}
+                className="lumio-tx-detail__ignore-btn"
+                style={{ display: 'block', width: '100%', textAlign: 'left', marginTop: 6 }}
+              >
+                {formatDate(candidate.transactionDate, locale)} · {candidate.counterpartyName} ·{' '}
+                {formatAmount(
+                  Math.abs(candidate.amount),
+                  candidate.currency ?? transaction.currency ?? 'KZT',
+                  locale,
+                )}
+              </button>
+            ))
+          )}
+          <button
+            type="button"
+            onClick={clearTransferCandidates}
+            className="lumio-tx-detail__ignore-btn"
+            style={{ marginTop: 6 }}
+          >
+            {t.transfer.cancel.value}
+          </button>
+        </div>
+      )}
 
       {onSplitDone && !transaction.splitGroupId && (
         <SplitTransactionDialog

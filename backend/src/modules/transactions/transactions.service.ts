@@ -116,7 +116,9 @@ export class TransactionsService {
       });
     }
 
-    if (filters.type) {
+    if (filters.type === 'transfer') {
+      query.andWhere('transaction.transferPairId IS NOT NULL');
+    } else if (filters.type) {
       query.andWhere('transaction.transactionType = :type', { type: filters.type });
     }
 

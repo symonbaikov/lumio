@@ -606,7 +606,8 @@ export class GoalFlowService {
       .andWhere('t.transaction_type = :type', { type: TransactionType.EXPENSE })
       .andWhere('t.transaction_date >= :start', { start: window.start })
       .andWhere('t.transaction_date <= :end', { end: window.end })
-      .andWhere('t.is_duplicate = false');
+      .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL');
   }
 
   private async sumContributions(workspaceId: string, goalId: string): Promise<number> {

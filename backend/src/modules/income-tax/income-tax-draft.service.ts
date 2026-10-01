@@ -506,6 +506,7 @@ export class IncomeTaxDraftService {
       .leftJoin('t.statement', 's')
       .where('t.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.isDuplicate = false')
+      .andWhere('t.transferPairId IS NULL')
       .andWhere('t.transactionDate BETWEEN :yearStart AND :yearEnd', { yearStart, yearEnd })
       .andWhere(
         '(t.statementId IS NULL OR (s.id IS NOT NULL AND s.deletedAt IS NULL AND s.status NOT IN (:...excludedStatuses)))',

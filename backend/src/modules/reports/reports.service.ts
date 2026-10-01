@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Between, In, MoreThanOrEqual, type Repository } from 'typeorm';
+import { Between, In, IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
 import { appError } from '../../common/errors/app-error';
 import { formatMoney } from '../../common/utils/format-money.util';
@@ -1693,6 +1693,7 @@ export class ReportsService {
       .leftJoin('transaction.statement', 'statement')
       .where('transaction.workspaceId = :workspaceId', { workspaceId })
       .andWhere('transaction.isDuplicate = false')
+      .andWhere('transaction.transferPairId IS NULL')
       .andWhere('(transaction.statementId IS NULL OR statement.deletedAt IS NULL)')
       .orderBy('transaction.transactionDate', 'DESC')
       .addOrderBy('transaction.createdAt', 'DESC')
@@ -2964,6 +2965,7 @@ export class ReportsService {
         where: {
           workspaceId,
           isDuplicate: false,
+          transferPairId: IsNull(),
           transactionDate: Between(dateFrom, dateTo),
           // An empty array would compile to `IN ()` and match nothing, so an
           // unset filter has to drop the key entirely rather than pass [].

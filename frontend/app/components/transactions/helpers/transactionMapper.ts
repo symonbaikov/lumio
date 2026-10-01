@@ -33,5 +33,7 @@ export function mapApiRecordToTransaction(tx: TransactionApiRecord): Transaction
     wallet: tx.wallet,
     splitGroupId: tx.splitGroupId,
     splitIndex: tx.splitIndex,
+    transferPairId: tx.transferPairId,
+    transferPairSource: tx.transferPairSource,
   };
 }

@@ -44,6 +44,7 @@ export class SubscriptionDetectionService {
       .where('t.workspace_id = :workspaceId', { workspaceId })
       .andWhere('t.transaction_type = :type', { type: TransactionType.EXPENSE })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .andWhere('t.transaction_date >= :since', { since })
       .andWhere('t.counterparty_name IS NOT NULL')
       .orderBy('t.transaction_date', 'ASC')

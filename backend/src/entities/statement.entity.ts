@@ -263,6 +263,11 @@ export class Statement {
       groups: number;
       marked: number;
     };
+    /** Transfer legs paired right after the import; see TransferPairingService. */
+    transferPairs?: {
+      found: number;
+      paired: number;
+    };
     importPreview?: JsonObject;
     importCommit?: JsonObject;
     processingTime?: number; // milliseconds

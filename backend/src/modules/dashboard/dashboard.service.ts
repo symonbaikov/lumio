@@ -222,6 +222,7 @@ export class DashboardService {
       .andWhere('t.transactionDate BETWEEN :since AND :endDate', { since, endDate })
       .andWhere('s.deletedAt IS NULL')
       .andWhere('t.isDuplicate = false')
+      .andWhere('t.transferPairId IS NULL')
       .andWhere('s.status NOT IN (:...excludedStatuses)', {
         excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],
       })
@@ -1636,6 +1637,7 @@ export class DashboardService {
     query.andWhere('s.deletedAt IS NULL');
     if (excludeDuplicates) {
       query.andWhere('t.isDuplicate = false');
+      query.andWhere('t.transferPairId IS NULL');
     }
     query.andWhere('s.status NOT IN (:...excludedStatuses)', {
       excludedStatuses: [StatementStatus.ERROR, StatementStatus.PROCESSING],

@@ -120,6 +120,7 @@ export class StoicBehaviorService {
         .addSelect('COALESCE(SUM(ABS(t.amount)), 0)', 'total')
         .where('t.workspace_id = :workspaceId', { workspaceId })
         .andWhere('t.is_duplicate = false')
+        .andWhere('t.transfer_pair_id IS NULL')
         .andWhere('t.transaction_date >= :start', { start: flowStart })
         .andWhere('t.transaction_date <= :end', { end: month.end })
         .groupBy("to_char(t.transaction_date, 'YYYY-MM')")
@@ -172,6 +173,7 @@ export class StoicBehaviorService {
       .where('t.workspace_id = :workspaceId', { workspaceId })
       .andWhere('t.transaction_type = :type', { type: TransactionType.EXPENSE })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .andWhere('t.transaction_date >= :start', { start: range.start })
       .andWhere('t.transaction_date <= :end', { end: range.end });
   }

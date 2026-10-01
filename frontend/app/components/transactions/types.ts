@@ -35,6 +35,9 @@ export interface Transaction {
   // Split transactions
   splitGroupId?: string | null;
   splitIndex?: number | null;
+  // Transfer between the user's own accounts (both legs share the id)
+  transferPairId?: string | null;
+  transferPairSource?: 'auto' | 'manual' | 'rejected' | null;
   // Parsing metadata (optional, might not exist yet)
   parsingConfidence?: number;
   rawExtract?: string;

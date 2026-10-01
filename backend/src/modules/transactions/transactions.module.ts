@@ -13,6 +13,7 @@ import { CrossStatementDeduplicationService } from './services/cross-statement-d
 import { TransactionAttachmentsService } from './services/transaction-attachments.service';
 import { TransactionFingerprintService } from './services/transaction-fingerprint.service';
 import { TransactionTagsService } from './services/transaction-tags.service';
+import { TransferPairingService } from './services/transfer-pairing.service';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
 
@@ -38,7 +39,13 @@ import { TransactionsService } from './transactions.service';
     TransactionFingerprintService,
     TransactionTagsService,
     TransactionAttachmentsService,
+    TransferPairingService,
   ],
-  exports: [TransactionsService, CrossStatementDeduplicationService, TransactionFingerprintService],
+  exports: [
+    TransactionsService,
+    CrossStatementDeduplicationService,
+    TransactionFingerprintService,
+    TransferPairingService,
+  ],
 })
 export class TransactionsModule {}

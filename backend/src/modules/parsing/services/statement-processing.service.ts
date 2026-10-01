@@ -28,6 +28,7 @@ import { MetricsService } from '../../observability/metrics.service';
 import { TaxAssignmentService } from '../../tax/tax-assignment.service';
 import { CrossStatementDeduplicationService } from '../../transactions/services/cross-statement-deduplication.service';
 import { TransactionFingerprintService } from '../../transactions/services/transaction-fingerprint.service';
+import { TransferPairingService } from '../../transactions/services/transfer-pairing.service';
 import { AiParseValidator } from '../helpers/ai-parse-validator.helper';
 import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import { MetadataExtractionService } from './metadata-extraction.service';
@@ -82,6 +83,8 @@ export class StatementProcessingService {
     @Optional()
     private crossStatementDeduplicationService?: CrossStatementDeduplicationService,
     private readonly eventEmitter?: EventEmitter2,
+    @Optional()
+    private readonly transferPairingService?: TransferPairingService,
   ) {}
 
   private isRecord(value: unknown): value is Record<string, unknown> {
@@ -494,6 +497,24 @@ export class StatementProcessingService {
         this.logger.warn(
           `Cross-statement deduplication failed: ${this.getErrorMessage(dedupError)}`,
         );
+      }
+    }
+
+    // After dedupe on purpose: a duplicate leg must not take the pair.
+    if (this.transferPairingService && statement.workspaceId) {
+      try {
+        const pairing = await this.transferPairingService.detectAndApply(
+          statement.workspaceId,
+          statement.id,
+        );
+        if (pairing.paired > 0) {
+          statement.parsingDetails = {
+            ...(statement.parsingDetails || {}),
+            transferPairs: pairing,
+          };
+        }
+      } catch (pairingError) {
+        this.logger.warn(`Transfer pairing failed: ${this.getErrorMessage(pairingError)}`);
       }
     }
 
