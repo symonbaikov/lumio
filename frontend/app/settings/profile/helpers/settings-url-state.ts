@@ -11,7 +11,7 @@ export const DEFAULT_SETTINGS_TAB: SettingsTabId = 'general';
 export const SETTINGS_SECTIONS = {
   general: ['profile', 'appearance'],
   security: ['email', 'password', 'two-factor', 'sessions'],
-  notifications: ['telegram'],
+  notifications: ['telegram', 'push'],
   data: ['workspace-profile', 'processing', 'receipt-location', 'sync', 'my-data'],
   advanced: ['changelog'],
 } as const satisfies Record<SettingsTabId, readonly string[]>;

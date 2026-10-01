@@ -13,6 +13,8 @@ export enum NotificationChannel {
   IN_APP = 'inApp',
   EMAIL = 'email',
   TELEGRAM = 'telegram',
+  /** Web push to the browsers and installed apps the user subscribed. */
+  PUSH = 'push',
 }
 
 export enum NotificationDigestMode {
@@ -26,6 +28,8 @@ export type NotificationChannelSet = {
   inApp: boolean;
   email: boolean;
   telegram: boolean;
+  /** Optional: rows written before the push channel existed have no key. */
+  push?: boolean;
 };
 
 export type NotificationChannelMatrix = Record<string, NotificationChannelSet>;

@@ -129,7 +129,7 @@ export class NotificationsService {
     const channels = this.resolveChannels(preferences, payload.type);
 
     // Every channel off for this event: the user asked not to hear about it at all.
-    if (!(channels.inApp || channels.email || channels.telegram)) {
+    if (!(channels.inApp || channels.email || channels.telegram || channels.push)) {
       return null;
     }
 
@@ -183,6 +183,7 @@ export class NotificationsService {
     return [
       ...(channels.email ? [NotificationChannel.EMAIL] : []),
       ...(channels.telegram ? [NotificationChannel.TELEGRAM] : []),
+      ...(channels.push ? [NotificationChannel.PUSH] : []),
     ];
   }
 
@@ -221,6 +222,7 @@ export class NotificationsService {
         inApp: Boolean(configured.inApp),
         email: Boolean(configured.email),
         telegram: Boolean(configured.telegram),
+        push: Boolean(configured.push),
       };
     }
 
@@ -374,7 +376,10 @@ export class NotificationsService {
    */
   private normalizeChannels(
     preferences: NotificationPreference,
-    incoming: Record<string, { inApp?: boolean; email?: boolean; telegram?: boolean }>,
+    incoming: Record<
+      string,
+      { inApp?: boolean; email?: boolean; telegram?: boolean; push?: boolean }
+    >,
   ): NotificationChannelMatrix {
     const normalized: NotificationChannelMatrix = {};
 
@@ -383,6 +388,7 @@ export class NotificationsService {
         inApp: Boolean(preferences[key]),
         email: false,
         telegram: false,
+        push: false,
       };
       const patch = incoming[key];
 
@@ -391,8 +397,9 @@ export class NotificationsService {
             inApp: pickBoolean(patch.inApp, current.inApp),
             email: pickBoolean(patch.email, current.email),
             telegram: pickBoolean(patch.telegram, current.telegram),
+            push: pickBoolean(patch.push, current.push ?? false),
           }
-        : current;
+        : { ...current, push: current.push ?? false };
     }
 
     return normalized;

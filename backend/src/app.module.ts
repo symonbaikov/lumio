@@ -100,6 +100,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { OpenProtocolIntegrationsModule } from './modules/open-protocol-integrations/open-protocol-integrations.module';
 import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
+import { PushModule } from './modules/push/push.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ReviewInboxModule } from './modules/review-inbox/review-inbox.module';
@@ -262,6 +263,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ForecastModule,
     InvestmentsModule,
     SmbModule,
+    PushModule,
     CryptoModule,
     WebhooksModule,
     ApiKeysModule,

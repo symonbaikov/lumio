@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { PushModule } from '../push/push.module';
 import { devDefault } from '../../common/utils/dev-defaults';
 import {
   AuthSession,
@@ -20,6 +21,7 @@ import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [
+    PushModule,
     TypeOrmModule.forFeature([
       Notification,
       NotificationPreference,

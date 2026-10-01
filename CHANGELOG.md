@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Mobile layer: offline entries and web push (2026-10-01)
+
+- **Works without a network**: a service worker caches the app shell and serves an offline page;
+  a manual expense or a receipt photo added while offline is kept on the device (IndexedDB) and
+  sent as soon as the connection is back, with an idempotency key so a retry cannot double-book.
+  A strip at the top shows "Offline" or "N waiting to send" with a *Send now* button.
+- **Web push**: a new *Push* column in notification settings and *Push on this device* to subscribe
+  the browser or installed app; budget alerts, subscription price changes, "N waiting for review"
+  and the rest reach the phone with the app closed. Digests go as one push. Needs VAPID keys on
+  the server (`npx web-push generate-vapid-keys` → `WEB_PUSH_VAPID_*`); without them the channel
+  says it is off. Dead subscriptions are dropped on the next send.
+- **Home-screen shortcuts**: *Add expense* and *Scan receipt* on a long-press of the app icon.
+
 #### Small-business pack (2026-10-01)
 
 - **Bank reconciliation** (`/statements/reconcile`, linked from Payables): open bills and

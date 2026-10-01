@@ -48,8 +48,8 @@ that document has the evidence behind every line here. Dates are intentions, not
 
 - [ ] Optional bank sync through the user's own provider account (SimpleFIN, Enable Banking). This
       changes the "not a bank integration" positioning in the README and needs an explicit decision.
-- [ ] Mobile layer: service worker with an offline queue for manual entries and receipt photos, web
-      push for alerts.
+- [x] Mobile layer: service worker with an offline queue for manual entries and receipt photos, web
+      push for alerts, home-screen shortcuts (2026-10-01).
 - [ ] Import formats: OFX/QFX, QIF, CAMT.053, MT940, CSV presets for common banks, a mailbox address
       for forwarded statements.
 - [ ] Multi-currency audit: original amount and currency visible everywhere, manual rate override, no
