@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { PushModule } from '../push/push.module';
 import { devDefault } from '../../common/utils/dev-defaults';
 import {
   AuthSession,
@@ -12,6 +11,7 @@ import {
   WorkspaceMember,
 } from '../../entities';
 import { MailerModule } from '../mailer/mailer.module';
+import { PushModule } from '../push/push.module';
 import { TelegramModule } from '../telegram/telegram.module';
 import { NotificationDeliveryService } from './notification-delivery.service';
 import { NotificationEventsListener } from './notification-events.listener';
