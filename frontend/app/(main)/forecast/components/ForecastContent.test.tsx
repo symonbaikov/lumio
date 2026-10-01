@@ -86,6 +86,13 @@ describe('ForecastContent', () => {
     expect(screen.queryByText('Safe to spend')).not.toBeInTheDocument();
   });
 
+  it('rounds the runway to one decimal', () => {
+    setState({ profile: 'business', runwayMonths: 18.09 });
+    render(<ForecastContent />);
+
+    expect(screen.getByText('18.1 months at the current burn')).toBeInTheDocument();
+  });
+
   it('offers an empty state when there is nothing to project', () => {
     setState({ events: [], everydayMonthly: 0, openingBalance: 0 });
     render(<ForecastContent />);
