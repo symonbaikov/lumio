@@ -19,6 +19,7 @@ import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 
 import { Pencil, Trash2 } from '@/app/components/icons';
+import { ImportFromFileButton } from '@/app/components/import-wizard/ImportFromFileButton';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { VendorIcon } from '@/app/components/VendorIcon';
 import { useIntlayer } from '@/app/i18n';
@@ -67,6 +68,7 @@ interface SubscriptionsContentProps {
   setFormData: (data: SubscriptionFormData) => void;
   saving: boolean;
   openCreate: () => void;
+  invalidate: () => Promise<void>;
   openEdit: (subscription: SubscriptionItem) => void;
   closeDialog: () => void;
   handleSave: () => void;
@@ -211,9 +213,20 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
             {t.subtitle}
           </Typography>
         </Box>
-        <Button variant="contained" onClick={props.openCreate}>
-          {t.addSubscription}
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <ImportFromFileButton
+            target="subscriptions"
+            onImported={() => void props.invalidate()}
+            renderTrigger={(open, label) => (
+              <Button variant="outlined" onClick={open}>
+                {label}
+              </Button>
+            )}
+          />
+          <Button variant="contained" onClick={props.openCreate}>
+            {t.addSubscription}
+          </Button>
+        </Box>
       </Box>
       <Box
         sx={{

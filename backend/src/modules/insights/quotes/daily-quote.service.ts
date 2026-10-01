@@ -95,7 +95,9 @@ export class DailyQuoteService {
     const pool = themed.length > 0 ? themed : QUOTES;
     const quote = pool[(day + hash(userId)) % pool.length];
     const texts =
-      (locale ? QUOTE_TEXTS[locale] : undefined) ?? QUOTE_TEXTS[user?.locale ?? 'en'] ?? QUOTE_TEXTS.en;
+      (locale ? QUOTE_TEXTS[locale] : undefined) ??
+      QUOTE_TEXTS[user?.locale ?? 'en'] ??
+      QUOTE_TEXTS.en;
 
     return {
       date: toDateOnly(now),

@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** How long the ring stays before it fades out. */
 const HIGHLIGHT_MS = 3000;
@@ -52,7 +52,8 @@ function whenPresent(selector: string, onFound: (element: Element) => void): () 
 }
 
 /**
- * Scrolls to the element a deep link points at and rings it in green.
+ * Scrolls to the element a deep link points at and rings it in green, and
+ * returns the target's id so a list can make sure it is drawn at all.
  *
  * The link carries `?focus=<id>` and the target marks itself with
  * `data-attention="<id>"`, so pages opt in by tagging one element instead of
@@ -60,13 +61,24 @@ function whenPresent(selector: string, onFound: (element: Element) => void): () 
  * (app/components/insights/insight-href.ts) and the notification bell
  * (app/components/notifications/notification-href.ts).
  *
+ * The returned id outlives the parameter, which is cleared below as soon as
+ * the page arrives: a leaderboard mounts only once its data has loaded, long
+ * after that, and it needs the id to keep the row the link is about.
+ *
  * Call it from the destination page, not from the layout: a layout is not
  * remounted on soft navigation, so arriving at the page you are already on
  * with a different target would do nothing.
  */
-export function useAttentionFocus(): void {
-  const targetId = useSearchParams().get(FOCUS_PARAM);
+export function useAttentionFocus(): string | null {
+  const targetId = useSearchParams()?.get(FOCUS_PARAM) ?? null;
+  const [lastTargetId, setLastTargetId] = useState<string | null>(targetId);
   const cleanupRef = useRef<() => void>(() => undefined);
+
+  useEffect(() => {
+    if (targetId !== null) {
+      setLastTargetId(targetId);
+    }
+  }, [targetId]);
 
   // Tearing down belongs to the page's lifetime, not to the parameter's: the
   // effect below deliberately returns nothing, so React cannot undo a
@@ -112,4 +124,6 @@ export function useAttentionFocus(): void {
       highlighted?.classList.remove(ATTENTION_CLASS);
     };
   }, [targetId]);
+
+  return lastTargetId;
 }

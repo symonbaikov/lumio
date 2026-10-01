@@ -310,13 +310,32 @@ export class GmailReceiptParserService {
     };
   }
 
+  /**
+   * First date-looking token that is actually a plausible receipt date. Digits
+   * inside DOIs, phone numbers or page references also match the shapes, so
+   * every candidate is checked: whole token, real calendar date, sane year.
+   */
   private extractDate(text: string): string | undefined {
-    const patterns = [/\d{2}[-/.]\d{2}[-/.]\d{4}/, /\d{4}[-/.]\d{2}[-/.]\d{2}/];
+    const patterns = [
+      /(?<![\d.])(\d{2})[-/.](\d{2})[-/.](\d{4})(?![\d.])/g,
+      /(?<![\d.])(\d{4})[-/.](\d{2})[-/.](\d{2})(?![\d.])/g,
+    ];
+    const maxYear = new Date().getFullYear() + 1;
 
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match) {
-        return match[0];
+    for (const [index, pattern] of patterns.entries()) {
+      for (const match of text.matchAll(pattern)) {
+        const [token, a, b, c] = match;
+        const year = Number(index === 0 ? c : a);
+        const month = Number(b);
+        const day = Number(index === 0 ? a : c);
+        const calendar = new Date(Date.UTC(year, month - 1, day));
+        const real =
+          calendar.getUTCFullYear() === year &&
+          calendar.getUTCMonth() === month - 1 &&
+          calendar.getUTCDate() === day;
+        if (real && year >= 1990 && year <= maxYear) {
+          return token;
+        }
       }
     }
 

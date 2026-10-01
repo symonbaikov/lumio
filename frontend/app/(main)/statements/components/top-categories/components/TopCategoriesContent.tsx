@@ -5,9 +5,9 @@ import { TopCategoriesStatCards } from '@/app/(main)/statements/components/top-c
 import type { useTopCategoriesViewModel } from '@/app/(main)/statements/components/top-categories/hooks/useTopCategoriesViewModel';
 import type { CategorySortKey } from '@/app/(main)/statements/components/top-categories.utils';
 
-type Props = { vm: ReturnType<typeof useTopCategoriesViewModel> };
+type Props = { vm: ReturnType<typeof useTopCategoriesViewModel>; focusId?: string | null };
 
-function TopCategoriesLeaderboardSection({ vm }: Props): React.JSX.Element {
+function TopCategoriesLeaderboardSection({ vm, focusId }: Props): React.JSX.Element {
   const isIncomeView = vm.activeFlowType === 'income';
   const { labels, workspaceCurrency } = vm;
   const sourceLabels = {
@@ -41,11 +41,12 @@ function TopCategoriesLeaderboardSection({ vm }: Props): React.JSX.Element {
       sortLabels={sortLabels}
       columnLabels={columnLabels}
       emptyLabel={labels.comparisonNoData}
+      focusId={focusId}
     />
   );
 }
 
-export function TopCategoriesContent({ vm }: Props): React.JSX.Element {
+export function TopCategoriesContent({ vm, focusId = null }: Props): React.JSX.Element {
   const isIncomeView = vm.activeFlowType === 'income';
   const { labels, workspaceCurrency } = vm;
   return (
@@ -62,7 +63,7 @@ export function TopCategoriesContent({ vm }: Props): React.JSX.Element {
         noDataLabel={labels.comparisonNoData}
         vsPreviousPeriodLabel={labels.vsPreviousPeriod}
       />
-      <TopCategoriesLeaderboardSection vm={vm} />
+      <TopCategoriesLeaderboardSection vm={vm} focusId={focusId} />
     </div>
   );
 }

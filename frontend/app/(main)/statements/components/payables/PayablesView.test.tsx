@@ -60,13 +60,13 @@ vi.mock('@/app/contexts/WorkspaceContext', () => ({
 }));
 
 vi.mock('@/app/i18n', async () => {
-  // The shared currency drawer reads its own dictionary; serve it for real (English).
+  // The shared currency drawer and the import wizard read their own dictionaries; serve them for real (English).
   const { useIntlayer: realUseIntlayer } =
     await vi.importActual<typeof import('react-intlayer')>('react-intlayer');
   return {
   useLocale: () => ({ locale: 'en' }),
   useIntlayer: (key: string) =>
-    key === 'receiptCurrencyDrawer' ? realUseIntlayer(key) : ({
+    key === 'receiptCurrencyDrawer' || key === 'importWizard' ? realUseIntlayer(key) : ({
     payables: {
       title: { value: 'Payables' },
       subtitle: { value: 'Track upcoming payments.' },

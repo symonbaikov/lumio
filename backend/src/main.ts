@@ -130,7 +130,9 @@ async function bootstrap() {
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,
-    exposedHeaders: ['x-request-id', 'x-trace-id'],
+    // content-disposition: file downloads read the server's file name from it;
+    // hidden from cross-origin JS, every export fell back to a generic name.
+    exposedHeaders: ['x-request-id', 'x-trace-id', 'content-disposition'],
   });
 
   // Swagger / OpenAPI

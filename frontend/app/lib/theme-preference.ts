@@ -70,3 +70,17 @@ export const getScheduledTheme = (timeZone: string | null): ResolvedAppTheme => 
   const hour = getHourForTimeZone(timeZone);
   return hour >= 7 && hour < 19 ? 'light' : 'dark';
 };
+
+/**
+ * Last resolved mode, mirrored into a cookie so the server can render MUI in it.
+ * Without it the SSR markup (and everything until hydration) uses the light
+ * palette on a dark page: white cards, white skeletons.
+ */
+export const PALETTE_MODE_COOKIE = 'lumio-palette-mode';
+
+export const parsePaletteModeCookie = (value: string | undefined): ResolvedAppTheme =>
+  value === 'dark' ? 'dark' : 'light';
+
+export const persistPaletteModeCookie = (mode: ResolvedAppTheme): void => {
+  document.cookie = `${PALETTE_MODE_COOKIE}=${mode}; path=/; max-age=31536000; samesite=lax`;
+};
