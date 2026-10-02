@@ -9,6 +9,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Bank sync through your own SimpleFIN account (2026-10-01)
+
+- **Integrations → Bank sync via SimpleFIN**: paste the setup token from your own SimpleFIN Bridge
+  account; Lumio exchanges it once (`POST /integrations/simplefin/connect`), keeps the access
+  credential encrypted, lists the accounts and pulls them (`POST /integrations/simplefin/sync`) on
+  demand or every six hours. Per-account *Pull* switch and target wallet
+  (`POST /integrations/simplefin/settings`), *Refresh accounts*, disconnect deletes the credential.
+- Each pull becomes an **OFX statement through the regular import**: dedupe, rules, review inbox
+  and audit are the same as for an uploaded file. Provider transaction ids are document numbers, so
+  nothing is imported twice; the first pull covers 90 days, later ones overlap by a week; pending
+  rows wait until they post. A rejected credential flips the integration to *Needs a new token*.
+- README positioning: Lumio holds no bank integration of its own; you may connect your own
+  provider account. Enable Banking is not wired (needs an application registered with them).
+
+#### Multi-currency: no silent 1.0, manual rates (2026-10-01)
+
+- A missing exchange rate is now said out loud: `GET /exchange-rates` answers `missing: true`, the
+  dashboard snapshot lists `missingRates` and shows a banner, Settings → Data → **Exchange rates**
+  lists every currency in the workspace's rows with the rate used (or "no rate") and a field to
+  **set a rate by hand** (`POST /exchange-rates/manual`; it wins over the provider for that day).
+- The transaction drawer shows the amount **in the workspace currency** with the rate and its date,
+  or that no rate exists and the row counts at face value in totals.
+
+#### Import formats: OFX/QFX, QIF, camt.053, MT940, bank CSV presets, mailbox (2026-10-01)
+
+- **Four more statement formats**: OFX/QFX (SGML and XML), QIF (date order inferred from the whole
+  file), ISO 20022 camt.053 and SWIFT MT940 (structured `:86:` details). Recognised by extension and
+  content, whatever MIME type the browser sends; a file that only has the extension is refused.
+- **CSV presets for 22 bank layouts** (Revolut, Wise, N26, Monzo, Starling, Chase, Bank of America,
+  Capital One, American Express, Wells Fargo, PayPal, ING, Rabobank, Sparkasse/DKB, Commerzbank,
+  Nordea, Santander, Barclays, HSBC, Lloyds, Tinkoff): matched by the header row, columns mapped
+  exactly instead of guessed, signed amounts and card-style charges handled per bank.
+- **Forward a statement to the mailbox**: an export attached to an email in the IMAP inbox goes
+  through statement import instead of the receipt pile (PDFs stay receipts).
+
+#### Mobile layer: offline entries and web push (2026-10-01)
+
+- **Works without a network**: a service worker caches the app shell and serves an offline page;
+  a manual expense or a receipt photo added while offline is kept on the device (IndexedDB) and
+  sent as soon as the connection is back, with an idempotency key so a retry cannot double-book.
+  A strip at the top shows "Offline" or "N waiting to send" with a *Send now* button.
+- **Web push**: a new *Push* column in notification settings and *Push on this device* to subscribe
+  the browser or installed app; budget alerts, subscription price changes, "N waiting for review"
+  and the rest reach the phone with the app closed. Digests go as one push. Needs VAPID keys on
+  the server (`npx web-push generate-vapid-keys` → `WEB_PUSH_VAPID_*`); without them the channel
+  says it is off. Dead subscriptions are dropped on the next send.
+- **Home-screen shortcuts**: *Add expense* and *Scan receipt* on a long-press of the app icon.
+
 #### Small-business pack (2026-10-01)
 
 - **Bank reconciliation** (`/statements/reconcile`, linked from Payables): open bills and

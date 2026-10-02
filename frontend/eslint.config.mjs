@@ -30,6 +30,8 @@ export default tseslint.config(
       'next-env.d.ts',
       // Node dev tooling (plain .mjs, outside the TS project); Biome still checks it.
       'scripts/**',
+      // The service worker is plain browser JS outside the TS project; Biome still checks it.
+      'public/sw.js',
     ],
   },
 

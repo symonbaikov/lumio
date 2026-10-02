@@ -72,6 +72,7 @@ import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor
 import { AuthModule } from './modules/auth/auth.module';
 import { BackupsModule } from './modules/backups/backups.module';
 import { BalanceModule } from './modules/balance/balance.module';
+import { BankSyncModule } from './modules/bank-sync/bank-sync.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -100,6 +101,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { OpenProtocolIntegrationsModule } from './modules/open-protocol-integrations/open-protocol-integrations.module';
 import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
+import { PushModule } from './modules/push/push.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ReviewInboxModule } from './modules/review-inbox/review-inbox.module';
@@ -252,6 +254,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     InsightsModule,
     ObservabilityModule,
     OpenProtocolIntegrationsModule,
+    BankSyncModule,
     DashboardModule,
     SearchModule,
     PayablesModule,
@@ -262,6 +265,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ForecastModule,
     InvestmentsModule,
     SmbModule,
+    PushModule,
     CryptoModule,
     WebhooksModule,
     ApiKeysModule,

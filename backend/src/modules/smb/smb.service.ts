@@ -218,7 +218,7 @@ export class SmbService {
         dueDate: payable.dueDate ? String(payable.dueDate).slice(0, 10) : null,
         createdAt: payable.createdAt.toISOString(),
         status: payable.status,
-        amountInWorkspace: await this.convert(amount, payable.currency, currency),
+        amountInWorkspace: await this.convert(amount, payable.currency, currency, workspaceId),
       });
     }
     return items;
@@ -290,11 +290,16 @@ export class SmbService {
     return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
   }
 
-  private async convert(amount: number, from: string, to: string): Promise<number> {
+  private async convert(
+    amount: number,
+    from: string,
+    to: string,
+    workspaceId: string,
+  ): Promise<number> {
     if (!Number.isFinite(amount) || amount === 0) return 0;
     const source = (from || to).toUpperCase();
     if (source === to) return amount;
-    const rate = await this.exchangeRatesService.getRateOrNull(source, to);
+    const rate = await this.exchangeRatesService.getRateOrNull(source, to, undefined, workspaceId);
     return rate === null ? 0 : amount * rate;
   }
 }

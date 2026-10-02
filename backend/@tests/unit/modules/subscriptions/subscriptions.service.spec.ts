@@ -114,7 +114,13 @@ describe('SubscriptionsService', () => {
 
       const result = await service.getSummary('workspace-1');
 
-      expect(exchangeRatesService.convert).toHaveBeenCalledWith(100, 'USD', 'EUR', expect.any(Date));
+      expect(exchangeRatesService.convert).toHaveBeenCalledWith(
+        100,
+        'USD',
+        'EUR',
+        expect.any(Date),
+        'workspace-1',
+      );
       expect(result.totalMonthlyCost).toBe(90);
     });
 
@@ -242,6 +248,7 @@ describe('SubscriptionsService', () => {
         'EUR',
         'USD',
         expect.any(Date),
+        'workspace-1',
       );
       expect(result.currency).toBe('USD');
       expect(result.rows[0].amounts).toEqual([11, 11]);

@@ -10,6 +10,7 @@ import {
 } from '../../entities/notification-preference.entity';
 import { User } from '../../entities/user.entity';
 import { MailerService } from '../mailer/mailer.service';
+import { PushService } from '../push/push.service';
 import { TelegramService } from '../telegram/telegram.service';
 import { getLocalHour, isWithinQuietHours } from './quiet-hours.util';
 
@@ -31,6 +32,7 @@ export class NotificationDeliveryService {
     private readonly userRepository: Repository<User>,
     private readonly mailerService: MailerService,
     private readonly telegramService: TelegramService,
+    private readonly pushService: PushService,
   ) {}
 
   /**
@@ -95,6 +97,15 @@ export class NotificationDeliveryService {
         user,
       );
       return true;
+    }
+
+    if (channel === NotificationChannel.PUSH) {
+      return this.pushService.sendToUser(user.id, {
+        title: notification.title,
+        body: notification.message,
+        url: pushUrlFor(notification),
+        tag: notification.id,
+      });
     }
 
     return true;
@@ -222,6 +233,20 @@ export class NotificationDeliveryService {
       );
     }
 
+    if (channels.includes(NotificationChannel.PUSH)) {
+      // One push for the whole digest; the phone would not want one per item.
+      delivered =
+        (await this.pushService.sendToUser(user.id, {
+          title: subject,
+          body: pending
+            .slice(0, 3)
+            .map(item => item.title)
+            .join(' · '),
+          url: '/dashboard',
+          tag: 'digest',
+        })) && delivered;
+    }
+
     if (!delivered) {
       return;
     }
@@ -232,4 +257,21 @@ export class NotificationDeliveryService {
     );
     await this.preferenceRepository.update(preference.id, { lastDigestAt: new Date() });
   }
+}
+
+/** The page a tap on the push opens; the in-app bell resolves the same way on the client. */
+function pushUrlFor(notification: Notification): string {
+  const entity = notification.entityType;
+  const id = notification.entityId;
+  if (entity === 'budget') return '/budgets';
+  if (entity === 'subscription') return '/subscriptions';
+  if (entity === 'payable') return '/statements/pay';
+  if (entity === 'statement' && id) return `/statements/${id}`;
+  if (
+    notification.type.startsWith('review.') ||
+    notification.type === 'transaction.uncategorized'
+  ) {
+    return '/review';
+  }
+  return '/dashboard';
 }

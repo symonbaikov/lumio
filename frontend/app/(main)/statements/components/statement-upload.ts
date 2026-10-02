@@ -2,6 +2,7 @@
 
 import apiClient from '@/app/lib/api';
 import type { DeviceLocation } from '@/app/lib/device-location';
+import { enqueue, indexedDbStore, isOfflineStoreAvailable } from '@/app/lib/offline/offline-queue';
 import { enqueuePlaceFollowups, needsPlaceFollowup } from '@/app/lib/receipt-place-followup';
 
 export const RECEIPT_SCAN_UPLOAD_BATCH_SIZE = 5;
@@ -155,6 +156,22 @@ export const uploadReceiptScanFiles = async ({
         formData.append('accuracy', String(deviceLocation.accuracy));
       }
 
+      // No network: the photos wait on the device and go out when it is back.
+      if (isOfflineStoreAvailable() && typeof navigator !== 'undefined' && !navigator.onLine) {
+        await enqueue(indexedDbStore, {
+          kind: 'receipt-scan',
+          fields: deviceLocation
+            ? {
+                latitude: String(deviceLocation.latitude),
+                longitude: String(deviceLocation.longitude),
+                accuracy: String(deviceLocation.accuracy),
+              }
+            : {},
+          files: batch,
+        });
+        fileOffset += batch.length;
+        continue;
+      }
       const response = await apiClient.post('/statements/upload-receipt', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',

@@ -16,6 +16,7 @@ import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { tokens } from '@/lib/theme-tokens';
+import { ConvertedAmountRow } from './ConvertedAmountRow';
 import { formatAmount, formatDate } from './helpers/transactionFormatters';
 import { useContributionLink } from './hooks/useContributionLink';
 import { useTransactionSplit } from './hooks/useTransactionSplit';
@@ -43,7 +44,7 @@ export function TransactionDetailsTab({
 }: TransactionDetailsTabProps) {
   const { locale } = useLocale();
   const t = useIntlayer('transactionsDrawer');
-  const { showConverted } = useCurrencyDisplay();
+  const { showConverted, workspaceCurrency } = useCurrencyDisplay();
   const { resolvedTheme } = useTheme();
   const c = resolvedTheme === 'dark' ? tokens.dark.color : tokens.color;
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
@@ -257,6 +258,20 @@ export function TransactionDetailsTab({
             <span style={{ color: c.ink700 }}>{t.currency.value}:</span>
             <span style={{ fontWeight: 600, color: c.ink900 }}>{transaction.currency}</span>
           </div>
+        )}
+
+        {transaction.currency && transaction.currency.toUpperCase() !== workspaceCurrency && (
+          <ConvertedAmountRow
+            amount={transaction.amount}
+            currency={transaction.currency}
+            date={transaction.transactionDate}
+            workspaceCurrency={workspaceCurrency}
+            label={t.converted.value}
+            noRateLabel={t.noRate.value}
+            formatAmount={(value, code) => formatAmount(value, code, locale)}
+            inkLabel={c.ink700}
+            inkValue={c.ink900}
+          />
         )}
 
         {transaction.exchangeRate && (

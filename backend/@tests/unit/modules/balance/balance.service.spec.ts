@@ -304,8 +304,8 @@ describe('BalanceService', () => {
 
       expect(result.assets.total).toBe(1000 + 10 * 450 + 20 * 500);
       expect(result.missingRates).toEqual([]);
-      expect(exchangeRatesService.getRateOrNull).toHaveBeenCalledWith('USD', 'KZT', '2026-02-15');
-      expect(exchangeRatesService.getRateOrNull).toHaveBeenCalledWith('EUR', 'KZT', '2026-02-15');
+      expect(exchangeRatesService.getRateOrNull).toHaveBeenCalledWith('USD', 'KZT', '2026-02-15', 'ws-1');
+      expect(exchangeRatesService.getRateOrNull).toHaveBeenCalledWith('EUR', 'KZT', '2026-02-15', 'ws-1');
     });
 
     it('leaves out an amount without a rate instead of counting it 1:1', async () => {

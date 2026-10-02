@@ -2936,6 +2936,7 @@ export class ReportsService {
   private async buildRateMap(
     transactions: Transaction[],
     targetCurrency: string,
+    workspaceId: string,
   ): Promise<Map<string, number>> {
     const sources = new Set(transactions.map(t => this.normalizeCurrency(t.currency)));
     const rates = new Map<string, number>();
@@ -2945,7 +2946,7 @@ export class ReportsService {
         source,
         source === targetCurrency
           ? 1
-          : await this.exchangeRatesService.getRate(source, targetCurrency),
+          : await this.exchangeRatesService.getRate(source, targetCurrency, undefined, workspaceId),
       );
     }
 
@@ -2977,7 +2978,7 @@ export class ReportsService {
       this.getWorkspaceCurrency(workspaceId),
     ]);
 
-    const rates = await this.buildRateMap(transactions, currency);
+    const rates = await this.buildRateMap(transactions, currency, workspaceId);
 
     const rows = transactions.map(transaction => {
       const originalCurrency = this.normalizeCurrency(transaction.currency);

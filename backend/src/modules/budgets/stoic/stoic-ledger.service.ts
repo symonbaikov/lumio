@@ -126,6 +126,7 @@ export class StoicLedgerService {
       this.exchangeRatesService,
       budgets.map(budget => budget.currency),
       currency,
+      workspaceId,
     );
 
     const classOf = this.resolveClasses(categories);
@@ -275,6 +276,7 @@ export class StoicLedgerService {
       this.exchangeRatesService,
       rows.map(row => row.currency),
       currency,
+      workspaceId,
     );
 
     const byMonth = new Map<string, Map<string, number>>();

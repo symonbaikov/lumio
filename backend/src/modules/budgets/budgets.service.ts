@@ -482,7 +482,7 @@ export class BudgetsService {
     const affected: BudgetImpactRow[] = [];
     for (const budget of budgets) {
       if (!overlapsWindow({ start: now, end: now }, budget)) continue;
-      const amount = await this.inCurrency(dto.amount, currency, budget.currency);
+      const amount = await this.inCurrency(dto.amount, currency, budget.currency, workspaceId);
       if (amount === null) continue;
       const { spentAmount, availableAmount } = await this.measure(budget, now);
       const remainingAfter = Math.round((availableAmount - spentAmount - amount) * 100) / 100;
@@ -515,7 +515,7 @@ export class BudgetsService {
       order: { createdAt: 'ASC' },
     });
     if (!wallet) return null;
-    const converted = await this.inCurrency(amount, currency, wallet.currency);
+    const converted = await this.inCurrency(amount, currency, wallet.currency, workspaceId);
     if (converted === null) return null;
     const sums = await this.transactionRepository
       .createQueryBuilder('t')
@@ -541,12 +541,23 @@ export class BudgetsService {
   }
 
   /** `amount` in `to`; null when the two currencies differ and no rate is at hand. */
-  private async inCurrency(amount: number, from: string, to: string): Promise<number | null> {
+  private async inCurrency(
+    amount: number,
+    from: string,
+    to: string,
+    workspaceId: string,
+  ): Promise<number | null> {
     const source = from || to;
     if (source.toUpperCase() === to.toUpperCase()) return amount;
     if (!this.exchangeRatesService) return null;
     try {
-      const result = await this.exchangeRatesService.convert(amount, source, to, new Date());
+      const result = await this.exchangeRatesService.convert(
+        amount,
+        source,
+        to,
+        new Date(),
+        workspaceId,
+      );
       return result.converted;
     } catch {
       return null;

@@ -24,6 +24,8 @@ export enum IntegrationProvider {
   S3_COMPATIBLE = 's3_compatible',
   WEBDAV = 'webdav',
   IMAP = 'imap',
+  /** Bank sync through the user's own SimpleFIN Bridge account. */
+  SIMPLEFIN = 'simplefin',
 }
 
 export enum IntegrationStatus {

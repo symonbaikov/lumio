@@ -61,6 +61,11 @@ export enum FileType {
   CSV = 'csv',
   IMAGE = 'image',
   DOCX = 'docx',
+  /** Interchange formats banks export besides CSV; detected by extension and content. */
+  OFX = 'ofx',
+  QIF = 'qif',
+  CAMT = 'camt',
+  MT940 = 'mt940',
 }
 
 @Entity('statements')

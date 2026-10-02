@@ -119,6 +119,7 @@ export class GoalPlanService {
       this.exchangeRatesService,
       [goalCurrency, ...budgets.map(budget => budget.currency), ...incomeRows.map(r => r.currency)],
       currency,
+      workspaceId,
     );
     const fromGoal = (amount: number): number => convertWith(rates, amount, goalCurrency);
 

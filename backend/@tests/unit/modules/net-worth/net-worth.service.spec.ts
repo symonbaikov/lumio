@@ -163,7 +163,7 @@ describe('NetWorthService', () => {
     expect(result.series[0].value).toBe(10 * 500 + 100 + 2 * 450);
     expect(result.current).toBe(10 * 600 + 100 + 2 * 450);
     expect(result.missingRates).toEqual([]);
-    expect(exchangeRates.getRateOrNull).toHaveBeenCalledWith('EUR', 'KZT', lastDate);
+    expect(exchangeRates.getRateOrNull).toHaveBeenCalledWith('EUR', 'KZT', lastDate, 'workspace-1');
   });
 
   it('leaves out an amount without a rate and names its currency', async () => {

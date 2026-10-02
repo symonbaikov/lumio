@@ -678,6 +678,7 @@ export class BalanceService {
         ...retainedEarnings.keys(),
         ...[...snapshotsMap.values()].map(snapshotCurrency),
       ].map(code => ({ currency: code, date: snapshotDate })),
+      workspaceId,
     );
 
     const autoAmountsByCode = new Map<string, number>([

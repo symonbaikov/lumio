@@ -298,7 +298,13 @@ export class LedgerPostingService {
     legs.push({ accountId: receivablesAccountId, side: 'debit', amountMinor: grossMinor });
 
     const currency = params.currency.toUpperCase();
-    const lines = await this.convert(legs, currency, baseCurrency, params.entryDate);
+    const lines = await this.convert(
+      legs,
+      currency,
+      baseCurrency,
+      params.entryDate,
+      params.workspaceId,
+    );
 
     return this.book(manager, {
       workspaceId: params.workspaceId,
@@ -487,7 +493,7 @@ export class LedgerPostingService {
     const unknown = statement.balanceStart === null || statement.balanceStart === undefined;
     const plan = unknown
       ? ({ skip: 'no_balance_start' } as const)
-      : await this.openingPlan(legs, currency, baseCurrency, entryDate);
+      : await this.openingPlan(legs, currency, baseCurrency, entryDate, workspaceId);
     if ('failed' in plan) {
       return { cashAccountId, outcome: { status: 'failed', error: plan.failed } };
     }
@@ -534,7 +540,7 @@ export class LedgerPostingService {
     });
     const entryDate = toDateOnly(first?.transactionDate ?? wallet.createdAt);
     const legs = openingBalanceLegs(wallet.initialBalance, cashAccountId, openingAccountId);
-    const plan = await this.openingPlan(legs, currency, baseCurrency, entryDate);
+    const plan = await this.openingPlan(legs, currency, baseCurrency, entryDate, workspaceId);
     if ('failed' in plan) {
       return { cashAccountId, outcome: { status: 'failed', error: plan.failed } };
     }
@@ -549,6 +555,7 @@ export class LedgerPostingService {
     currency: string,
     baseCurrency: string,
     entryDate: string,
+    workspaceId: string,
   ): Promise<EntryPlan | { skip: NotBooked } | { failed: string }> {
     if (legs.length === 0) {
       return { skip: 'zero_amount' };
@@ -558,7 +565,7 @@ export class LedgerPostingService {
         entryDate,
         baseCurrency,
         memo: 'Opening balance',
-        lines: await this.convert(legs, currency, baseCurrency, entryDate),
+        lines: await this.convert(legs, currency, baseCurrency, entryDate, workspaceId),
       };
     } catch (error) {
       if (error instanceof LedgerPostingError) {
@@ -679,12 +686,18 @@ export class LedgerPostingService {
    * Rate from `currency` to the base on `date`; 1 for the base itself. A rate
    * borrowed from an earlier day is accepted up to LEDGER_MAX_RATE_AGE_DAYS old.
    */
-  async rateFor(currency: string, baseCurrency: string, date: string): Promise<number> {
+  async rateFor(
+    currency: string,
+    baseCurrency: string,
+    date: string,
+    workspaceId: string,
+  ): Promise<number> {
     if (currency.toUpperCase() === baseCurrency.toUpperCase()) {
       return 1;
     }
     const quote = await this.exchangeRatesService.getRateQuote(currency, baseCurrency, date, {
       maxStaleDays: LEDGER_MAX_RATE_AGE_DAYS,
+      workspaceId,
     });
     const rate = quote?.rate ?? null;
     if (rate === null) {
@@ -757,7 +770,7 @@ export class LedgerPostingService {
       entryDate,
       baseCurrency,
       memo,
-      lines: await this.convert(result.legs, currency, baseCurrency, entryDate),
+      lines: await this.convert(result.legs, currency, baseCurrency, entryDate, tx.workspaceId),
     };
   }
 
@@ -801,8 +814,9 @@ export class LedgerPostingService {
     currency: string,
     baseCurrency: string,
     entryDate: string,
+    workspaceId: string,
   ): Promise<BaseLine[]> {
-    const rate = await this.rateFor(currency, baseCurrency, entryDate);
+    const rate = await this.rateFor(currency, baseCurrency, entryDate, workspaceId);
     return toBaseLines(legs, currency, baseCurrency, rate);
   }
 

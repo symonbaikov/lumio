@@ -1,10 +1,12 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Cache } from 'cache-manager';
 import { LessThanOrEqual, Repository } from 'typeorm';
 import { ExchangeRate } from '../../entities/exchange-rate.entity';
+import { Transaction } from '../../entities/transaction.entity';
+import { WorkspaceExchangeRate } from '../../entities/workspace-exchange-rate.entity';
 
 /**
  * A rate and the day it was quoted for. `stale` marks a rate borrowed from an
@@ -19,6 +21,8 @@ export interface RateQuote {
 export interface RateQuoteOptions {
   /** Refuse a borrowed rate quoted more than this many days before the requested day. */
   maxStaleDays?: number;
+  /** Whose hand-entered rates apply; without it only provider rates are used. */
+  workspaceId?: string;
 }
 
 const FALLBACK_CACHE_TTL_MS = 3600 * 1000;
@@ -42,12 +46,23 @@ export class ExchangeRatesService {
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
+    @Optional()
+    @InjectRepository(Transaction)
+    private readonly transactionRepository?: Repository<Transaction>,
+    @Optional()
+    @InjectRepository(WorkspaceExchangeRate)
+    private readonly workspaceRateRepository?: Repository<WorkspaceExchangeRate>,
   ) {
     this.apiKey = this.configService.get<string>('EXCHANGE_RATE_API_KEY');
   }
 
-  async getRate(from: string, to: string, date?: Date | string): Promise<number> {
-    const rate = await this.getRateOrNull(from, to, date);
+  async getRate(
+    from: string,
+    to: string,
+    date?: Date | string,
+    workspaceId?: string,
+  ): Promise<number> {
+    const rate = await this.getRateOrNull(from, to, date, workspaceId);
     if (rate === null) {
       this.logger.warn(
         `No rate found for ${this.normalizeCurrencyCode(from)}→${this.normalizeCurrencyCode(to)}, returning 1`,
@@ -63,8 +78,13 @@ export class ExchangeRatesService {
    * Tax figures need the difference: a silent 1 turns 1,000 USD into 1,000 EUR on
    * a declaration, where a missing rate can at least be reported to the user.
    */
-  async getRateOrNull(from: string, to: string, date?: Date | string): Promise<number | null> {
-    const quote = await this.getRateQuote(from, to, date);
+  async getRateOrNull(
+    from: string,
+    to: string,
+    date?: Date | string,
+    workspaceId?: string,
+  ): Promise<number | null> {
+    const quote = await this.getRateQuote(from, to, date, { workspaceId });
     return quote ? quote.rate : null;
   }
 
@@ -89,6 +109,22 @@ export class ExchangeRatesService {
       return { rate: 1, rateDate, stale: false };
     }
 
+    const manualWorkspace =
+      options.workspaceId && (await this.hasManualRates(options.workspaceId))
+        ? options.workspaceId
+        : null;
+    if (manualWorkspace) {
+      const manual = await this.lookupManualRate(
+        manualWorkspace,
+        normalizedFrom,
+        normalizedTo,
+        rateDate,
+      );
+      if (manual !== null) {
+        return { rate: manual, rateDate, stale: false };
+      }
+    }
+
     const stored = await this.lookupStoredRate(normalizedFrom, normalizedTo, rateDate);
     if (stored !== null) {
       return { rate: stored, rateDate, stale: false };
@@ -107,8 +143,16 @@ export class ExchangeRatesService {
       return { rate: fetched, rateDate, stale: false };
     }
 
-    const quote =
+    const providerQuote =
       cachedFallback ?? (await this.lookupEarlierRate(normalizedFrom, normalizedTo, rateDate));
+    const manualQuote = manualWorkspace
+      ? await this.findEarlierManualRate(manualWorkspace, normalizedFrom, normalizedTo, rateDate)
+      : null;
+    // The closer of the two to the requested day.
+    const quote =
+      [providerQuote, manualQuote]
+        .filter((item): item is RateQuote => item !== null)
+        .sort((a, b) => b.rateDate.localeCompare(a.rateDate))[0] ?? null;
     if (!quote) {
       return null;
     }
@@ -274,22 +318,213 @@ export class ExchangeRatesService {
     return candidates[0] ?? null;
   }
 
+  /**
+   * A rate a workspace entered by hand for one day. It wins over the provider
+   * for that day and is lent to later days without a rate, in that workspace
+   * only. The same day entered for the reverse pair is replaced, so a pair has
+   * one hand-entered rate per day.
+   */
+  async setManualRate(
+    workspaceId: string,
+    from: string,
+    to: string,
+    rate: number,
+    date?: Date | string,
+  ): Promise<{ from: string; to: string; rate: number; rateDate: string }> {
+    if (!this.workspaceRateRepository) {
+      throw new Error('Workspace exchange rates are not available');
+    }
+    const normalizedFrom = this.normalizeCurrencyCode(from);
+    const normalizedTo = this.normalizeCurrencyCode(to);
+    const rateDate = this.toDateOnly(date ?? new Date());
+    await this.workspaceRateRepository.delete({
+      workspaceId,
+      baseCurrency: normalizedTo,
+      targetCurrency: normalizedFrom,
+      rateDate: new Date(rateDate),
+    });
+    await this.workspaceRateRepository.upsert(
+      {
+        workspaceId,
+        baseCurrency: normalizedFrom,
+        targetCurrency: normalizedTo,
+        rate,
+        rateDate: new Date(rateDate),
+      },
+      ['workspaceId', 'baseCurrency', 'targetCurrency', 'rateDate'],
+    );
+    await this.cacheManager.del(this.manualCountCacheKey(workspaceId));
+    return { from: normalizedFrom, to: normalizedTo, rate, rateDate };
+  }
+
+  private manualCountCacheKey(workspaceId: string): string {
+    return `exchange_rate_manual_count:${workspaceId}`;
+  }
+
+  /** Most workspaces never enter a rate; this keeps their lookups off the table. */
+  private async hasManualRates(workspaceId: string): Promise<boolean> {
+    if (!this.workspaceRateRepository) {
+      return false;
+    }
+    const key = this.manualCountCacheKey(workspaceId);
+    const cached = await this.cacheManager.get<number>(key);
+    if (cached !== null && cached !== undefined) {
+      return cached > 0;
+    }
+    const count = await this.workspaceRateRepository.count({ where: { workspaceId } });
+    await this.cacheManager.set(key, count, FALLBACK_CACHE_TTL_MS);
+    return count > 0;
+  }
+
+  private async lookupManualRate(
+    workspaceId: string,
+    normalizedFrom: string,
+    normalizedTo: string,
+    rateDate: string,
+  ): Promise<number | null> {
+    const repository = this.workspaceRateRepository as Repository<WorkspaceExchangeRate>;
+    const day = new Date(rateDate);
+    const direct = await repository.findOne({
+      where: {
+        workspaceId,
+        baseCurrency: normalizedFrom,
+        targetCurrency: normalizedTo,
+        rateDate: day,
+      },
+    });
+    const directRate = Number(direct?.rate);
+    if (direct && Number.isFinite(directRate) && directRate > 0) {
+      return directRate;
+    }
+    const reverse = await repository.findOne({
+      where: {
+        workspaceId,
+        baseCurrency: normalizedTo,
+        targetCurrency: normalizedFrom,
+        rateDate: day,
+      },
+    });
+    const reverseRate = Number(reverse?.rate);
+    return reverse && Number.isFinite(reverseRate) && reverseRate > 0 ? 1 / reverseRate : null;
+  }
+
+  private async findEarlierManualRate(
+    workspaceId: string,
+    normalizedFrom: string,
+    normalizedTo: string,
+    rateDate: string,
+  ): Promise<RateQuote | null> {
+    const repository = this.workspaceRateRepository as Repository<WorkspaceExchangeRate>;
+    const onOrBefore = LessThanOrEqual(new Date(rateDate));
+    const order = { rateDate: 'DESC' as const };
+    const direct = await repository.findOne({
+      where: {
+        workspaceId,
+        baseCurrency: normalizedFrom,
+        targetCurrency: normalizedTo,
+        rateDate: onOrBefore,
+      },
+      order,
+    });
+    const reverse = await repository.findOne({
+      where: {
+        workspaceId,
+        baseCurrency: normalizedTo,
+        targetCurrency: normalizedFrom,
+        rateDate: onOrBefore,
+      },
+      order,
+    });
+    const candidates: RateQuote[] = [];
+    const directRate = Number(direct?.rate);
+    if (direct && Number.isFinite(directRate) && directRate > 0) {
+      candidates.push({
+        rate: directRate,
+        rateDate: this.toDateOnly(direct.rateDate),
+        stale: true,
+      });
+    }
+    const reverseRate = Number(reverse?.rate);
+    if (reverse && Number.isFinite(reverseRate) && reverseRate > 0) {
+      candidates.push({
+        rate: 1 / reverseRate,
+        rateDate: this.toDateOnly(reverse.rateDate),
+        stale: true,
+      });
+    }
+    candidates.sort((a, b) => b.rateDate.localeCompare(a.rateDate));
+    return candidates[0] ?? null;
+  }
+
+  /**
+   * Every currency the workspace's rows carry, with whether a rate to the
+   * workspace currency exists. The dashboard and reports convert at 1.0 when
+   * none does; this is where that becomes visible instead of silent.
+   */
+  async coverageForWorkspace(
+    workspaceId: string,
+    workspaceCurrency: string,
+    sinceDays = 365,
+  ): Promise<
+    Array<{
+      currency: string;
+      rate: number | null;
+      rateDate: string | null;
+      stale: boolean;
+      rows: number;
+    }>
+  > {
+    if (!this.transactionRepository) return [];
+    const since = new Date();
+    since.setDate(since.getDate() - sinceDays);
+    const rows = await this.transactionRepository
+      .createQueryBuilder('t')
+      .select('UPPER(t.currency)', 'currency')
+      .addSelect('COUNT(*)', 'rows')
+      .where('t.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('t.transactionDate >= :since', { since })
+      .andWhere('t.currency IS NOT NULL')
+      .groupBy('UPPER(t.currency)')
+      .getRawMany<{ currency: string; rows: string }>();
+    const target = this.normalizeCurrencyCode(workspaceCurrency);
+    const result = [];
+    for (const row of rows) {
+      const currency = this.normalizeCurrencyCode(row.currency);
+      if (currency === target) continue;
+      const quote = await this.getRateQuote(currency, target, new Date(), { workspaceId });
+      result.push({
+        currency,
+        rate: quote?.rate ?? null,
+        rateDate: quote?.rateDate ?? null,
+        stale: quote?.stale ?? false,
+        rows: Number(row.rows),
+      });
+    }
+    return result.sort(
+      (a, b) => Number(a.rate !== null) - Number(b.rate !== null) || b.rows - a.rows,
+    );
+  }
+
   async convert(
     amount: number,
     from: string,
     to: string,
     date?: Date | string,
+    workspaceId?: string,
   ): Promise<ConvertResult> {
-    const rate = await this.getRate(from, to, date);
+    const rate = await this.getRate(from, to, date, workspaceId);
     return { converted: amount * rate, rate, source: 'exchange-rates-service' };
   }
 
   async bulkConvert(
     items: Array<{ amount: number; currency: string; date?: Date | string }>,
     targetCurrency: string,
+    workspaceId?: string,
   ): Promise<ConvertResult[]> {
     return Promise.all(
-      items.map(item => this.convert(item.amount, item.currency, targetCurrency, item.date)),
+      items.map(item =>
+        this.convert(item.amount, item.currency, targetCurrency, item.date, workspaceId),
+      ),
     );
   }
 

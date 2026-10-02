@@ -88,7 +88,7 @@ export class LedgerRevaluationService {
     // Rates first: they may need the network, which a database transaction should not wait on.
     const rates = new Map<string, number>();
     for (const currency of await this.foreignCurrencies(workspaceId, baseCurrency, date)) {
-      rates.set(currency, await this.rateFor(currency, baseCurrency, date));
+      rates.set(currency, await this.rateFor(currency, baseCurrency, date, workspaceId));
     }
 
     const result = await this.entryRepository.manager.transaction(async manager => {
@@ -178,9 +178,14 @@ export class LedgerRevaluationService {
     );
   }
 
-  private async rateFor(currency: string, baseCurrency: string, date: string): Promise<number> {
+  private async rateFor(
+    currency: string,
+    baseCurrency: string,
+    date: string,
+    workspaceId: string,
+  ): Promise<number> {
     try {
-      return await this.postingService.rateFor(currency, baseCurrency, date);
+      return await this.postingService.rateFor(currency, baseCurrency, date, workspaceId);
     } catch (error) {
       if (error instanceof LedgerPostingError && error.code === 'FX_RATE_MISSING') {
         throw new UnprocessableEntityException(appError('LEDGER_FX_RATE_MISSING', error.params));

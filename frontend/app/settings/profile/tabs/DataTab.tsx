@@ -2,9 +2,10 @@
 
 import Stack from '@mui/material/Stack';
 import type React from 'react';
-import { Cloud, Home, MapPin, Shield, SlidersHorizontal } from '@/app/components/icons';
+import { Cloud, DollarSign, Home, MapPin, Shield, SlidersHorizontal } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer } from '@/app/i18n';
+import { ExchangeRatesSection } from '@/app/settings/profile/components/ExchangeRatesSection';
 import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
 import { ProcessingSection } from '@/app/settings/profile/components/ProcessingSection';
 import { ReceiptLocationCaptureSection } from '@/app/settings/profile/components/ReceiptLocationCaptureSection';
@@ -64,6 +65,16 @@ export function DataTab({ section, user, logout }: SettingsTabProps): React.JSX.
         defaultExpanded={openSection === 'processing'}
       >
         <ProcessingSection tx={tx} processing={processing} />
+      </SettingsAccordion>
+
+      <SettingsAccordion
+        id="exchange-rates"
+        title={tx(['exchangeRatesCard', 'title'], 'Exchange rates')}
+        description={tx(['exchangeRatesCard', 'description'], '')}
+        icon={DollarSign}
+        defaultExpanded={openSection === 'exchange-rates'}
+      >
+        <ExchangeRatesSection tx={tx} />
       </SettingsAccordion>
 
       <SettingsAccordion

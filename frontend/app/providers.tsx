@@ -22,6 +22,8 @@ import {
   THEME_STORAGE_EVENT,
 } from '@/app/lib/theme-preference';
 import { KeyboardShortcutsProvider } from './components/keyboard-shortcuts-provider';
+import { OfflineBanner } from './components/pwa/OfflineBanner';
+import { ServiceWorkerRegistrar } from './components/pwa/ServiceWorkerRegistrar';
 import { AuthProvider } from './contexts/AuthContext';
 import { CurrencyDisplayProvider } from './contexts/CurrencyDisplayContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -91,6 +93,12 @@ function WorkspaceScopedProviders({
       <NotificationProvider>
         <KeyboardShortcutsProvider>
           {mounted ? <Toaster position="top-center" toastOptions={TOASTER_OPTS} /> : null}
+          {mounted ? (
+            <>
+              <ServiceWorkerRegistrar />
+              <OfflineBanner />
+            </>
+          ) : null}
           <React.Fragment key={scopeKey}>{children}</React.Fragment>
         </KeyboardShortcutsProvider>
       </NotificationProvider>

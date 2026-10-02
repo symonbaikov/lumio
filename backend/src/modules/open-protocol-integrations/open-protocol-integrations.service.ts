@@ -14,6 +14,7 @@ import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import type { Repository } from 'typeorm';
+import { Like } from 'typeorm';
 import type { FileStat, WebDAVClient } from 'webdav';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import {
@@ -44,6 +45,7 @@ import { AuditService } from '../audit/audit.service';
 import { GmailReceiptCategoryService } from '../gmail/services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from '../gmail/services/gmail-receipt-duplicate.service';
 import { GmailReceiptParserService } from '../gmail/services/gmail-receipt-parser.service';
+import { sniffStatementFormat } from '../parsing/parsers/statement-formats.util';
 import { StatementsService } from '../statements/statements.service';
 
 type ProtocolStatusResponse = {
@@ -575,6 +577,14 @@ export class OpenProtocolIntegrationsService {
       return null;
     }
 
+    // A forwarded bank export goes to statement import, not to the receipt pile.
+    const statementAttachment = parsed.attachments.find(attachment =>
+      isStatementAttachment(attachment.filename, attachment.content),
+    );
+    if (statementAttachment) {
+      return this.importStatementAttachment(user, workspaceId, syntheticId, statementAttachment);
+    }
+
     const attachments = parsed.attachments.map(attachment => ({
       id: randomUUID(),
       filename: attachment.filename || 'attachment',
@@ -656,6 +666,49 @@ export class OpenProtocolIntegrationsService {
     const saved = await this.receiptRepository.save(receipt);
     await this.auditReceiptImport(user, workspaceId, saved);
     return saved.id;
+  }
+
+  /**
+   * Writes the attachment where uploads live and runs it through the same
+   * path as a file dropped on the statements page. Returns the statement id,
+   * which marks the message as handled; the inbox id travels in the file name.
+   */
+  private async importStatementAttachment(
+    user: User,
+    workspaceId: string,
+    syntheticId: string,
+    attachment: Awaited<ReturnType<typeof simpleParser>>['attachments'][number],
+  ): Promise<string | null> {
+    const existing = await this.statementRepository.findOne({
+      where: { workspaceId, fileName: Like(`%${syntheticId.slice(-24)}%`) },
+      select: ['id'],
+    });
+    if (existing) {
+      return null;
+    }
+    const originalName = normalizeFilename(attachment.filename || `statement-${randomUUID()}`);
+    const extension = path.extname(originalName) || '.bin';
+    const filePath = path.join(resolveUploadsDir(), `${randomUUID()}${extension}`);
+    await fs.promises.writeFile(filePath, attachment.content);
+    const file = {
+      fieldname: 'files',
+      originalname: `${path.basename(originalName, extension)}-${syntheticId.slice(-24)}${extension}`,
+      encoding: '7bit',
+      mimetype: attachment.contentType || 'application/octet-stream',
+      size: attachment.content.length,
+      destination: resolveUploadsDir(),
+      filename: path.basename(filePath),
+      path: filePath,
+      buffer: attachment.content,
+    } as Express.Multer.File;
+    try {
+      const statement = await this.statementsService.create(user, workspaceId, file);
+      return statement.id;
+    } catch (error) {
+      this.logger.warn(`IMAP: statement attachment skipped: ${this.getErrorMessage(error)}`);
+      await fs.promises.unlink(filePath).catch(() => undefined);
+      return null;
+    }
   }
 
   private async saveReceiptAttachments(
@@ -1229,4 +1282,28 @@ export class OpenProtocolIntegrationsService {
   private getErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
   }
+}
+
+const STATEMENT_EXTENSIONS = new Set([
+  '.csv',
+  '.xlsx',
+  '.xls',
+  '.ofx',
+  '.qfx',
+  '.qif',
+  '.mt940',
+  '.sta',
+  '.940',
+  '.swi',
+  '.xml',
+]);
+
+/** Bank exports by extension; an .xml only when it is camt, PDFs stay receipts. */
+function isStatementAttachment(filename: string | undefined, content: Buffer): boolean {
+  const extension = path.extname(filename || '').toLowerCase();
+  if (!STATEMENT_EXTENSIONS.has(extension)) return false;
+  if (extension === '.xml') {
+    return sniffStatementFormat(content.subarray(0, 8192).toString('utf-8')) === 'camt';
+  }
+  return true;
 }

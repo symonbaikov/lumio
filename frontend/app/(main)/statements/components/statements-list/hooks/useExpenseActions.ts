@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import { getApiErrorStatus } from '@/app/lib/api-error';
+import {
+  enqueue,
+  indexedDbStore,
+  isNetworkFailure,
+  isOfflineStoreAvailable,
+} from '@/app/lib/offline/offline-queue';
 import type { StatementCategoryNode } from '@/app/lib/statement-categories';
 import { type ManualExpenseDraft, type TaxRateOption } from '@/app/lib/statement-expense-drawer';
 import {
@@ -80,6 +87,8 @@ function buildManualExpenseFormData({
   return fd;
 }
 
+class NetworkDownError extends Error {}
+
 async function tryPostToEndpoint(endpoint: string, formData: FormData): Promise<boolean> {
   try {
     await apiClient.post(endpoint, formData, {
@@ -90,6 +99,9 @@ async function tryPostToEndpoint(endpoint: string, formData: FormData): Promise<
     const status = getApiErrorStatus(error);
     if (status === 404 || status === 405) {
       return false;
+    }
+    if (isNetworkFailure(status)) {
+      throw new NetworkDownError('network');
     }
     console.error('Failed to create manual expense:', error);
     throw new Error('Failed to create manual expense');
@@ -105,6 +117,7 @@ export function useExpenseActions({
     [],
   );
   const [manualExpenseTaxRates, setManualExpenseTaxRates] = useState<TaxRateOption[]>([]);
+  const offlineText = useIntlayer('offlineBanner');
 
   useEffect(() => {
     if (!user) {
@@ -189,14 +202,45 @@ export function useExpenseActions({
       resolvedTaxRateId,
     });
 
+    // No network: keep it on the device and send it when the connection is back.
+    const keepOffline = async (): Promise<void> => {
+      await enqueue(indexedDbStore, {
+        kind: 'manual-expense',
+        fields: {
+          amount: payload.draft.amount.trim(),
+          currency: payload.draft.currency.trim(),
+          merchant: payload.draft.merchant.trim(),
+          description: payload.draft.description.trim(),
+          categoryId: payload.draft.categoryId,
+          ...(resolvedTaxRateId ? { taxRateId: resolvedTaxRateId } : {}),
+          date: payload.date,
+          allowDuplicates: payload.allowDuplicates ? 'true' : 'false',
+        },
+        files: payload.files,
+      });
+      toast.success(offlineText.savedOffline.value);
+    };
+    if (isOfflineStoreAvailable() && typeof navigator !== 'undefined' && !navigator.onLine) {
+      await keepOffline();
+      return;
+    }
+
     const endpoints = ['/statements/manual-expense', '/expenses/manual', '/expenses'];
-    for (const endpoint of endpoints) {
-      const succeeded = await tryPostToEndpoint(endpoint, formData);
-      if (succeeded) {
-        toast.success('Manual expense created');
-        await refreshAfterCreate();
+    try {
+      for (const endpoint of endpoints) {
+        const succeeded = await tryPostToEndpoint(endpoint, formData);
+        if (succeeded) {
+          toast.success('Manual expense created');
+          await refreshAfterCreate();
+          return;
+        }
+      }
+    } catch (error) {
+      if (error instanceof NetworkDownError && isOfflineStoreAvailable()) {
+        await keepOffline();
         return;
       }
+      throw error;
     }
     throw new Error('Manual expense creation is not available yet');
   };
