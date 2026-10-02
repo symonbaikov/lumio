@@ -6,6 +6,7 @@ import { BadRequestException } from '@nestjs/common';
 import { resolveUploadsDir } from '@/common/utils/uploads.util';
 import {
   getFileTypeFromMime,
+  resolveFileType,
   unlinkAll,
   validateFile,
   validateFiles,
@@ -103,6 +104,27 @@ describe('validateFile', () => {
     const filePath = writeFile('data.csv', 'Date,Amount\n01.01.2024,100\n');
     const file = makeFile({ mimetype: 'text/csv', path: filePath });
     expect(() => validateFile(file)).not.toThrow();
+  });
+
+  it('takes a .csv that Windows declared as Excel for the CSV it is', () => {
+    const filePath = writeFile('statement.csv', 'Date,Amount\n01.01.2024,100\n');
+    const file = makeFile({
+      mimetype: 'application/vnd.ms-excel',
+      originalname: 'statement.csv',
+      path: filePath,
+    });
+    expect(() => validateFile(file)).not.toThrow();
+    expect(resolveFileType(file)).toBe('csv');
+  });
+
+  it('still rejects text declared as Excel under an .xls name', () => {
+    const filePath = writeFile('statement.xls', 'Date,Amount\n01.01.2024,100\n');
+    const file = makeFile({
+      mimetype: 'application/vnd.ms-excel',
+      originalname: 'statement.xls',
+      path: filePath,
+    });
+    expect(() => validateFile(file)).toThrow(BadRequestException);
   });
 
   it('skips the signature check when no file path is available (e.g. memory storage)', () => {

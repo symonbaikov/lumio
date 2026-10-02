@@ -148,6 +148,13 @@ export const invoicesApi = {
     const response = await apiClient.put<Invoice>(`/invoices/${id}/void`);
     return unwrapData(response);
   },
+  /** Emails the client a reminder about a sent or overdue invoice. */
+  async remind(id: string): Promise<{ sent: boolean; to: string; reminderCount: number }> {
+    const response = await apiClient.post<{ sent: boolean; to: string; reminderCount: number }>(
+      `/invoices/${id}/remind`,
+    );
+    return unwrapData(response);
+  },
   async delete(id: string): Promise<{ message: string }> {
     const response = await apiClient.delete<{ message: string }>(`/invoices/${id}`);
     return unwrapData(response);

@@ -8,6 +8,7 @@ import type { DashboardTabId } from '../helpers/dashboard-url-state';
 import { DashboardErrorBanner } from './DashboardErrorBanner';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardTabContent } from './DashboardTabContent';
+import { MissingRatesBanner } from './MissingRatesBanner';
 
 function DashboardStatCardSkeleton(): React.JSX.Element {
   return (
@@ -120,6 +121,7 @@ export function DashboardContent({
         exportMenu={exportMenu}
         labels={headerLabels}
       />
+      <MissingRatesBanner currencies={data.snapshot?.missingRates ?? []} />
       <DashboardTabContent
         activeTab={activeTab}
         data={data}

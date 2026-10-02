@@ -13,12 +13,16 @@ import { ApplicationSettingsModule } from '../application-settings/application-s
 import { AuditModule } from '../audit/audit.module';
 import { GeocodingModule } from '../geocoding/geocoding.module';
 import { ParsingModule } from '../parsing/parsing.module';
+import { TransactionsModule } from '../transactions/transactions.module';
 import { ReceiptsController } from './receipts.controller';
 import { ReceiptsService } from './receipts.service';
 import { ReceiptCategoryService } from './services/receipt-category.service';
 import { ReceiptDuplicateService } from './services/receipt-duplicate.service';
 import { ReceiptLocationService } from './services/receipt-location.service';
+import { ReceiptMatchService } from './services/receipt-match.service';
+import { ReceiptPlaceSuggestionService } from './services/receipt-place-suggestion.service';
 import { ReceiptProcessorService } from './services/receipt-processor.service';
+import { ReceiptSplitService } from './services/receipt-split.service';
 import { ReceiptStageService } from './services/receipt-stage.service';
 
 @Module({
@@ -36,6 +40,7 @@ import { ReceiptStageService } from './services/receipt-stage.service';
     ParsingModule,
     ApplicationSettingsModule,
     GeocodingModule,
+    TransactionsModule,
   ],
   controllers: [ReceiptsController],
   providers: [
@@ -43,9 +48,12 @@ import { ReceiptStageService } from './services/receipt-stage.service';
     ReceiptCategoryService,
     ReceiptDuplicateService,
     ReceiptLocationService,
+    ReceiptPlaceSuggestionService,
     ReceiptProcessorService,
     ReceiptStageService,
+    ReceiptMatchService,
+    ReceiptSplitService,
   ],
-  exports: [ReceiptsService, ReceiptCategoryService, ReceiptDuplicateService],
+  exports: [ReceiptsService, ReceiptCategoryService, ReceiptDuplicateService, ReceiptMatchService],
 })
 export class ReceiptsModule {}

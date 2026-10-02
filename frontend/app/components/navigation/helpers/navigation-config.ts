@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   Flag,
+  Inbox,
   Landmark,
   LayoutDashboard,
   Lightbulb,
@@ -33,6 +34,32 @@ export interface NavItem {
   permission: string;
   /** Only offered while experimental mode is on — the feature is unfinished. */
   experimental?: boolean;
+  /** Hidden in the home profile: household money has no invoices or ledger. */
+  businessOnly?: boolean;
+}
+
+export type WorkspaceProfile = 'home' | 'business';
+
+/** Business is how every workspace behaved before the profile existed. */
+export function workspaceProfileOf(
+  workspace?: { settings?: Record<string, unknown> | null } | null,
+): WorkspaceProfile {
+  return workspace?.settings?.profile === 'home' ? 'home' : 'business';
+}
+
+/** The one filter the sidebar, the mobile menu and the tutorial share. */
+export function isNavItemVisible(
+  item: NavItem,
+  context: {
+    hasPermission: (permission: string) => boolean;
+    experimentalMode: boolean;
+    profile: WorkspaceProfile;
+  },
+): boolean {
+  if (!context.hasPermission(item.permission)) return false;
+  if (item.experimental && !context.experimentalMode) return false;
+  if (item.businessOnly && context.profile === 'home') return false;
+  return true;
 }
 
 export function buildNavItems(nav: {
@@ -43,6 +70,7 @@ export function buildNavItems(nav: {
   reports: unknown;
   taxDeclaration: unknown;
   netWorth: unknown;
+  forecast: unknown;
   advice: unknown;
   budgets: unknown;
   goals: unknown;
@@ -51,6 +79,7 @@ export function buildNavItems(nav: {
   crypto: unknown;
   ledger: unknown;
   invoices: unknown;
+  review: unknown;
 }): NavItem[] {
   return [
     {
@@ -66,10 +95,17 @@ export function buildNavItems(nav: {
       permission: 'statement.view',
     },
     {
+      label: nav.review as ReactNode,
+      path: '/review',
+      icon: React.createElement(Inbox, { size: 18 }),
+      permission: 'transaction.view',
+    },
+    {
       label: nav.tables as ReactNode,
       path: '/custom-tables',
       icon: React.createElement(Table, { size: 18 }),
       permission: 'statement.view',
+      businessOnly: true,
     },
     {
       label: nav.workspaces as ReactNode,
@@ -90,6 +126,7 @@ export function buildNavItems(nav: {
       permission: 'ledger.view',
       // Behind experimental mode until the ledger has been used on real books for a while.
       experimental: true,
+      businessOnly: true,
     },
     {
       label: nav.taxDeclaration as ReactNode,
@@ -97,6 +134,7 @@ export function buildNavItems(nav: {
       icon: React.createElement(Landmark, { size: 18 }),
       // Matches the draft endpoints' read guard (Permission.REPORT_VIEW).
       permission: 'report.view',
+      businessOnly: true,
     },
     {
       label: nav.netWorth as ReactNode,
@@ -104,6 +142,13 @@ export function buildNavItems(nav: {
       icon: React.createElement(TrendingUp, { size: 18 }),
       // Matches the endpoint's own guard (Permission.REPORT_VIEW) so the item
       // is not offered to roles that would only get a 403 from it.
+      permission: 'report.view',
+    },
+    {
+      label: nav.forecast as ReactNode,
+      path: '/forecast',
+      icon: React.createElement(TrendingUp, { size: 18 }),
+      // Reads the same aggregates as the dashboard and net worth (Permission.REPORT_VIEW).
       permission: 'report.view',
     },
     {
@@ -151,6 +196,7 @@ export function buildNavItems(nav: {
       path: '/invoices',
       icon: React.createElement(ReceiptText, { size: 18 }),
       permission: 'invoice.view',
+      businessOnly: true,
     },
   ];
 }

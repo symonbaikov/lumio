@@ -120,6 +120,7 @@ export class TaxThresholdService {
               from,
               jurisdiction.currency,
               new Date(sale.transactionDate),
+              workspaceId,
             );
 
       turnoverMinor += roundHalfAwayFromZero(toMinor(net) * rate);

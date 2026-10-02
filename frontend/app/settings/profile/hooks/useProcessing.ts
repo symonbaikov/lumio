@@ -10,12 +10,20 @@ export type DuplicateResolution = (typeof duplicateResolutions)[number];
 export type ProcessingSettings = {
   categorizationThreshold: number;
   duplicateResolution: DuplicateResolution;
+  aiCategorization: boolean;
+  aiMerchantNormalization: boolean;
+  merchantLearning: boolean;
+  autoApproveAiPicks: boolean;
 };
 
 /** Mirrors the server defaults, which are the previously hardcoded values. */
 const DEFAULTS: ProcessingSettings = {
   categorizationThreshold: 0.7,
   duplicateResolution: 'skip',
+  aiCategorization: true,
+  aiMerchantNormalization: true,
+  merchantLearning: true,
+  autoApproveAiPicks: false,
 };
 
 export type UseProcessingMessages = {

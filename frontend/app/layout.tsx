@@ -12,6 +12,7 @@ import DynamicPageTitle from './components/DynamicPageTitle';
 import MobileBottomBar from './components/mobile/MobileBottomBar';
 import { AppPanels } from './components/panels/AppPanels';
 import { ReactScan } from './components/ReactScan';
+import { ReceiptPlaceFollowupHost } from './components/receipts/place-followup/ReceiptPlaceFollowupHost';
 import { SidePanelProvider } from './components/side-panel/SidePanelContext';
 import TopBar from './components/TopBar';
 import { WelcomeTutorialHost } from './components/welcome-tutorial/WelcomeTutorialHost';
@@ -112,6 +113,7 @@ export default async function RootLayout({
                     <MobileBottomBar />
                     <AppPanels />
                     <WelcomeTutorialHost />
+                    <ReceiptPlaceFollowupHost />
                     <div
                       id="fab-portal"
                       style={{ position: 'fixed', inset: 0, zIndex: 300, pointerEvents: 'none' }}

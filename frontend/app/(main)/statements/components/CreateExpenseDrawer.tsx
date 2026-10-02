@@ -34,6 +34,7 @@ import {
   type TaxRateOption,
 } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
+import { BudgetImpactNotice } from './BudgetImpactNotice';
 
 type Props = {
   open: boolean;
@@ -611,7 +612,7 @@ export default function CreateExpenseDrawer({
                   <span className="lumio-expense-drawer__attach-hint">{t.attachFileHint}</span>
                   <input
                     type="file"
-                    accept="image/*,.pdf,.csv,.xlsx,.xls"
+                    accept="image/*,.pdf,.csv,.xlsx,.xls,.ofx,.qfx,.qif,.xml,.mt940,.sta,.940"
                     capture="environment"
                     className="lumio-expense-drawer__attach-input"
                     multiple
@@ -681,6 +682,12 @@ export default function CreateExpenseDrawer({
                       {selectedCategoryName || t.selectCategory}
                     </PickerButton>
                   </DetailField>
+                  <BudgetImpactNotice
+                    categoryId={manualDraft.categoryId}
+                    amount={manualDraft.amount}
+                    currency={manualDraft.currency}
+                    date={manualDate}
+                  />
 
                   <DetailField id="expense-manual-date" label={t.date.value}>
                     <div className={controlClass(false)}>

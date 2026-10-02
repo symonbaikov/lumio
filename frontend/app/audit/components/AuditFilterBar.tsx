@@ -20,6 +20,7 @@ type LabelKey =
   | 'user'
   | 'system'
   | 'integration'
+  | 'ai'
   | 'allActions'
   | 'actionCreate'
   | 'actionUpdate'
@@ -44,6 +45,7 @@ const ACTOR_OPTIONS: ActorTypeOption[] = [
   { value: 'user', labelKey: 'user' },
   { value: 'system', labelKey: 'system' },
   { value: 'integration', labelKey: 'integration' },
+  { value: 'ai', labelKey: 'ai' },
 ];
 
 const ACTION_OPTIONS: ActionOption[] = [

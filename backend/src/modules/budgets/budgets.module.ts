@@ -4,6 +4,7 @@ import { Budget } from '../../entities/budget.entity';
 import { Category } from '../../entities/category.entity';
 import { Goal } from '../../entities/goal.entity';
 import { Transaction } from '../../entities/transaction.entity';
+import { Wallet } from '../../entities/wallet.entity';
 import { Workspace } from '../../entities/workspace.entity';
 import { AuditModule } from '../audit/audit.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
@@ -15,7 +16,7 @@ import { StoicLedgerService } from './stoic/stoic-ledger.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Budget, Category, Goal, Transaction, Workspace]),
+    TypeOrmModule.forFeature([Budget, Category, Goal, Transaction, Wallet, Workspace]),
     NotificationsModule,
     ExchangeRatesModule,
     AuditModule,

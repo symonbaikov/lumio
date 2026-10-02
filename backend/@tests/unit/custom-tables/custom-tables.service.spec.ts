@@ -206,6 +206,12 @@ describe("CustomTablesService.convertToStatement", () => {
 			classifyTransactionsBatch: jest
 				.fn()
 				.mockResolvedValue(new Map([[0, { categoryId: "cat-food" }]])),
+			// Rules and learning find nothing, so the model's answer is taken.
+			classifyTransaction: jest.fn().mockResolvedValue({
+				categoryId: "cat-none",
+				categorySource: "default",
+				categoryReason: null,
+			}),
 		};
 		const {
 			service,
@@ -272,7 +278,7 @@ describe("CustomTablesService.convertToStatement", () => {
 		);
 		expect(transactionRepository.update).toHaveBeenCalledWith(
 			{ id: "tx-0" },
-			{ categoryId: "cat-food" },
+			{ categoryId: "cat-food", categorySource: "ai", categoryReason: null },
 		);
 	});
 

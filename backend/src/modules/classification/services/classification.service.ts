@@ -6,18 +6,27 @@ import type { Repository } from 'typeorm';
 import {
   DEFAULT_PROCESSING_SETTINGS,
   readProcessingSettings,
+  type WorkspaceProcessingSettings,
 } from '../../../common/utils/workspace-processing.util';
 import { ActorType, AuditAction, EntityType } from '../../../entities/audit-event.entity';
 import { Branch } from '../../../entities/branch.entity';
 import { CategorizationRule } from '../../../entities/categorization-rule.entity';
 import { Category, CategorySource, CategoryType } from '../../../entities/category.entity';
 import { CategoryLearning } from '../../../entities/category-learning.entity';
-import { type Transaction, TransactionType } from '../../../entities/transaction.entity';
+import {
+  type Transaction,
+  TransactionCategorySource,
+  TransactionType,
+} from '../../../entities/transaction.entity';
 import { Wallet } from '../../../entities/wallet.entity';
 import { Workspace } from '../../../entities/workspace.entity';
 import { ApplicationSettingsService } from '../../application-settings/application-settings.service';
 import { AuditService } from '../../audit/audit.service';
 import { CategoriesService } from '../../categories/categories.service';
+import {
+  isUncategorizedName,
+  UNCATEGORIZED_CATEGORY_NAME,
+} from '../../categories/uncategorized-category';
 import {
   AiCategoryClassifier,
   type AiCategoryMatch,
@@ -34,6 +43,19 @@ type BatchTransactionClassificationInput = {
   paymentPurpose: string;
   transactionType: TransactionType;
 };
+
+/** A category plus the step that found it and the payload the UI shows as "why". */
+type AutoCategoryMatch = {
+  categoryId: string;
+  source: TransactionCategorySource;
+  reason: string | null;
+};
+
+/** A learned pattern that outranks a one-off correction once it is backed twice. */
+const ESTABLISHED_OCCURRENCES = 2;
+/** Confidence of a correction that contradicts an established pattern for the same payee. */
+const PROVISIONAL_CONFIDENCE = 0.6;
+const PROCESSING_SETTINGS_TTL_MS = 60_000;
 
 @Injectable()
 export class ClassificationService {
@@ -63,6 +85,7 @@ export class ClassificationService {
     transaction: Transaction,
     userId: string,
     batchId?: string | null,
+    options: { bypassCache?: boolean } = {},
   ): Promise<Partial<Transaction>> {
     const classification: Partial<Transaction> = {};
     const workspaceId = transaction.workspaceId || null;
@@ -77,7 +100,7 @@ export class ClassificationService {
 
     // Check cache first
     const cacheKey = transaction.id ? `classification:${transaction.id}` : null;
-    if (cacheKey) {
+    if (cacheKey && !options.bypassCache) {
       const cached = await this.cacheManager.get<Partial<Transaction>>(cacheKey);
       if (cached) {
         return cached;
@@ -94,6 +117,8 @@ export class ClassificationService {
         // Apply rule result
         if (rule.result.categoryId) {
           classification.categoryId = rule.result.categoryId;
+          classification.categorySource = TransactionCategorySource.RULE;
+          classification.categoryReason = rule.name;
         }
         if (rule.result.branchId) {
           classification.branchId = rule.result.branchId;
@@ -115,12 +140,15 @@ export class ClassificationService {
 
     // Auto-classify category if not set
     if (!classification.categoryId) {
-      classification.categoryId = await this.autoClassifyCategory(
+      const match = await this.autoClassifyCategory(
         transaction,
         userId,
         classification.transactionType || TransactionType.EXPENSE,
         workspaceId,
       );
+      classification.categoryId = match?.categoryId;
+      classification.categorySource = match?.source ?? null;
+      classification.categoryReason = match?.reason ?? null;
     }
 
     // Auto-determine wallet if not set
@@ -225,19 +253,23 @@ export class ClassificationService {
     userId: string,
     transactionType: TransactionType,
     workspaceId: string | null = null,
-  ): Promise<string | undefined> {
+  ): Promise<AutoCategoryMatch | undefined> {
     // Look for common patterns in counterparty name or purpose
     const searchText =
       `${transaction.counterpartyName} ${transaction.paymentPurpose}`.toLowerCase();
 
     if (workspaceId) {
-      const workspaceCategoryId = await this.matchWorkspaceCategories(
+      const workspaceCategory = await this.matchWorkspaceCategories(
         searchText,
         workspaceId,
         transactionType,
       );
-      if (workspaceCategoryId) {
-        return workspaceCategoryId;
+      if (workspaceCategory) {
+        return {
+          categoryId: workspaceCategory.id,
+          source: TransactionCategorySource.KEYWORD,
+          reason: workspaceCategory.name,
+        };
       }
     }
 
@@ -300,7 +332,11 @@ export class ClassificationService {
         );
 
         if (categoryId) {
-          return categoryId;
+          return {
+            categoryId,
+            source: TransactionCategorySource.KEYWORD,
+            reason: pattern.source,
+          };
         }
       }
     }
@@ -319,17 +355,24 @@ export class ClassificationService {
     // Try to find category by historical data
     const historicalCategory = await this.findCategoryByHistory(transaction, userId, workspaceId);
     if (historicalCategory) {
-      return historicalCategory.id;
+      return {
+        categoryId: historicalCategory.id,
+        source: TransactionCategorySource.HISTORY,
+        reason: transaction.counterpartyName || null,
+      };
     }
 
     // FALLBACK: Create "Uncategorized" to ensure transaction is categorized
-    return await this.ensureCategory(
+    const fallbackId = await this.ensureCategory(
       userId,
-      'Без категории',
+      UNCATEGORIZED_CATEGORY_NAME,
       transactionType === TransactionType.INCOME ? CategoryType.INCOME : CategoryType.EXPENSE,
       undefined,
       workspaceId,
     );
+    return fallbackId
+      ? { categoryId: fallbackId, source: TransactionCategorySource.DEFAULT, reason: null }
+      : undefined;
   }
 
   private async findCategoryByHistory(
@@ -620,7 +663,7 @@ export class ClassificationService {
     searchText: string,
     workspaceId: string,
     transactionType: TransactionType,
-  ): Promise<string | undefined> {
+  ): Promise<Pick<Category, 'id' | 'name'> | undefined> {
     const type =
       transactionType === TransactionType.INCOME ? CategoryType.INCOME : CategoryType.EXPENSE;
     const categories = (await this.categoriesService.findAll(workspaceId, type)) ?? [];
@@ -634,7 +677,7 @@ export class ClassificationService {
       }
 
       const normalizedName = category.name.trim().toLowerCase();
-      if (normalizedName === 'без категории' || normalizedName === 'other') {
+      if (isUncategorizedName(normalizedName) || normalizedName === 'other') {
         continue;
       }
 
@@ -647,16 +690,11 @@ export class ClassificationService {
         searchTokens.some(token => this.categoryWordsMatch(word, token)),
       );
       if (matchedWords.length / words.length >= nameMatchThreshold) {
-        return category.id;
+        return { id: category.id, name: category.name };
       }
     }
 
     return undefined;
-  }
-
-  async classifyBulk(_transactionIds: string[], _userId: string): Promise<void> {
-    // TODO: Implement bulk classification
-    // This would process multiple transactions at once
   }
 
   async classifyTransactionsBatch(
@@ -670,6 +708,11 @@ export class ClassificationService {
     >();
 
     if (!(transactions.length && workspaceId)) {
+      return resultByIndex;
+    }
+
+    const processing = await this.getProcessingSettings(workspaceId);
+    if (!processing.aiCategorization) {
       return resultByIndex;
     }
 
@@ -704,7 +747,7 @@ export class ClassificationService {
 
     for (const match of matches) {
       const enrichment: TransactionEnrichment = {
-        vendorNormalized: match.vendorNormalized,
+        vendorNormalized: processing.aiMerchantNormalization ? match.vendorNormalized : undefined,
         categoryHint: match.categoryHint,
         taxMentioned: match.taxMentioned,
         taxRate: match.taxRate,
@@ -716,7 +759,9 @@ export class ClassificationService {
       if (!tx) {
         continue;
       }
-      await this.learnFromAiClassification(workspaceId, userId, tx, match);
+      if (processing.merchantLearning) {
+        await this.learnFromAiClassification(workspaceId, userId, tx, match);
+      }
     }
 
     return resultByIndex;
@@ -749,7 +794,7 @@ export class ClassificationService {
     const categories = await this.categoriesService.findAll(workspaceId, type);
     return categories
       .filter(category => category.isEnabled !== false)
-      .filter(category => category.name.trim().toLowerCase() !== 'без категории')
+      .filter(category => !isUncategorizedName(category.name))
       .map(category => ({ id: category.id, name: category.name }));
   }
 
@@ -793,7 +838,17 @@ export class ClassificationService {
         source: workspaceId ? CategorySource.PARSING : CategorySource.USER,
         color,
       });
-      category = await this.categoryRepository.save(category);
+      try {
+        category = await this.categoryRepository.save(category);
+      } catch (error) {
+        // A parallel import created the same fallback first (UQ_categories_uncategorized).
+        if (!(workspaceId && (error as { code?: string }).code === '23505')) throw error;
+        const created = await this.categoryRepository.findOne({
+          where: { workspaceId, name: categoryName, type },
+        });
+        if (!created) throw error;
+        return created.id;
+      }
       if (workspaceId) {
         await this.invalidateWorkspaceCategoriesCache(workspaceId);
       }
@@ -953,49 +1008,64 @@ export class ClassificationService {
   /**
    * Record a user correction for ML learning
    */
+  /**
+   * Remembers a manual category pick for the payee. A single correction does
+   * not flip a payee with an established pattern (a one-off gift bought at the
+   * grocery store stays a one-off); the second correction for the same payee
+   * does, and demotes what it replaces.
+   */
   async learnFromCorrection(
     transaction: Transaction,
     newCategoryId: string,
     userId: string,
   ): Promise<void> {
     const workspaceId = transaction.workspaceId || null;
+    const settings = await this.getProcessingSettings(workspaceId);
+    if (!settings.merchantLearning) {
+      return;
+    }
 
-    const lookupWhere = workspaceId
-      ? {
-          workspaceId,
-          categoryId: newCategoryId,
-          paymentPurpose: transaction.paymentPurpose || '',
-        }
-      : {
-          userId,
-          categoryId: newCategoryId,
-          paymentPurpose: transaction.paymentPurpose || '',
-        };
+    const scope = workspaceId ? { workspaceId } : { userId };
+    const paymentPurpose = transaction.paymentPurpose || '';
+    const counterpartyName = transaction.counterpartyName || null;
 
     // Check if similar pattern already exists
     const existing = await this.categoryLearningRepository.findOne({
-      where: lookupWhere,
+      where: { ...scope, categoryId: newCategoryId, paymentPurpose },
     });
+    const competitors = counterpartyName
+      ? (
+          await this.categoryLearningRepository.find({ where: { ...scope, counterpartyName } })
+        ).filter(pattern => pattern.categoryId !== newCategoryId)
+      : [];
+    const contested = competitors.some(pattern => Number(pattern.confidence) >= 1);
 
+    let pattern: CategoryLearning;
     if (existing) {
-      // Increment occurrences for confidence boost
       existing.occurrences += 1;
-      existing.confidence = Math.min(1.0, Number(existing.confidence) + 0.05);
-      await this.categoryLearningRepository.save(existing);
+      existing.learnedFrom = 'manual_correction';
+      pattern = existing;
     } else {
-      // Create new learning entry
-      await this.categoryLearningRepository.save(
-        this.categoryLearningRepository.create({
-          userId,
-          workspaceId,
-          categoryId: newCategoryId,
-          paymentPurpose: transaction.paymentPurpose || '',
-          counterpartyName: transaction.counterpartyName || null,
-          learnedFrom: 'manual_correction',
-          confidence: 1.0,
-          occurrences: 1,
-        }),
-      );
+      pattern = this.categoryLearningRepository.create({
+        userId,
+        workspaceId,
+        categoryId: newCategoryId,
+        paymentPurpose,
+        counterpartyName,
+        learnedFrom: 'manual_correction',
+        occurrences: 1,
+      });
+    }
+
+    const established = !contested || pattern.occurrences >= ESTABLISHED_OCCURRENCES;
+    pattern.confidence = established ? 1 : PROVISIONAL_CONFIDENCE;
+    await this.categoryLearningRepository.save(pattern);
+
+    if (established && competitors.length > 0) {
+      for (const competitor of competitors) {
+        competitor.confidence = PROVISIONAL_CONFIDENCE;
+      }
+      await this.categoryLearningRepository.save(competitors);
     }
 
     // Invalidate learned patterns cache for this user
@@ -1010,7 +1080,11 @@ export class ClassificationService {
     userId: string,
     _transactionType: TransactionType,
     workspaceId: string | null = null,
-  ): Promise<string | undefined> {
+  ): Promise<AutoCategoryMatch | undefined> {
+    const settings = await this.getProcessingSettings(workspaceId);
+    if (!settings.merchantLearning) {
+      return undefined;
+    }
     const cacheKey = this.getLearnedPatternsCacheKey(userId, workspaceId);
 
     // Try to get from cache
@@ -1032,15 +1106,23 @@ export class ClassificationService {
       return undefined;
     }
 
-    const threshold = await this.getCategorizationThreshold(workspaceId);
+    const threshold = settings.categorizationThreshold;
 
     // Calculate similarity scores
     const searchText =
       `${transaction.paymentPurpose} ${transaction.counterpartyName}`.toLowerCase();
 
-    let bestMatch: { categoryId: string; score: number } | null = null;
+    // Two tiers: what the user taught outranks what the model taught, however
+    // confident the model was. Model patterns are skipped entirely when AI
+    // categorisation is off — "off" has to mean no AI influence at all.
+    let bestManual: { pattern: CategoryLearning; score: number } | null = null;
+    let bestAi: { pattern: CategoryLearning; score: number } | null = null;
 
     for (const pattern of learnedPatterns) {
+      const fromAi = pattern.learnedFrom === 'ai_classification';
+      if (fromAi && !settings.aiCategorization) {
+        continue;
+      }
       const patternText =
         `${pattern.paymentPurpose} ${pattern.counterpartyName || ''}`.toLowerCase();
 
@@ -1048,27 +1130,42 @@ export class ClassificationService {
 
       // Consider confidence in scoring (boost high-confidence patterns)
       const weightedScore = score * Number(pattern.confidence);
-
-      if (weightedScore > threshold && (!bestMatch || weightedScore > bestMatch.score)) {
-        bestMatch = { categoryId: pattern.categoryId, score: weightedScore };
+      if (weightedScore <= threshold) {
+        continue;
+      }
+      if (fromAi) {
+        if (!bestAi || weightedScore > bestAi.score) bestAi = { pattern, score: weightedScore };
+      } else if (!bestManual || weightedScore > bestManual.score) {
+        bestManual = { pattern, score: weightedScore };
       }
     }
 
-    return bestMatch?.categoryId;
+    const best = bestManual ?? bestAi;
+    if (!best) {
+      return undefined;
+    }
+    return {
+      categoryId: best.pattern.categoryId,
+      source: bestManual ? TransactionCategorySource.LEARNED : TransactionCategorySource.AI,
+      reason: best.pattern.counterpartyName || best.pattern.paymentPurpose || null,
+    };
   }
 
   /**
-   * Workspace-configured match threshold. Cached because classification runs
-   * per transaction and the value changes about once a year.
+   * Workspace processing settings (threshold and the AI/learning switches).
+   * Cached because classification runs per transaction; a minute is short
+   * enough that a flipped switch applies to the next import.
    */
-  private async getCategorizationThreshold(workspaceId: string | null): Promise<number> {
+  private async getProcessingSettings(
+    workspaceId: string | null,
+  ): Promise<WorkspaceProcessingSettings> {
     if (!workspaceId) {
-      return DEFAULT_PROCESSING_SETTINGS.categorizationThreshold;
+      return DEFAULT_PROCESSING_SETTINGS;
     }
 
-    const cacheKey = `workspace:${workspaceId}:categorization-threshold`;
-    const cached = await this.cacheManager.get<number>(cacheKey);
-    if (typeof cached === 'number') {
+    const cacheKey = `workspace:${workspaceId}:processing-settings`;
+    const cached = await this.cacheManager.get<WorkspaceProcessingSettings>(cacheKey);
+    if (cached && typeof cached === 'object') {
       return cached;
     }
 
@@ -1076,10 +1173,14 @@ export class ClassificationService {
       where: { id: workspaceId },
       select: ['id', 'settings'],
     });
-    const { categorizationThreshold } = readProcessingSettings(workspace);
+    const settings = readProcessingSettings(workspace);
 
-    await this.cacheManager.set(cacheKey, categorizationThreshold, 300000);
-    return categorizationThreshold;
+    await this.cacheManager.set(cacheKey, settings, PROCESSING_SETTINGS_TTL_MS);
+    return settings;
+  }
+
+  private async getCategorizationThreshold(workspaceId: string | null): Promise<number> {
+    return (await this.getProcessingSettings(workspaceId)).categorizationThreshold;
   }
 
   private async learnFromAiClassification(

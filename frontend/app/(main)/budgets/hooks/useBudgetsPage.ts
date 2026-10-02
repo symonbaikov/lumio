@@ -24,6 +24,11 @@ export interface BudgetItem {
   manualSpentAmount?: number;
   spentAmount: number;
   percentUsed: number;
+  /** What the period has to spend once rollover is settled; equals the limit without rollover. */
+  availableAmount?: number;
+  /** Positive = leftover carried in, negative = overspend carried in. */
+  carriedAmount?: number;
+  rolloverMode?: BudgetRolloverMode;
   currency: string;
   workspaceCurrency?: string;
   periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual';
@@ -37,12 +42,15 @@ export interface BudgetItem {
   createdAt: string;
 }
 
+export type BudgetRolloverMode = 'none' | 'carry' | 'refill';
+
 export interface BudgetFormData {
   name: string;
   categoryId: string;
   limitAmount: number;
   manualSpentAmount: number;
   periodType: 'weekly' | 'monthly' | 'quarterly' | 'annual';
+  rolloverMode: BudgetRolloverMode;
   currency: string;
   /** Empty string means "no goal"; the API takes null for that. */
   goalId: string;
@@ -61,6 +69,7 @@ const makeEmptyForm = (currency: string): BudgetFormData => ({
   limitAmount: 0,
   manualSpentAmount: 0,
   periodType: 'monthly',
+  rolloverMode: 'none',
   currency,
   goalId: '',
   startsOn: '',
@@ -114,6 +123,7 @@ export function buildBudgetUpdatePayload(
     limitAmount: formData.limitAmount,
     manualSpentAmount: formData.manualSpentAmount,
     periodType: formData.periodType,
+    rolloverMode: formData.rolloverMode,
     currency: formData.currency,
     goalId: formData.goalId,
     startsOn: formData.startsOn,
@@ -181,6 +191,7 @@ export function useBudgetsPage() {
       limitAmount: budget.limitAmount,
       manualSpentAmount: budget.manualSpentAmount ?? 0,
       periodType: budget.periodType,
+      rolloverMode: budget.rolloverMode ?? 'none',
       currency: budget.currency,
       goalId: budget.goalId ?? '',
       startsOn: budget.startsOn ?? '',
@@ -217,6 +228,7 @@ export function useBudgetsPage() {
           name: formData.name,
           limitAmount: formData.limitAmount,
           currency: formData.currency,
+          rolloverMode: formData.rolloverMode,
           // Explicit null detaches; the API leaves the link alone only when the
           // field is absent, which the form can never mean.
           goalId: formData.goalId || null,
@@ -228,6 +240,7 @@ export function useBudgetsPage() {
           categoryId: formData.categoryId,
           limitAmount: formData.limitAmount,
           periodType: formData.periodType,
+          rolloverMode: formData.rolloverMode,
           currency: formData.currency,
           goalId: formData.goalId || null,
           startsOn: formData.startsOn || null,

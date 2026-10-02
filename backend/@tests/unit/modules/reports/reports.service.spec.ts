@@ -429,7 +429,7 @@ describe('generateFromTemplate', () => {
     });
 
     // EUR is the workspace currency (rate 1), USD is converted at the mocked rate of 2.
-    expect(mockExchangeRates.getRate).toHaveBeenCalledWith('USD', 'EUR');
+    expect(mockExchangeRates.getRate).toHaveBeenCalledWith('USD', 'EUR', undefined, 'ws1');
     expect(mockExchangeRates.getRate).not.toHaveBeenCalledWith('EUR', 'EUR');
     expect(fs.readFileSync(track(result.filePath), 'utf-8')).toContain('NET INCOME,300');
   });
@@ -821,8 +821,9 @@ describe('exportWorkspaceTransactions', () => {
       workspaceId: 'ws-42',
     });
     expect(qb.andWhere).toHaveBeenNthCalledWith(1, 'transaction.isDuplicate = false');
+    expect(qb.andWhere).toHaveBeenNthCalledWith(2, 'transaction.transferPairId IS NULL');
     expect(qb.andWhere).toHaveBeenNthCalledWith(
-      2,
+      3,
       '(transaction.statementId IS NULL OR statement.deletedAt IS NULL)',
     );
     expect(excelSpy).toHaveBeenCalledWith([{ id: 'tx-1' }], expect.stringContaining('workspace-transactions-'));

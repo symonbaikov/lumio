@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Interval } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +15,7 @@ import {
 } from '../../entities';
 import { AuditService } from '../audit/audit.service';
 import type { ReceiptUncategorizedEvent } from '../notifications/events/notification-events';
+import { ReceiptMatchService } from '../receipts/services/receipt-match.service';
 import type { GmailApi } from './gmail-api.types';
 import { GmailService } from './services/gmail.service';
 import { GmailReceiptCategoryService } from './services/gmail-receipt-category.service';
@@ -44,6 +45,8 @@ export class GmailReceiptProcessor {
     private readonly categoryService: GmailReceiptCategoryService,
     private readonly auditService: AuditService,
     private readonly eventEmitter?: EventEmitter2,
+    @Optional()
+    private readonly matchService?: ReceiptMatchService,
   ) {}
 
   private getHeaderValue(
@@ -327,6 +330,14 @@ export class GmailReceiptProcessor {
           await this.jobRepository.save(job);
         } catch (error) {
           this.logger.error('Failed to suggest category', error);
+        }
+      }
+
+      if (parsedData && savedReceipt.status !== ReceiptStatus.FAILED && this.matchService) {
+        try {
+          await this.matchService.suggest(savedReceipt);
+        } catch (error) {
+          this.logger.error('Failed to match receipt to a transaction', error);
         }
       }
 

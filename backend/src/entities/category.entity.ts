@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -36,6 +37,11 @@ export enum StoicClass {
 }
 
 @Entity('categories')
+// One fallback category per workspace and type (migration 1786810000000).
+@Index('UQ_categories_uncategorized', ['workspaceId', 'type'], {
+  unique: true,
+  where: "name = 'Uncategorized' AND parent_id IS NULL",
+})
 export class Category {
   @PrimaryGeneratedColumn('uuid')
   id: string;

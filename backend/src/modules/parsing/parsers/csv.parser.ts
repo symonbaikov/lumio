@@ -1,8 +1,10 @@
-import csv from 'csv-parser';
+import csv = require('csv-parser');
+
 import * as fs from 'fs';
 import { type BankName, FileType } from '../../../entities/statement.entity';
 import type { ParsedStatement, ParsedTransaction } from '../interfaces/parsed-statement.interface';
 import { BaseTabularParser } from './base-tabular.parser';
+import { type CsvPreset, findCsvPreset, presetColumnMapping } from './csv-presets';
 
 export class CsvParser extends BaseTabularParser {
   async canParse(
@@ -24,13 +26,16 @@ export class CsvParser extends BaseTabularParser {
       let headers: string[] = [];
       let isFirstRow = true;
       let columnMapping: Record<string, number> = {};
+      let preset: CsvPreset | null = null;
 
       const stream = fs
         .createReadStream(filePath)
         .pipe(csv({ separator: this.detectSeparator(filePath) }))
         .on('headers', (headerList: string[]) => {
           headers = headerList.map(h => h.toLowerCase().trim());
-          columnMapping = this.mapColumns(headers);
+          // A known bank layout beats the header guesser; the guesser stays for the rest.
+          preset = findCsvPreset(headers);
+          columnMapping = preset ? presetColumnMapping(preset, headers) : this.mapColumns(headers);
         })
         .on('data', (row: Record<string, string>) => {
           if (isFirstRow) {
@@ -53,8 +58,9 @@ export class CsvParser extends BaseTabularParser {
             row,
             columnMapping,
             index => rowValues[index],
-            'CSV',
-            detectedCurrency,
+            preset ? `CSV:${preset.name}` : 'CSV',
+            preset?.currency ?? detectedCurrency,
+            preset?.unsignedAmountDirection ?? 'credit',
           );
           if (transaction) {
             transactions.push(transaction);
@@ -69,7 +75,8 @@ export class CsvParser extends BaseTabularParser {
               accountNumber: 'Unknown',
               dateFrom: new Date(),
               dateTo: new Date(),
-              currency: detectedCurrency,
+              currency: preset?.currency ?? detectedCurrency,
+              institution: preset?.name,
               rawHeader: headerText || undefined,
               normalizedHeader: normalizedHeader || undefined,
               locale: localeInfo.locale !== 'unknown' ? localeInfo.locale : undefined,

@@ -5,6 +5,7 @@ export type NotificationChannelSetDto = {
   inApp?: boolean;
   email?: boolean;
   telegram?: boolean;
+  push?: boolean;
 };
 
 export class UpdateNotificationPreferencesDto {
@@ -68,4 +69,8 @@ export class UpdateNotificationPreferencesDto {
   @IsOptional()
   @IsBoolean()
   uncategorizedItems?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  subscriptionPrompts?: boolean;
 }

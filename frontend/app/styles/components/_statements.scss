@@ -4000,6 +4000,24 @@
     color: var(--destructive);
   }
 
+  // What the expense does to budgets and the account: advice under the category, not a gate.
+  &__impact {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 4px;
+  }
+
+  &__impact-line {
+    font-size: 12px;
+    color: var(--muted-foreground);
+
+    &--warn {
+      color: var(--destructive);
+    }
+  }
+
   &__content {
     flex: 1;
     overflow-y: auto;
@@ -4578,5 +4596,51 @@
     font-size: 14px;
     color: var(--muted-foreground);
     text-align: center;
+  }
+}
+
+// Offline strip above the page: a status line, not a modal.
+.lumio-offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px;
+  font-size: 13px;
+  background: var(--muted, #f3f4f6);
+  color: var(--foreground, #111827);
+
+  &--offline {
+    background: var(--destructive, #dc2626);
+    color: #fff;
+  }
+
+  &__action {
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font-size: 12px;
+    padding: 2px 10px;
+    cursor: pointer;
+  }
+}
+
+// Rows counted at face value because a rate is missing: a warning line above the dashboard tabs.
+.lumio-dashboard__rates-banner {
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.08);
+  color: var(--foreground, #111827);
+  font-size: 13px;
+
+  a {
+    color: var(--primary, #0584c7);
+    font-weight: 600;
   }
 }

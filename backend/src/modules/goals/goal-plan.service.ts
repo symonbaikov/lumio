@@ -119,6 +119,7 @@ export class GoalPlanService {
       this.exchangeRatesService,
       [goalCurrency, ...budgets.map(budget => budget.currency), ...incomeRows.map(r => r.currency)],
       currency,
+      workspaceId,
     );
     const fromGoal = (amount: number): number => convertWith(rates, amount, goalCurrency);
 
@@ -228,6 +229,7 @@ export class GoalPlanService {
       .andWhere('t.transaction_date >= :start', { start: window.start })
       .andWhere('t.transaction_date <= :end', { end: window.end })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .groupBy('t.currency')
       .getRawMany<{ currency: string; total: string }>();
   }

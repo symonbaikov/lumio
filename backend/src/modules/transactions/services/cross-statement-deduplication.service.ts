@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, type FindOptionsWhere, In, Repository } from 'typeorm';
+import { Statement } from '../../../entities/statement.entity';
 import { Transaction } from '../../../entities/transaction.entity';
 
 export interface DuplicateCandidate {
@@ -74,6 +75,11 @@ export class CrossStatementDeduplicationService {
       },
     });
 
+    const accountByStatement = await this.loadAccountNumbers([
+      ...transactionsToCheck,
+      ...potentialDuplicates,
+    ]);
+
     const duplicateGroups: DuplicateGroup[] = [];
     const processedIds = new Set<string>();
 
@@ -88,7 +94,8 @@ export class CrossStatementDeduplicationService {
             t.id !== transaction.id &&
             !processedIds.has(t.id) &&
             !t.isDuplicate &&
-            !this.isSameSplitGroup(transaction, t),
+            !this.isSameSplitGroup(transaction, t) &&
+            !this.isDifferentAccount(transaction, t, accountByStatement),
         )
         .map(candidate => ({
           candidate,
@@ -231,6 +238,49 @@ export class CrossStatementDeduplicationService {
         createdAt: 'ASC',
       },
     });
+  }
+
+  /**
+   * Two cards charged the same coffee on the same day are two coffees. A row
+   * can only duplicate a row from the same account (an overlapping re-import)
+   * or from an account we cannot name. The wallet is not used: classification
+   * puts the default wallet on every row, so it would merge all accounts.
+   */
+  private isDifferentAccount(
+    t1: Transaction,
+    t2: Transaction,
+    accountByStatement: Map<string, string>,
+  ): boolean {
+    const key = (t: Transaction): string | null => {
+      if (t.cryptoWalletId) return `crypto:${t.cryptoWalletId}`;
+      const account = t.statementId ? accountByStatement.get(t.statementId) : undefined;
+      return account ? `account:${account}` : null;
+    };
+    const key1 = key(t1);
+    const key2 = key(t2);
+    return key1 !== null && key2 !== null && key1 !== key2;
+  }
+
+  /** statementId → account number, for the statements the rows came from. */
+  private async loadAccountNumbers(transactions: Transaction[]): Promise<Map<string, string>> {
+    const ids = [...new Set(transactions.map(t => t.statementId).filter(Boolean))] as string[];
+    const result = new Map<string, string>();
+    const manager = this.transactionRepository.manager;
+    // Unit tests hand in a bare repository mock without a manager; without
+    // account numbers every row simply counts as "unknown account".
+    if (ids.length === 0 || typeof manager?.getRepository !== 'function') {
+      return result;
+    }
+    const statements = await manager
+      .getRepository(Statement)
+      .find({ where: { id: In(ids) }, select: ['id', 'accountNumber'] });
+    for (const statement of statements) {
+      const account = statement.accountNumber?.trim();
+      if (account) {
+        result.set(statement.id, account);
+      }
+    }
+    return result;
   }
 
   /**

@@ -81,7 +81,12 @@ describe('TaxThresholdService', () => {
 
       const status = await service.getStatus('ws-1', NOW);
 
-      expect(exchangeRates.getRate).toHaveBeenCalledWith('USD', 'GBP', new Date('2026-05-01'));
+      expect(exchangeRates.getRate).toHaveBeenCalledWith(
+        'USD',
+        'GBP',
+        new Date('2026-05-01'),
+        'ws-1',
+      );
       expect(status?.turnover).toBe(800);
     });
 

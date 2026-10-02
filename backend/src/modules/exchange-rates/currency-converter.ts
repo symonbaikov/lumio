@@ -38,6 +38,7 @@ export class CurrencyConverter {
     exchangeRates: ExchangeRatesService,
     target: string,
     needed: Array<{ currency: string; date: string }>,
+    workspaceId: string,
   ): Promise<CurrencyConverter> {
     const rates = new Map<string, number | null>();
     for (const { currency, date } of needed) {
@@ -48,7 +49,7 @@ export class CurrencyConverter {
       rates.set(
         key,
         /^[A-Z]{3}$/.test(currency)
-          ? await exchangeRates.getRateOrNull(currency, target, date)
+          ? await exchangeRates.getRateOrNull(currency, target, date, workspaceId)
           : null,
       );
     }

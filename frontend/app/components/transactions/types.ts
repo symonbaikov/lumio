@@ -35,6 +35,24 @@ export interface Transaction {
   // Split transactions
   splitGroupId?: string | null;
   splitIndex?: number | null;
+  // Which classification step picked the category, and its "why"
+  categorySource?: 'manual' | 'rule' | 'keyword' | 'learned' | 'history' | 'ai' | 'default' | null;
+  categoryReason?: string | null;
+  // Transfer between the user's own accounts (both legs share the id)
+  transferPairId?: string | null;
+  transferPairSource?: 'auto' | 'manual' | 'rejected' | null;
+  transferPairKind?: 'transfer' | 'reimbursement' | 'investment' | null;
+  // The investment account an expense was moved into (a one-leg transfer of kind `investment`)
+  investmentAccountId?: string | null;
+  // Incoming row that pays back an expense (full repayments also become a pair)
+  reimbursementOfId?: string | null;
+  reimbursementOf?: {
+    id: string;
+    counterpartyName: string;
+    transactionDate: string;
+    debit?: number | null;
+    currency?: string;
+  } | null;
   // Parsing metadata (optional, might not exist yet)
   parsingConfidence?: number;
   rawExtract?: string;

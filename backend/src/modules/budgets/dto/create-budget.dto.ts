@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
-import { BudgetPeriodType } from '../../../entities/budget.entity';
+import { BudgetPeriodType, BudgetRolloverMode } from '../../../entities/budget.entity';
 
 export class CreateBudgetDto {
   @IsString()
@@ -18,6 +18,11 @@ export class CreateBudgetDto {
   @IsString()
   @IsOptional()
   currency?: string;
+
+  /** What the unspent part of a period does; omitted means "none". */
+  @IsEnum(BudgetRolloverMode)
+  @IsOptional()
+  rolloverMode?: BudgetRolloverMode;
 
   /** The goal this budget serves. Omitted or null leaves it unattached. */
   @IsUUID()

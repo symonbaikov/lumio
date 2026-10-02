@@ -61,6 +61,11 @@ export enum FileType {
   CSV = 'csv',
   IMAGE = 'image',
   DOCX = 'docx',
+  /** Interchange formats banks export besides CSV; detected by extension and content. */
+  OFX = 'ofx',
+  QIF = 'qif',
+  CAMT = 'camt',
+  MT940 = 'mt940',
 }
 
 @Entity('statements')
@@ -262,6 +267,11 @@ export class Statement {
     crossStatementDuplicates?: {
       groups: number;
       marked: number;
+    };
+    /** Transfer legs paired right after the import; see TransferPairingService. */
+    transferPairs?: {
+      found: number;
+      paired: number;
     };
     importPreview?: JsonObject;
     importCommit?: JsonObject;

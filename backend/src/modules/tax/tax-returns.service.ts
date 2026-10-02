@@ -145,6 +145,7 @@ export class TaxReturnsService {
               from,
               currency,
               new Date(transaction.transactionDate),
+              workspaceId,
             );
 
       // Rounded once, on the converted figure, so the line and the total agree.

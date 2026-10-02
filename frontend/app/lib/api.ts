@@ -256,11 +256,82 @@ export const gmailReceiptsApi = {
   getStatus: (): Promise<AxiosResponse> => apiClient.get('/integrations/gmail/status'),
 };
 
-export type ReceiptLocationSource = 'merchant_address' | 'exif' | 'device' | 'manual' | 'fiscal_qr';
+export type ReceiptLocationSource =
+  | 'merchant_address'
+  | 'exif'
+  | 'device'
+  | 'manual'
+  | 'fiscal_qr'
+  | 'place';
+
+/** An OpenStreetMap place the user picked for a receipt. */
+export interface ReceiptPlace {
+  name: string;
+  category: string | null;
+  osmType: string;
+  osmId: string;
+}
+
+export interface PlaceCandidate {
+  name: string;
+  category: string;
+  type: string;
+  address: string | null;
+  locality: string | null;
+  lat: number;
+  lng: number;
+  osmType: string;
+  osmId: string;
+  distanceM: number;
+  matchesVendor: boolean;
+}
+
+export type PlaceSuggestions =
+  | { needed: false }
+  | {
+      needed: true;
+      receiptId: string;
+      vendor: string | null;
+      amount: number | null;
+      currency: string | null;
+      date: string | null;
+      candidates: PlaceCandidate[];
+    };
+
+export interface ReceiptTransactionMatch {
+  transactionIds: string[];
+  kind: 'single' | 'multi';
+  score: number;
+  computedAt: string;
+}
+
+export interface ReceiptMatchCandidate {
+  id: string;
+  transactionDate: string;
+  counterpartyName: string;
+  amount: number;
+  currency: string;
+  score: number;
+  daysApart: number;
+}
+
+export interface ReceiptSplitSuggestion {
+  transactionId: string;
+  total: number;
+  currency: string;
+  parts: Array<{
+    categoryId: string | null;
+    categoryName: string | null;
+    amount: number;
+    items: string[];
+  }>;
+  splittable: boolean;
+}
 
 export interface ReceiptRecord {
   id: string;
   statementId?: string | null;
+  transactionId?: string | null;
   subject: string;
   sender: string;
   source: string;
@@ -274,6 +345,8 @@ export interface ReceiptRecord {
       mimeType?: string;
       size?: number;
     }>;
+    transactionMatch?: ReceiptTransactionMatch | null;
+    place?: ReceiptPlace;
   };
   parsedData?: {
     amount?: number;
@@ -329,10 +402,21 @@ export const receiptsApi = {
 
   updateReceiptLocation: async (
     id: string,
-    point: { latitude: number; longitude: number },
+    point: { latitude: number; longitude: number; place?: ReceiptPlace },
   ): Promise<ReceiptRecord> => {
     const response = await apiClient.patch(`/receipts/${id}/location`, point);
     return (response.data?.data ?? response.data) as ReceiptRecord;
+  },
+
+  /** Shops near a fix taken after a scan that had none; the body keeps the position out of URLs. */
+  getPlaceSuggestions: async (fix: {
+    statementId: string;
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+  }): Promise<PlaceSuggestions> => {
+    const response = await apiClient.post('/receipts/place-suggestions', fix);
+    return (response.data?.data ?? response.data) as PlaceSuggestions;
   },
 
   resetReceiptLocation: async (id: string): Promise<ReceiptRecord> => {
@@ -342,9 +426,34 @@ export const receiptsApi = {
 
   approveReceipt: async (
     id: string,
-  ): Promise<{ receipt: ReceiptRecord; transaction: { id: string } }> => {
-    const response = await apiClient.post(`/receipts/${id}/approve`);
-    return response.data as { receipt: ReceiptRecord; transaction: { id: string } };
+    options: { transactionId?: string | null } = {},
+  ): Promise<{ receipt: ReceiptRecord; transaction: { id: string }; attached: boolean }> => {
+    const response = await apiClient.post(`/receipts/${id}/approve`, options);
+    return response.data as {
+      receipt: ReceiptRecord;
+      transaction: { id: string };
+      attached: boolean;
+    };
+  },
+
+  transactionMatches: async (
+    id: string,
+  ): Promise<{ suggestion: ReceiptTransactionMatch | null; data: ReceiptMatchCandidate[] }> => {
+    const response = await apiClient.get(`/receipts/${id}/transaction-matches`);
+    return response.data as {
+      suggestion: ReceiptTransactionMatch | null;
+      data: ReceiptMatchCandidate[];
+    };
+  },
+
+  splitSuggestion: async (id: string): Promise<ReceiptSplitSuggestion> => {
+    const response = await apiClient.get(`/receipts/${id}/split-suggestion`);
+    return response.data as ReceiptSplitSuggestion;
+  },
+
+  splitByLineItems: async (id: string): Promise<{ suggestion: ReceiptSplitSuggestion }> => {
+    const response = await apiClient.post(`/receipts/${id}/split`);
+    return response.data as { suggestion: ReceiptSplitSuggestion };
   },
 
   uploadReceipts: async (formData: FormData): Promise<{ receipts: ReceiptRecord[] }> => {

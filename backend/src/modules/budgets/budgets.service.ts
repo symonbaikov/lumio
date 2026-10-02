@@ -1,10 +1,17 @@
-import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { In, type Repository } from 'typeorm';
 import { assertFound } from '../../common/utils/assert-found.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
-import { Budget } from '../../entities/budget.entity';
+import { Budget, BudgetRolloverMode } from '../../entities/budget.entity';
+import { Category } from '../../entities/category.entity';
 import { Goal } from '../../entities/goal.entity';
 import {
   NotificationCategory,
@@ -12,16 +19,29 @@ import {
   NotificationType,
 } from '../../entities/notification.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
+import { Wallet } from '../../entities/wallet.entity';
 import { AuditService } from '../audit/audit.service';
 import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
+import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { clampToWindow, computePeriodRange, overlapsWindow } from './budget-period.util';
+import {
+  clampToWindow,
+  computePeriodRange,
+  overlapsWindow,
+  parseDateOnly,
+} from './budget-period.util';
+import { percentOf, resolveAvailable } from './budget-rollover.util';
+import type { BudgetImpactQueryDto } from './dto/budget-impact-query.dto';
 import type { CreateBudgetDto } from './dto/create-budget.dto';
 import type { UpdateBudgetDto } from './dto/update-budget.dto';
 
 export interface BudgetWithSpending extends Budget {
   spentAmount: number;
   percentUsed: number;
+  /** What the period has to spend once rollover is settled; equals the limit without rollover. */
+  availableAmount: number;
+  /** availableAmount minus the limit: positive = leftover carried in, negative = overspend carried in. */
+  carriedAmount: number;
   /** Whether today falls inside the budget's window. Always true for open-ended ones. */
   isActive: boolean;
 }
@@ -39,6 +59,14 @@ export class BudgetsService {
     private readonly goalRepository: Repository<Goal>,
     private readonly notificationsService: NotificationsService,
     private readonly auditService: AuditService,
+    @Optional()
+    @InjectRepository(Category)
+    private readonly categoryRepository?: Repository<Category>,
+    @Optional()
+    @InjectRepository(Wallet)
+    private readonly walletRepository?: Repository<Wallet>,
+    @Optional()
+    private readonly exchangeRatesService?: ExchangeRatesService,
   ) {}
 
   async create(workspaceId: string, userId: string, dto: CreateBudgetDto): Promise<Budget> {
@@ -75,6 +103,7 @@ export class BudgetsService {
       limitAmount: dto.limitAmount,
       currency: dto.currency || 'KZT',
       periodType: dto.periodType,
+      rolloverMode: dto.rolloverMode ?? BudgetRolloverMode.NONE,
       currentPeriodStart: start,
       goalId,
       startsOn: dto.startsOn ?? null,
@@ -188,10 +217,7 @@ export class BudgetsService {
       if (!period) {
         continue;
       }
-      const { start, end } = period;
-      const spentAmount = await this.computeSpending(workspaceId, budget.categoryId, start, end);
-      const percentUsed =
-        Number(budget.limitAmount) > 0 ? (spentAmount / Number(budget.limitAmount)) * 100 : 0;
+      const { spentAmount, percentUsed } = await this.measure(budget, new Date());
 
       if (percentUsed >= 100 && !budget.alertAt100Sent) {
         budget.alertAt100Sent = true;
@@ -300,27 +326,247 @@ export class BudgetsService {
 
   private async attachSpending(budget: Budget): Promise<BudgetWithSpending> {
     const now = new Date();
-    // Clamped rather than skipped: a budget that started on the 10th reports
-    // the part of the month it actually governs, and one whose window has
-    // closed reports nothing instead of the whole month's spending against a
-    // limit that no longer applies.
-    const period = clampToWindow(computePeriodRange(budget.periodType, now), budget);
-    const spentAmount = period
-      ? await this.computeSpending(budget.workspaceId, budget.categoryId, period.start, period.end)
-      : 0;
-    const limitAmount = Number(budget.limitAmount);
-    const percentUsed = limitAmount > 0 ? (spentAmount / limitAmount) * 100 : 0;
-
+    const measured = await this.measure(budget, now);
     return Object.assign(budget, {
-      spentAmount: Math.round(spentAmount * 100) / 100,
-      percentUsed: Math.round(percentUsed * 100) / 100,
+      ...measured,
       isActive: overlapsWindow({ start: now, end: now }, budget),
     });
   }
 
+  /**
+   * Spending, the amount available and the percentage for the period `now`
+   * falls in. Clamped rather than skipped: a budget that started on the 10th
+   * reports the part of the month it actually governs, and one whose window
+   * has closed reports nothing instead of the whole month's spending against a
+   * limit that no longer applies. A budget on a parent category counts its
+   * subcategories too.
+   */
+  private async measure(
+    budget: Budget,
+    now: Date,
+  ): Promise<
+    Pick<BudgetWithSpending, 'spentAmount' | 'percentUsed' | 'availableAmount' | 'carriedAmount'>
+  > {
+    const limitAmount = Number(budget.limitAmount);
+    const range = computePeriodRange(budget.periodType, now);
+    const period = clampToWindow(range, budget);
+    if (!period) {
+      return { spentAmount: 0, percentUsed: 0, availableAmount: limitAmount, carriedAmount: 0 };
+    }
+    const categoryIds = await this.categoryIdsFor(budget.workspaceId, budget.categoryId);
+    const spentAmount = await this.computeSpending(
+      budget.workspaceId,
+      categoryIds,
+      period.start,
+      period.end,
+    );
+    const previousSpent =
+      budget.rolloverMode && budget.rolloverMode !== BudgetRolloverMode.NONE
+        ? await this.previousPeriodsSpent(budget, categoryIds, range.start)
+        : [];
+    const { carriedAmount, availableAmount } = resolveAvailable(
+      limitAmount,
+      budget.rolloverMode,
+      previousSpent,
+    );
+    return {
+      spentAmount: Math.round(spentAmount * 100) / 100,
+      percentUsed: percentOf(spentAmount, availableAmount),
+      availableAmount,
+      carriedAmount,
+    };
+  }
+
+  /** How many settled periods rollover looks back on; a year of months, a quarter of weeks. */
+  private static readonly ROLLOVER_LOOKBACK = 12;
+
+  /**
+   * Spending per previous period, oldest first, since the budget began (its
+   * window start, else its creation) and at most ROLLOVER_LOOKBACK periods back.
+   */
+  private async previousPeriodsSpent(
+    budget: Budget,
+    categoryIds: string[],
+    currentStart: Date,
+  ): Promise<number[]> {
+    const began = budget.startsOn
+      ? parseDateOnly(budget.startsOn)
+      : budget.createdAt
+        ? new Date(budget.createdAt)
+        : currentStart;
+    const periods: Array<{ start: Date; end: Date }> = [];
+    let cursor = new Date(
+      currentStart.getFullYear(),
+      currentStart.getMonth(),
+      currentStart.getDate() - 1,
+    );
+    while (periods.length < BudgetsService.ROLLOVER_LOOKBACK) {
+      const range = computePeriodRange(budget.periodType, cursor);
+      if (range.end.getTime() < began.getTime()) break;
+      const clamped = clampToWindow(range, budget);
+      if (clamped) periods.unshift(clamped);
+      cursor = new Date(
+        range.start.getFullYear(),
+        range.start.getMonth(),
+        range.start.getDate() - 1,
+      );
+    }
+    if (periods.length === 0) return [];
+    const rows = await this.transactionRepository
+      .createQueryBuilder('t')
+      .select('t.transaction_date', 'date')
+      .addSelect('ABS(t.amount)', 'amount')
+      .where('t.workspace_id = :workspaceId', { workspaceId: budget.workspaceId })
+      .andWhere('t.category_id IN (:...categoryIds)', { categoryIds })
+      .andWhere('t.transaction_type = :type', { type: TransactionType.EXPENSE })
+      .andWhere('t.transaction_date >= :start', { start: periods[0].start })
+      .andWhere('t.transaction_date <= :end', { end: periods[periods.length - 1].end })
+      .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
+      .getRawMany<{ date: string | Date; amount: string }>();
+    return periods.map(period =>
+      rows.reduce((sum, row) => {
+        const at = parseDateOnly(row.date).getTime();
+        return at >= period.start.getTime() && at <= period.end.getTime()
+          ? sum + Number.parseFloat(row.amount)
+          : sum;
+      }, 0),
+    );
+  }
+
+  /** The category and every category under it; just the category when the tree is not available. */
+  private async categoryIdsFor(workspaceId: string, categoryId: string): Promise<string[]> {
+    if (!this.categoryRepository) return [categoryId];
+    const ids = [categoryId];
+    let frontier = [categoryId];
+    // Bounded: a category tree deeper than this is a mistake, not a feature.
+    for (let depth = 0; depth < 5 && frontier.length > 0; depth++) {
+      const children = await this.categoryRepository.find({
+        where: { workspaceId, parentId: In(frontier) },
+        select: ['id'],
+      });
+      frontier = children.map(child => child.id).filter(id => !ids.includes(id));
+      ids.push(...frontier);
+    }
+    return ids;
+  }
+
+  /** The category and its ancestors: the budgets a spend in this category counts against. */
+  private async categoryChainFor(workspaceId: string, categoryId: string): Promise<string[]> {
+    const ids = [categoryId];
+    if (!this.categoryRepository) return ids;
+    let current = await this.categoryRepository.findOne({ where: { id: categoryId, workspaceId } });
+    for (let depth = 0; depth < 5 && current?.parentId; depth++) {
+      if (ids.includes(current.parentId)) break;
+      ids.push(current.parentId);
+      current = await this.categoryRepository.findOne({
+        where: { id: current.parentId, workspaceId },
+      });
+    }
+    return ids;
+  }
+
+  /**
+   * What booking an expense would do: which budgets it pushes over their
+   * available amount, and whether it takes the default account below zero.
+   * Advice, not a gate: the entry is still allowed.
+   */
+  async getImpact(workspaceId: string, dto: BudgetImpactQueryDto): Promise<BudgetImpact> {
+    const now = dto.date ? parseDateOnly(dto.date) : new Date();
+    const currency = (dto.currency || '').toUpperCase();
+    const chain = await this.categoryChainFor(workspaceId, dto.categoryId);
+    const budgets = await this.budgetRepository.find({
+      where: { workspaceId, categoryId: In(chain) },
+      relations: ['category'],
+    });
+    const affected: BudgetImpactRow[] = [];
+    for (const budget of budgets) {
+      if (!overlapsWindow({ start: now, end: now }, budget)) continue;
+      const amount = await this.inCurrency(dto.amount, currency, budget.currency, workspaceId);
+      if (amount === null) continue;
+      const { spentAmount, availableAmount } = await this.measure(budget, now);
+      const remainingAfter = Math.round((availableAmount - spentAmount - amount) * 100) / 100;
+      affected.push({
+        id: budget.id,
+        name: budget.name,
+        categoryName: budget.category?.name ?? null,
+        currency: budget.currency,
+        availableAmount,
+        spentAmount,
+        remainingAfter,
+        exceeds: remainingAfter < 0,
+      });
+    }
+    return {
+      budgets: affected,
+      account: await this.accountImpact(workspaceId, dto.amount, currency),
+    };
+  }
+
+  /** The wallet a manual entry lands in (the oldest active one, as classification picks it). */
+  private async accountImpact(
+    workspaceId: string,
+    amount: number,
+    currency: string,
+  ): Promise<BudgetImpact['account']> {
+    if (!this.walletRepository) return null;
+    const wallet = await this.walletRepository.findOne({
+      where: { workspaceId, isActive: true },
+      order: { createdAt: 'ASC' },
+    });
+    if (!wallet) return null;
+    const converted = await this.inCurrency(amount, currency, wallet.currency, workspaceId);
+    if (converted === null) return null;
+    const sums = await this.transactionRepository
+      .createQueryBuilder('t')
+      .select('COALESCE(SUM(t.credit), 0)', 'credit')
+      .addSelect('COALESCE(SUM(t.debit), 0)', 'debit')
+      .where('t.workspace_id = :workspaceId', { workspaceId })
+      .andWhere('t.wallet_id = :walletId', { walletId: wallet.id })
+      .andWhere('t.is_duplicate = false')
+      .getRawOne<{ credit: string; debit: string }>();
+    const balance =
+      Number(wallet.initialBalance) +
+      Number.parseFloat(sums?.credit ?? '0') -
+      Number.parseFloat(sums?.debit ?? '0');
+    const balanceAfter = Math.round((balance - converted) * 100) / 100;
+    return {
+      walletId: wallet.id,
+      name: wallet.name,
+      currency: wallet.currency,
+      balance: Math.round(balance * 100) / 100,
+      balanceAfter,
+      overdraws: balanceAfter < 0,
+    };
+  }
+
+  /** `amount` in `to`; null when the two currencies differ and no rate is at hand. */
+  private async inCurrency(
+    amount: number,
+    from: string,
+    to: string,
+    workspaceId: string,
+  ): Promise<number | null> {
+    const source = from || to;
+    if (source.toUpperCase() === to.toUpperCase()) return amount;
+    if (!this.exchangeRatesService) return null;
+    try {
+      const result = await this.exchangeRatesService.convert(
+        amount,
+        source,
+        to,
+        new Date(),
+        workspaceId,
+      );
+      return result.converted;
+    } catch {
+      return null;
+    }
+  }
+
   private async computeSpending(
     workspaceId: string,
-    categoryId: string,
+    categoryIds: string[],
     start: Date,
     end: Date,
   ): Promise<number> {
@@ -328,15 +574,39 @@ export class BudgetsService {
       .createQueryBuilder('t')
       .select('COALESCE(SUM(ABS(t.amount)), 0)', 'total')
       .where('t.workspace_id = :workspaceId', { workspaceId })
-      .andWhere('t.category_id = :categoryId', { categoryId })
+      .andWhere('t.category_id IN (:...categoryIds)', { categoryIds })
       .andWhere('t.transaction_type = :type', { type: TransactionType.EXPENSE })
       .andWhere('t.transaction_date >= :start', { start })
       .andWhere('t.transaction_date <= :end', { end })
       .andWhere('t.is_duplicate = false')
+      .andWhere('t.transfer_pair_id IS NULL')
       .getRawOne();
 
     return Number.parseFloat(result?.total ?? '0');
   }
+}
+
+export interface BudgetImpactRow {
+  id: string;
+  name: string;
+  categoryName: string | null;
+  currency: string;
+  availableAmount: number;
+  spentAmount: number;
+  remainingAfter: number;
+  exceeds: boolean;
+}
+
+export interface BudgetImpact {
+  budgets: BudgetImpactRow[];
+  account: {
+    walletId: string;
+    name: string;
+    currency: string;
+    balance: number;
+    balanceAfter: number;
+    overdraws: boolean;
+  } | null;
 }
 
 /** The fields a person edits, with decimals as numbers so an unchanged limit does not read as changed. */
@@ -347,6 +617,7 @@ function budgetSnapshot(budget: Budget) {
     limitAmount: Number(budget.limitAmount),
     currency: budget.currency,
     periodType: budget.periodType,
+    rolloverMode: budget.rolloverMode ?? BudgetRolloverMode.NONE,
     goalId: budget.goalId ?? null,
     startsOn: budget.startsOn ?? null,
     endsOn: budget.endsOn ?? null,

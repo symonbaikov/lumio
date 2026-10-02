@@ -5,7 +5,7 @@ import type { Repository } from 'typeorm';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { WorkspaceContextGuard } from '../../common/guards/workspace-context.guard';
-import { Transaction } from '../../entities/transaction.entity';
+import { Transaction, TransactionCategorySource } from '../../entities/transaction.entity';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ClassifyBulkDto, RecordLearningDto } from './dto/classification-body.dto';
@@ -60,6 +60,8 @@ export class ClassificationController {
       successful: 0,
       failed: 0,
       notFound: 0,
+      /** Rows whose category the user picked by hand; re-classification never touches them. */
+      keptManual: 0,
       errors: [] as { transactionId: string; error: string }[],
     };
 
@@ -78,10 +80,17 @@ export class ClassificationController {
           continue;
         }
 
+        if (transaction.categorySource === TransactionCategorySource.MANUAL) {
+          results.keptManual++;
+          continue;
+        }
+
+        // Bypass the 5-minute cache: the point of a re-run is new rules or patterns.
         const classification = await this.classificationService.classifyTransaction(
           transaction,
           user.id,
           batchId,
+          { bypassCache: true },
         );
 
         // Check if categoryId was actually assigned

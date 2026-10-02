@@ -27,7 +27,9 @@ import { buildContentDisposition } from '../../common/utils/http-file.util';
 import { multerConfig } from '../../config/multer.config';
 import type { User } from '../../entities';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { ApproveReceiptDto } from './dto/approve-receipt.dto';
 import { BulkApproveDto } from './dto/bulk-approve.dto';
+import { PlaceSuggestionsDto } from './dto/place-suggestions.dto';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import { UpdateReceiptDto } from './dto/update-receipt.dto';
 import { UpdateReceiptLocationDto } from './dto/update-receipt-location.dto';
@@ -35,6 +37,9 @@ import { UpdateReceiptStageDto, UpdateReceiptStageResultDto } from './dto/update
 import { UploadReceiptDto } from './dto/upload-receipt.dto';
 import { ReceiptsService } from './receipts.service';
 import { ReceiptLocationService } from './services/receipt-location.service';
+import { ReceiptMatchService } from './services/receipt-match.service';
+import { ReceiptPlaceSuggestionService } from './services/receipt-place-suggestion.service';
+import { ReceiptSplitService } from './services/receipt-split.service';
 import { ReceiptStageService } from './services/receipt-stage.service';
 
 type MulterFile = Express.Multer.File;
@@ -54,6 +59,9 @@ export class ReceiptsController {
     private readonly receiptsService: ReceiptsService,
     private readonly locationService: ReceiptLocationService,
     private readonly receiptStageService: ReceiptStageService,
+    private readonly receiptMatchService: ReceiptMatchService,
+    private readonly receiptSplitService: ReceiptSplitService,
+    private readonly placeSuggestionService: ReceiptPlaceSuggestionService,
   ) {}
 
   @Post('upload')
@@ -116,6 +124,29 @@ export class ReceiptsController {
     });
   }
 
+  // POST although it only reads: the body carries where the user is, and a
+  // query string would put that in access logs.
+  @Post('place-suggestions')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  @ApiOperation({ summary: 'Shops near a GPS fix taken after a scan that had none' })
+  @ApiResponse({
+    status: 200,
+    description: '{ needed: false } when the store is already known, else the candidates',
+  })
+  @ApiResponse({ status: 400, description: 'No receipt for this statement in the workspace' })
+  async placeSuggestions(@WorkspaceId() workspaceId: string, @Body() dto: PlaceSuggestionsDto) {
+    const suggestions = await this.placeSuggestionService.suggest(
+      dto.statementId,
+      workspaceId,
+      dto,
+    );
+    if (!suggestions) {
+      throw new BadRequestException('Receipt not found');
+    }
+    return suggestions;
+  }
+
   @Get()
   @WorkspaceAuth(Permission.STATEMENT_VIEW)
   async findAll(@WorkspaceId() workspaceId: string, @Query() query: ReceiptQueryDto) {
@@ -135,7 +166,10 @@ export class ReceiptsController {
   @Patch(':id/location')
   @WorkspaceAuth(Permission.STATEMENT_EDIT)
   @ApiOperation({ summary: 'Pin the receipt to a point chosen by the user' })
-  @ApiResponse({ status: 200, description: 'Receipt with location source "manual"' })
+  @ApiResponse({
+    status: 200,
+    description: 'Receipt with location source "manual", or "place" when a shop was picked',
+  })
   @ApiResponse({ status: 400, description: 'Receipt not found or coordinates out of range' })
   async setLocation(
     @Param('id') id: string,
@@ -203,12 +237,54 @@ export class ReceiptsController {
     @Param('id') id: string,
     @WorkspaceId() workspaceId: string,
     @CurrentUser() user: User,
+    @Body() dto: ApproveReceiptDto,
   ) {
-    const result = await this.receiptsService.approve(id, workspaceId, user.id);
+    const result = await this.receiptsService.approve(id, workspaceId, user.id, {
+      attachTo: dto?.transactionId,
+    });
     if (!result) {
       throw new BadRequestException('Receipt not found');
     }
     return result;
+  }
+
+  /** Bank rows this receipt may document, best first; recomputes the stored suggestion too. */
+  @Get(':id/transaction-matches')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
+  async transactionMatches(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    const receipt = await this.receiptMatchService.refresh(id, workspaceId);
+    if (!receipt) {
+      throw new BadRequestException('Receipt not found');
+    }
+    const candidates = await this.receiptMatchService.candidates(receipt);
+    return {
+      suggestion: receipt.metadata?.transactionMatch ?? null,
+      data: candidates.map(entry => ({
+        id: entry.candidate.id,
+        transactionDate: entry.candidate.transactionDate,
+        counterpartyName: entry.candidate.counterpartyName,
+        amount: entry.candidate.amount,
+        currency: entry.candidate.currency,
+        score: Number(entry.score.toFixed(2)),
+        daysApart: Number(entry.daysApart.toFixed(1)),
+      })),
+    };
+  }
+
+  @Get(':id/split-suggestion')
+  @WorkspaceAuth(Permission.STATEMENT_VIEW)
+  async splitSuggestion(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    return this.receiptSplitService.suggest(id, workspaceId);
+  }
+
+  @Post(':id/split')
+  @WorkspaceAuth(Permission.STATEMENT_EDIT)
+  async split(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.receiptSplitService.apply(id, workspaceId, user.id);
   }
 
   @Post('bulk-approve')

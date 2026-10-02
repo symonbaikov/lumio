@@ -225,6 +225,19 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
       .finally(() => setActing(false));
   };
 
+  const handleRemind = async (): Promise<void> => {
+    if (!invoice) return;
+    setActing(true);
+    try {
+      const result = await invoicesApi.remind(invoice.id);
+      toast.success(t.toasts.reminderSent.value.replace('{{to}}', result.to));
+    } catch {
+      toast.error(t.toasts.reminderFailed.value);
+    } finally {
+      setActing(false);
+    }
+  };
+
   const handleVoid = async (): Promise<void> => {
     if (!(invoice && window.confirm(t.confirm.void.value))) {
       return;
@@ -303,6 +316,11 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
           {invoice?.status === 'draft' && (
             <Button disabled={acting} onClick={() => void handleSend()}>
               {t.actions.send.value}
+            </Button>
+          )}
+          {(invoice?.status === 'sent' || invoice?.status === 'overdue') && (
+            <Button variant="outline" disabled={acting} onClick={() => void handleRemind()}>
+              {t.actions.sendReminder.value}
             </Button>
           )}
           {(invoice?.status === 'draft' || invoice?.status === 'sent') && (

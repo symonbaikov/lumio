@@ -14,6 +14,7 @@ import { formatMoney } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
 import { NET_WORTH_RANGES, type NetWorthRange, useNetWorth } from '../hooks/useNetWorth';
 import { AllocationCard } from './AllocationCard';
+import { ASSET_CLASS_KEYS, InvestmentsCard } from './InvestmentsCard';
 import { NetWorthChart } from './NetWorthChart';
 import { RiskCard } from './RiskCard';
 
@@ -89,7 +90,7 @@ export function NetWorthContent() {
         >
           {NET_WORTH_RANGES.map(option => (
             <ToggleButton key={option} value={option} sx={{ px: 1.5, textTransform: 'none' }}>
-              {option === 'all' ? t.rangeAll : option.toUpperCase()}
+              {option === 'all' ? t.rangeAll : option.toUpperCase().replace('180D', '6M')}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
@@ -146,6 +147,13 @@ export function NetWorthContent() {
                 {t.overPeriod}
               </Typography>
             </Box>
+            {data.allTimeHigh && (
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                {t.allTimeHigh.value
+                  .replace('{{value}}', formatMoney(data.allTimeHigh.value, currency, locale))
+                  .replace('{{date}}', data.allTimeHigh.date)}
+              </Typography>
+            )}
 
             {data.missingRates && data.missingRates.length > 0 && (
               <Alert severity="warning" sx={{ mt: 2 }}>
@@ -191,6 +199,24 @@ export function NetWorthContent() {
             currency={currency}
             locale={locale}
           />
+
+          <AllocationCard
+            title={t.assetClasses.value}
+            items={(data.byAssetClass ?? []).map(item => ({
+              code: item.key ?? 'other',
+              name: t[
+                ASSET_CLASS_KEYS[
+                  (item.key ?? 'other') as keyof typeof ASSET_CLASS_KEYS
+                ] as 'classOther'
+              ].value,
+              amount: item.amount,
+              percent: item.percent,
+            }))}
+            currency={currency}
+            locale={locale}
+          />
+
+          <InvestmentsCard currency={currency} locale={locale} />
 
           <RiskCard
             byRisk={data.byRisk}

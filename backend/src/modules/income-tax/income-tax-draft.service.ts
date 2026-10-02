@@ -399,6 +399,7 @@ export class IncomeTaxDraftService {
       const date = toDateOnly(transaction.transactionDate);
       const from = (transaction.currency || currency).toUpperCase();
       const quote = await this.rateFor(from, currency, date, {
+        workspaceId,
         taxYear,
         fxRule,
         cache: rateCache,
@@ -506,6 +507,7 @@ export class IncomeTaxDraftService {
       .leftJoin('t.statement', 's')
       .where('t.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.isDuplicate = false')
+      .andWhere('t.transferPairId IS NULL')
       .andWhere('t.transactionDate BETWEEN :yearStart AND :yearEnd', { yearStart, yearEnd })
       .andWhere(
         '(t.statementId IS NULL OR (s.id IS NOT NULL AND s.deletedAt IS NULL AND s.status NOT IN (:...excludedStatuses)))',
@@ -541,6 +543,7 @@ export class IncomeTaxDraftService {
     to: string,
     date: string,
     context: {
+      workspaceId: string;
       taxYear: number;
       fxRule: FxRule;
       cache: Map<string, FxQuote | null>;
@@ -573,7 +576,12 @@ export class IncomeTaxDraftService {
 
     const key = `${from}:${date}`;
     if (!context.cache.has(key)) {
-      const rate = await this.exchangeRatesService.getRateOrNull(from, to, date);
+      const rate = await this.exchangeRatesService.getRateOrNull(
+        from,
+        to,
+        date,
+        context.workspaceId,
+      );
       context.cache.set(key, rate === null ? null : { rate, rateDate: date });
     }
     return context.cache.get(key) ?? null;

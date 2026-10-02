@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, type Repository } from 'typeorm';
+import { getAuditActor } from '../../common/audit-actor.context';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import {
   ActorType,
@@ -57,6 +58,19 @@ export class AuditService {
       }
     }
 
+    // An API key or the assistant signs everything written in its request,
+    // wherever the event is emitted; and what they changed can always be undone
+    // where rollback knows the entity.
+    const actor = getAuditActor();
+    if (actor && dto.actorType === ActorType.USER) {
+      dto = {
+        ...dto,
+        actorType: actor.actorType,
+        actorLabel: actor.actorLabel,
+        meta: { ...(dto.meta ?? {}), ...(actor.meta ?? {}), onBehalfOfUserId: dto.actorId ?? null },
+        isUndoable: RollbackService.supports(dto.entityType) ? true : dto.isUndoable,
+      };
+    }
     const actorLabel = await this.resolveActorLabel(dto);
     const isUndoable = this.isUndoable(dto.action, dto.entityType, dto.isUndoable);
     // A caller-supplied description wins; otherwise emit a locale-independent
@@ -294,6 +308,10 @@ export class AuditService {
 
     if (dto.actorType === ActorType.INTEGRATION) {
       return 'Integration';
+    }
+
+    if (dto.actorType === ActorType.AI) {
+      return 'AI assistant';
     }
 
     return 'System';

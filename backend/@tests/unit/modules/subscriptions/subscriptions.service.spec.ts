@@ -60,14 +60,17 @@ describe('SubscriptionsService', () => {
 
   describe('getSummary', () => {
     it('normalizes active subscription costs to monthly and sums them', async () => {
-      subscriptionRepository.find.mockResolvedValue([
-        {
-          amount: 100,
-          currency: 'USD',
-          frequency: SubscriptionFrequency.MONTHLY,
-          status: SubscriptionStatus.ACTIVE,
-        },
-      ]);
+      // First call lists active rows, the second lists detected ones.
+      subscriptionRepository.find
+        .mockResolvedValueOnce([
+          {
+            amount: 100,
+            currency: 'USD',
+            frequency: SubscriptionFrequency.MONTHLY,
+            status: SubscriptionStatus.ACTIVE,
+          },
+        ])
+        .mockResolvedValueOnce([]);
       subscriptionRepository.count.mockResolvedValue(0);
 
       const result = await service.getSummary('workspace-1');
@@ -78,8 +81,10 @@ describe('SubscriptionsService', () => {
         upcomingCount: 0,
         upcoming30DaysCount: 0,
         priceChangeCount: 0,
+        priceChangeYearlyEffect: 0,
         overdueReviewCount: 0,
         realizedAnnualSavings: 0,
+        duplicateCount: 0,
       });
     });
 
@@ -109,7 +114,13 @@ describe('SubscriptionsService', () => {
 
       const result = await service.getSummary('workspace-1');
 
-      expect(exchangeRatesService.convert).toHaveBeenCalledWith(100, 'USD', 'EUR', expect.any(Date));
+      expect(exchangeRatesService.convert).toHaveBeenCalledWith(
+        100,
+        'USD',
+        'EUR',
+        expect.any(Date),
+        'workspace-1',
+      );
       expect(result.totalMonthlyCost).toBe(90);
     });
 
@@ -237,6 +248,7 @@ describe('SubscriptionsService', () => {
         'EUR',
         'USD',
         expect.any(Date),
+        'workspace-1',
       );
       expect(result.currency).toBe('USD');
       expect(result.rows[0].amounts).toEqual([11, 11]);

@@ -125,6 +125,20 @@ export class Subscription {
   @Column({ name: 'category_id', type: 'uuid', nullable: true })
   categoryId: string | null;
 
+  /** "I used it" taps; with `usageSince` they give a cost per use. */
+  @Column({ name: 'usage_count', type: 'int', default: 0 })
+  usageCount: number;
+
+  @Column({ name: 'usage_since', type: 'timestamptz', nullable: true })
+  usageSince: Date | null;
+
+  @Column({ name: 'last_used_at', type: 'timestamptz', nullable: true })
+  lastUsedAt: Date | null;
+
+  /** The savings goal that sets money aside for the next quarterly or annual charge. */
+  @Column({ name: 'sinking_goal_id', type: 'uuid', nullable: true })
+  sinkingGoalId: string | null;
+
   @Column({ name: 'detection_meta', type: 'jsonb', nullable: true })
   detectionMeta: Record<string, unknown> | null;
 

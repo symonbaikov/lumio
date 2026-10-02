@@ -2,7 +2,7 @@
 'use client';
 
 import Skeleton from '@mui/material/Skeleton';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Download, RefreshCcw } from '@/app/components/icons';
@@ -176,6 +176,7 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
   const { user, loading: authLoading } = useAuth();
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const { locale } = useLocale();
+  const router = useRouter();
   const t = useIntlayer('statementsPage');
   const tx = useCallback(
     (path: string[], fallback: string) => resolveLabel(getNestedValue(t, path), fallback),
@@ -700,6 +701,9 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
               </p>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <Button variant="outline" onClick={() => router.push('/statements/reconcile')}>
+                {tx(['payables', 'reconcile'], 'Reconcile with the bank')}
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => void loadData({ silent: true })}

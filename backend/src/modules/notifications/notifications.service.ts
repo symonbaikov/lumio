@@ -30,7 +30,8 @@ type NotificationPreferenceKey =
   | 'workspaceUpdated'
   | 'parsingErrors'
   | 'importFailures'
-  | 'uncategorizedItems';
+  | 'uncategorizedItems'
+  | 'subscriptionPrompts';
 
 /** Anything that is not a real boolean leaves the current setting alone — a
  * truthy string must not be able to switch a channel on. */
@@ -47,6 +48,7 @@ const NOTIFICATION_PREFERENCE_KEYS: NotificationPreferenceKey[] = [
   'parsingErrors',
   'importFailures',
   'uncategorizedItems',
+  'subscriptionPrompts',
 ];
 
 const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferenceKey> = {
@@ -71,8 +73,9 @@ const NOTIFICATION_PREFERENCE_MAP: Record<NotificationType, NotificationPreferen
   [NotificationType.TAX_THRESHOLD_WARNING]: 'workspaceUpdated',
   [NotificationType.TAX_THRESHOLD_REACHED]: 'workspaceUpdated',
   [NotificationType.BUDGET_EXCEEDED]: 'workspaceUpdated',
-  [NotificationType.SUBSCRIPTION_DETECTED]: 'workspaceUpdated',
+  [NotificationType.SUBSCRIPTION_DETECTED]: 'subscriptionPrompts',
   [NotificationType.SUBSCRIPTION_UPCOMING]: 'workspaceUpdated',
+  [NotificationType.SUBSCRIPTION_PRICE_CHANGED]: 'workspaceUpdated',
 };
 
 export interface CreateNotificationPayload {
@@ -126,7 +129,7 @@ export class NotificationsService {
     const channels = this.resolveChannels(preferences, payload.type);
 
     // Every channel off for this event: the user asked not to hear about it at all.
-    if (!(channels.inApp || channels.email || channels.telegram)) {
+    if (!(channels.inApp || channels.email || channels.telegram || channels.push)) {
       return null;
     }
 
@@ -180,6 +183,7 @@ export class NotificationsService {
     return [
       ...(channels.email ? [NotificationChannel.EMAIL] : []),
       ...(channels.telegram ? [NotificationChannel.TELEGRAM] : []),
+      ...(channels.push ? [NotificationChannel.PUSH] : []),
     ];
   }
 
@@ -218,6 +222,7 @@ export class NotificationsService {
         inApp: Boolean(configured.inApp),
         email: Boolean(configured.email),
         telegram: Boolean(configured.telegram),
+        push: Boolean(configured.push),
       };
     }
 
@@ -371,7 +376,10 @@ export class NotificationsService {
    */
   private normalizeChannels(
     preferences: NotificationPreference,
-    incoming: Record<string, { inApp?: boolean; email?: boolean; telegram?: boolean }>,
+    incoming: Record<
+      string,
+      { inApp?: boolean; email?: boolean; telegram?: boolean; push?: boolean }
+    >,
   ): NotificationChannelMatrix {
     const normalized: NotificationChannelMatrix = {};
 
@@ -380,6 +388,7 @@ export class NotificationsService {
         inApp: Boolean(preferences[key]),
         email: false,
         telegram: false,
+        push: false,
       };
       const patch = incoming[key];
 
@@ -388,8 +397,9 @@ export class NotificationsService {
             inApp: pickBoolean(patch.inApp, current.inApp),
             email: pickBoolean(patch.email, current.email),
             telegram: pickBoolean(patch.telegram, current.telegram),
+            push: pickBoolean(patch.push, current.push ?? false),
           }
-        : current;
+        : { ...current, push: current.push ?? false };
     }
 
     return normalized;

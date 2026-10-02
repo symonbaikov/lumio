@@ -1,4 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
@@ -41,6 +55,78 @@ export class SubscriptionsController {
   @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
   async getUpcoming(@WorkspaceId() workspaceId: string, @Query('days') days?: string) {
     return this.subscriptionsService.getUpcoming(workspaceId, days ? Number.parseInt(days, 10) : 7);
+  }
+
+  /** Active subscriptions with owner and monthly cost; `format=csv` for a spreadsheet. */
+  @Get('business-report')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
+  async businessReport(
+    @WorkspaceId() workspaceId: string,
+    @Query('format') format: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const report = await this.subscriptionsService.getBusinessReport(workspaceId);
+    if (format !== 'csv') {
+      return report;
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="business-subscriptions.csv"');
+    const cell = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const header = [
+      'vendor',
+      'owner',
+      `monthly_cost_${report.currency}`,
+      'amount',
+      'currency',
+      'frequency',
+      'next_charge',
+      'review_at',
+      'risk',
+    ].join(',');
+    const lines = report.rows.map(row =>
+      [
+        cell(row.vendorName),
+        cell(row.owner),
+        row.monthlyCost.toFixed(2),
+        row.amount.toFixed(2),
+        cell(row.subscriptionCurrency),
+        cell(row.frequency),
+        cell(row.nextChargeDate ? String(row.nextChargeDate).slice(0, 10) : ''),
+        cell(row.reviewAt ? String(row.reviewAt).slice(0, 10) : ''),
+        cell(row.riskStatus),
+      ].join(','),
+    );
+    return `${[header, ...lines].join('\n')}\n`;
+  }
+
+  @Get('duplicates')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
+  async duplicates(@WorkspaceId() workspaceId: string) {
+    return this.subscriptionsService.getDuplicates(workspaceId);
+  }
+
+  @Get('sinking-funds')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
+  async sinkingFunds(@WorkspaceId() workspaceId: string) {
+    return this.subscriptionsService.getSinkingFunds(workspaceId);
+  }
+
+  @Post(':id/usage')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
+  async recordUsage(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    return this.subscriptionsService.recordUsage(id, workspaceId);
+  }
+
+  @Post(':id/sinking-fund')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
+  async createSinkingFund(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.subscriptionsService.createSinkingFund(id, workspaceId, user.id);
   }
 
   @Get(':id')

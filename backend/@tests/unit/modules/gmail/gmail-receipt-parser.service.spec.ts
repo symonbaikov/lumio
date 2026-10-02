@@ -4,7 +4,7 @@ jest.mock('pdf-parse', () => {
   return mock;
 });
 
-const { GmailReceiptParserService } =
+const { GmailReceiptParserService, normalizeDateHeader } =
   require('../../../../src/modules/gmail/services/gmail-receipt-parser.service') as typeof import('../../../../src/modules/gmail/services/gmail-receipt-parser.service');
 const { UniversalAmountParser } =
   require('../../../../src/modules/parsing/services/universal-amount-parser.service') as typeof import('../../../../src/modules/parsing/services/universal-amount-parser.service');
@@ -202,6 +202,46 @@ describe('GmailReceiptParserService', () => {
     const parsed = await (service as any).extractAmountWithCurrency('Celkem: 1 500,00 CZK');
 
     expect(parsed).toEqual({ amount: 1500, currency: 'CZK' });
+  });
+
+  describe('receipts in the email body', () => {
+    it('takes line items from the stripped body and normalises the Date header', async () => {
+      const extractor = {
+        extractFromText: jest.fn(async () => ({
+          lineItems: [
+            { description: 'Echo Dot', amount: 49.99 },
+            { description: 'HDMI cable', amount: 9.99 },
+            { description: 'Broken', amount: 0 },
+          ],
+          totalAmount: 59.98,
+        })),
+      };
+      const bodyService = new GmailReceiptParserService(
+        new UniversalAmountParser(),
+        undefined,
+        extractor as any,
+      );
+
+      const parsed = await bodyService.parseFromEmailOnly({
+        sender: 'order-update@amazon.de',
+        subject: 'Your order',
+        dateHeader: 'Mon, 11 May 2026 10:15:00 +0200',
+        emailBody: '<p>Echo Dot 49.99 EUR</p><p>HDMI cable 9.99 EUR</p><p>Total 59.98 EUR</p>',
+      });
+
+      expect(parsed?.lineItems).toEqual([
+        { description: 'Echo Dot', amount: 49.99 },
+        { description: 'HDMI cable', amount: 9.99 },
+      ]);
+      expect(parsed?.date).toBe('2026-05-11');
+      expect(typeof parsed?.amount).toBe('number');
+    });
+
+    it('keeps an unparseable Date header as it is', () => {
+      expect(normalizeDateHeader('yesterday-ish')).toBe('yesterday-ish');
+      expect(normalizeDateHeader('2026-05-11')).toBe('2026-05-11');
+      expect(normalizeDateHeader(undefined)).toBeUndefined();
+    });
   });
 
   describe('line item extraction filters', () => {

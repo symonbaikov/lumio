@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
@@ -32,6 +32,25 @@ export interface SubscriptionItem {
   category: { id: string; name: string } | null;
   detectionMeta: Record<string, unknown> | null;
   createdAt: string;
+  usageCount?: number;
+  usageSince?: string | null;
+  lastUsedAt?: string | null;
+  sinkingGoalId?: string | null;
+  /** Computed by the API from the taps since the counter started; null until the first tap. */
+  costPerUse?: number | null;
+}
+
+export interface SubscriptionPriceChange {
+  previous: number;
+  current: number;
+  delta: number;
+  yearlyDelta: number;
+  detectedAt: string;
+}
+
+export function priceChangeOf(subscription: SubscriptionItem): SubscriptionPriceChange | null {
+  const change = subscription.detectionMeta?.priceChange as SubscriptionPriceChange | undefined;
+  return change && typeof change.current === 'number' ? change : null;
 }
 
 export interface SubscriptionSummary {
@@ -40,6 +59,8 @@ export interface SubscriptionSummary {
   upcomingCount: number;
   upcoming30DaysCount: number;
   priceChangeCount: number;
+  priceChangeYearlyEffect?: number;
+  duplicateCount?: number;
   overdueReviewCount: number;
   realizedAnnualSavings: number;
 }
@@ -53,6 +74,7 @@ export interface SubscriptionChargeCalendar {
     vendorName: string;
     vendorDomain: string | null;
     amounts: number[];
+    kind?: 'subscription' | 'payable' | 'invoice';
   }[];
 }
 
@@ -292,6 +314,42 @@ export function useSubscriptionsPage() {
     [rowMutation.mutate, text],
   );
 
+  const duplicatesQuery = useQuery({
+    queryKey: queryKeys.subscriptionsDuplicates(workspaceId),
+    queryFn: ({ signal }) =>
+      apiQuery<Array<{ key: string; items: Array<{ id: string }> }>>({
+        url: '/subscriptions/duplicates',
+        signal,
+      }),
+    enabled: Boolean(workspaceId),
+  });
+  const duplicateIds = useMemo(
+    () => new Set((duplicatesQuery.data ?? []).flatMap(group => group.items.map(item => item.id))),
+    [duplicatesQuery.data],
+  );
+
+  const recordUsage = useCallback(
+    async (id: string) => {
+      rowMutation.mutate({
+        run: () => apiClient.post(`/subscriptions/${id}/usage`),
+        success: text.toastUsageSaved.value,
+        failure: text.toastDecisionFailed.value,
+      });
+    },
+    [rowMutation.mutate, text],
+  );
+
+  const createSinkingFund = useCallback(
+    async (id: string) => {
+      rowMutation.mutate({
+        run: () => apiClient.post(`/subscriptions/${id}/sinking-fund`),
+        success: text.sinkingFundGoal.value,
+        failure: text.toastSinkingFundFailed.value,
+      });
+    },
+    [rowMutation.mutate, text],
+  );
+
   const recordDecision = useCallback(
     async (
       id: string,
@@ -333,5 +391,8 @@ export function useSubscriptionsPage() {
     handleDismiss,
     assignOwner,
     recordDecision,
+    recordUsage,
+    createSinkingFund,
+    duplicateIds,
   };
 }

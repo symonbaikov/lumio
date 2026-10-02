@@ -28,6 +28,7 @@ interface IntegrationsListDrawerProps {
 const CATEGORY_ORDER: IntegrationCategoryKey[] = [
   'ai',
   'application',
+  'bank',
   'storage',
   'email',
   'messaging',
@@ -39,6 +40,7 @@ function useCategoryLabels(): Record<IntegrationCategoryKey, React.ReactNode> {
   return {
     ai: t.categories.ai,
     application: t.categories.application,
+    bank: t.categories.bank,
     storage: t.categories.storage,
     email: t.categories.email,
     messaging: t.categories.messaging,

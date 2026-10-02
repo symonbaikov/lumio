@@ -9,17 +9,32 @@ describe('readProcessingSettings', () => {
     expect(readProcessingSettings(null)).toEqual({
       categorizationThreshold: 0.7,
       duplicateResolution: 'skip',
+      aiCategorization: true,
+      aiMerchantNormalization: true,
+      merchantLearning: true,
+      autoApproveAiPicks: false,
     });
     expect(readProcessingSettings({ settings: null })).toEqual(DEFAULT_PROCESSING_SETTINGS);
     expect(readProcessingSettings({ settings: {} })).toEqual(DEFAULT_PROCESSING_SETTINGS);
   });
 
   it('reads stored values', () => {
-    const settings = { processing: { categorizationThreshold: 0.4, duplicateResolution: 'skip' } };
+    const settings = {
+      processing: {
+        categorizationThreshold: 0.4,
+        duplicateResolution: 'skip',
+        aiCategorization: false,
+        merchantLearning: false,
+      },
+    };
 
     expect(readProcessingSettings({ settings })).toEqual({
       categorizationThreshold: 0.4,
       duplicateResolution: 'skip',
+      aiCategorization: false,
+      aiMerchantNormalization: true,
+      merchantLearning: false,
+      autoApproveAiPicks: false,
     });
   });
 
@@ -59,6 +74,10 @@ describe('mergeProcessingSettings', () => {
     expect(merged.processing).toEqual({
       categorizationThreshold: 0.5,
       duplicateResolution: 'mark_duplicate',
+      aiCategorization: true,
+      aiMerchantNormalization: true,
+      merchantLearning: true,
+      autoApproveAiPicks: false,
     });
   });
 
@@ -66,6 +85,10 @@ describe('mergeProcessingSettings', () => {
     expect(mergeProcessingSettings(null, { categorizationThreshold: 0.9 }).processing).toEqual({
       categorizationThreshold: 0.9,
       duplicateResolution: 'skip',
+      aiCategorization: true,
+      aiMerchantNormalization: true,
+      merchantLearning: true,
+      autoApproveAiPicks: false,
     });
   });
 

@@ -32,9 +32,10 @@ export type NotificationPreferences = {
   parsingErrors: boolean;
   importFailures: boolean;
   uncategorizedItems: boolean;
+  subscriptionPrompts: boolean;
 };
 
-export const notificationChannels = ['inApp', 'email', 'telegram'] as const;
+export const notificationChannels = ['inApp', 'email', 'telegram', 'push'] as const;
 export type NotificationChannel = (typeof notificationChannels)[number];
 
 export type NotificationChannelSet = Record<NotificationChannel, boolean>;
@@ -69,12 +70,13 @@ export const defaultNotificationPreferences: NotificationPreferences = {
   parsingErrors: true,
   importFailures: true,
   uncategorizedItems: true,
+  subscriptionPrompts: true,
 };
 
 export const defaultNotificationChannels: NotificationChannelMatrix = Object.fromEntries(
   (Object.keys(defaultNotificationPreferences) as Array<keyof NotificationPreferences>).map(key => [
     key,
-    { inApp: true, email: false, telegram: false },
+    { inApp: true, email: false, telegram: false, push: false },
   ]),
 ) as NotificationChannelMatrix;
 
@@ -98,6 +100,7 @@ export const systemNotificationSettings: Array<{ key: keyof NotificationPreferen
   { key: 'parsingErrors' },
   { key: 'importFailures' },
   { key: 'uncategorizedItems' },
+  { key: 'subscriptionPrompts' },
 ];
 
 export const getApiErrorMessage = (error: unknown, fallback: string) => {

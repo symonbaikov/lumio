@@ -8,13 +8,17 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
 import React, { useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ChevronLeft, ChevronRight } from '@/app/components/icons';
+import type { WorkspaceProfile } from '@/app/components/navigation/helpers/navigation-config';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useCurrencyPickerState } from '@/app/hooks/useCurrencyPickerState';
+import { useIntlayer } from '@/app/i18n';
 import { api } from '@/app/lib/api';
 import { AVAILABLE_BACKGROUNDS } from '../constants';
 import { BackgroundSelector } from './BackgroundSelector';
@@ -26,6 +30,7 @@ type WorkspaceCreatePayload = {
   description?: string;
   backgroundImage: string | null;
   currency: string | null;
+  profile: WorkspaceProfile;
 };
 type ApiErrorLike = { response?: { data?: { message?: string } } };
 
@@ -46,6 +51,7 @@ function useWorkspaceFormState(): {
   step: number;
   name: string;
   description: string;
+  profile: WorkspaceProfile;
   selectedBackground: string | null;
   selectedCurrency: string | null;
   loading: boolean;
@@ -54,6 +60,7 @@ function useWorkspaceFormState(): {
   setStep: (v: number) => void;
   setName: (v: string) => void;
   setDescription: (v: string) => void;
+  setProfile: (v: WorkspaceProfile) => void;
   setSelectedBackground: (v: string | null) => void;
   setSelectedCurrency: (v: string | null) => void;
   setLoading: (v: boolean) => void;
@@ -64,6 +71,8 @@ function useWorkspaceFormState(): {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  // Business is how every workspace behaved before the profile existed.
+  const [profile, setProfile] = useState<WorkspaceProfile>('business');
   const [selectedBackground, setSelectedBackground] = useState<string | null>(
     AVAILABLE_BACKGROUNDS[0],
   );
@@ -75,6 +84,7 @@ function useWorkspaceFormState(): {
     setStep(1);
     setName('');
     setDescription('');
+    setProfile('business');
     setSelectedBackground(AVAILABLE_BACKGROUNDS[0]);
     setSelectedCurrency(null);
     setCreatedWorkspaceId(null);
@@ -84,6 +94,7 @@ function useWorkspaceFormState(): {
     step,
     name,
     description,
+    profile,
     selectedBackground,
     selectedCurrency,
     loading,
@@ -92,6 +103,7 @@ function useWorkspaceFormState(): {
     setStep,
     setName,
     setDescription,
+    setProfile,
     setSelectedBackground,
     setSelectedCurrency,
     setLoading,
@@ -152,17 +164,52 @@ function StepIndicator({ step }: { step: number }): React.JSX.Element {
 type Step1Props = {
   name: string;
   description: string;
+  profile: WorkspaceProfile;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
+  onProfileChange: (v: WorkspaceProfile) => void;
 };
 function Step1Content({
   name,
   description,
+  profile,
   onNameChange,
   onDescriptionChange,
+  onProfileChange,
 }: Step1Props): React.JSX.Element {
+  const t = useIntlayer('createWorkspaceModal');
   return (
     <Stack spacing={3}>
+      {/* Home hides the business pages from the menu; nothing else changes. */}
+      <Stack spacing={1}>
+        <Typography variant="body2" fontWeight={600} id="workspace-profile-label">
+          {t.profileLabel}
+        </Typography>
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          value={profile}
+          onChange={(_event, value: WorkspaceProfile | null) => value && onProfileChange(value)}
+          aria-labelledby="workspace-profile-label"
+        >
+          <ToggleButton value="home" sx={{ textTransform: 'none', flexDirection: 'column' }}>
+            <Typography variant="body2" fontWeight={600}>
+              {t.profileHome}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {t.profileHomeHint}
+            </Typography>
+          </ToggleButton>
+          <ToggleButton value="business" sx={{ textTransform: 'none', flexDirection: 'column' }}>
+            <Typography variant="body2" fontWeight={600}>
+              {t.profileBusiness}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {t.profileBusinessHint}
+            </Typography>
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
       <TextField
         label="Workspace Name"
         required
@@ -347,6 +394,7 @@ function WorkspaceCurrencyDrawer({
 type CreationHookParams = {
   name: string;
   description: string;
+  profile: WorkspaceProfile;
   selectedBackground: string | null;
   selectedCurrency: string | null;
   setLoading: (v: boolean) => void;
@@ -355,6 +403,7 @@ type CreationHookParams = {
 function useWorkspaceCreation({
   name,
   description,
+  profile,
   selectedBackground,
   selectedCurrency,
   setLoading,
@@ -372,6 +421,7 @@ function useWorkspaceCreation({
         description: description.trim() || undefined,
         backgroundImage: selectedBackground,
         currency: selectedCurrency,
+        profile,
       };
       const response = await api.post('/workspaces', payload);
       setCreatedWorkspaceId(response.data.id);
@@ -391,11 +441,13 @@ type StepContentProps = {
   step: number;
   name: string;
   description: string;
+  profile: WorkspaceProfile;
   selectedCurrency: string | null;
   selectedBackground: string | null;
   createdWorkspaceId: string | null;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
+  onProfileChange: (v: WorkspaceProfile) => void;
   onSelectCurrency: (v: string | null) => void;
   onSelectBackground: (v: string | null) => void;
   onOpenCurrencyDrawer: () => void;
@@ -405,11 +457,13 @@ function StepContent({
   step,
   name,
   description,
+  profile,
   selectedCurrency,
   selectedBackground,
   createdWorkspaceId,
   onNameChange,
   onDescriptionChange,
+  onProfileChange,
   onSelectCurrency,
   onSelectBackground,
   onOpenCurrencyDrawer,
@@ -420,8 +474,10 @@ function StepContent({
       <Step1Content
         name={name}
         description={description}
+        profile={profile}
         onNameChange={onNameChange}
         onDescriptionChange={onDescriptionChange}
+        onProfileChange={onProfileChange}
       />
     );
   }
@@ -496,6 +552,7 @@ export function CreateWorkspaceModal({
   const { createWorkspace } = useWorkspaceCreation({
     name: s.name,
     description: s.description,
+    profile: s.profile,
     selectedBackground: s.selectedBackground,
     selectedCurrency: s.selectedCurrency,
     setLoading: s.setLoading,
@@ -555,11 +612,13 @@ export function CreateWorkspaceModal({
             step={s.step}
             name={s.name}
             description={s.description}
+            profile={s.profile}
             selectedCurrency={s.selectedCurrency}
             selectedBackground={s.selectedBackground}
             createdWorkspaceId={s.createdWorkspaceId}
             onNameChange={s.setName}
             onDescriptionChange={s.setDescription}
+            onProfileChange={s.setProfile}
             onSelectCurrency={s.setSelectedCurrency}
             onSelectBackground={s.setSelectedBackground}
             onOpenCurrencyDrawer={() => s.setCurrencyDrawerOpen(true)}
