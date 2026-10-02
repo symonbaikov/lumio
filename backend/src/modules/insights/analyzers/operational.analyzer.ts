@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type Repository, type SelectQueryBuilder } from 'typeorm';
 import { InsightCategory, InsightSeverity, InsightType, Transaction } from '../../../entities';
+import { UNCATEGORIZED_CATEGORY_NAME } from '../../categories/uncategorized-category';
 import type { AnalysisContext, InsightAnalyzer, InsightCandidate } from './analyzer.interface';
 
-const UNCATEGORIZED_CATEGORY_NAMES = ['Uncategorized', 'Без категории'];
+const UNCATEGORIZED_CATEGORY_NAMES = [UNCATEGORIZED_CATEGORY_NAME];
 
 @Injectable()
 export class OperationalAnalyzer implements InsightAnalyzer {

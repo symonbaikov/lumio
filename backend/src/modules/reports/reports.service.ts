@@ -27,6 +27,7 @@ import { Workspace } from '../../entities/workspace.entity';
 import { AuditService } from '../audit/audit.service';
 import { BalanceService } from '../balance/balance.service';
 import { BalanceExportFormat } from '../balance/dto/export-balance.dto';
+import { UNCATEGORIZED_CATEGORY_NAME } from '../categories/uncategorized-category';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { type CustomReportDto, ReportGroupBy } from './dto/custom-report.dto';
 import {
@@ -672,7 +673,8 @@ export class ReportsService {
         const existing = counterpartyMap.get(key) || { amount: 0, rows: 0 };
         counterpartyMap.set(key, { amount: existing.amount + abs, rows: existing.rows + 1 });
       } else {
-        const key = (categoryName || 'Без категории').trim() || 'Без категории';
+        const key =
+          (categoryName || UNCATEGORIZED_CATEGORY_NAME).trim() || UNCATEGORIZED_CATEGORY_NAME;
         const existing = categoryMap.get(key) || { amount: 0, rows: 0 };
         categoryMap.set(key, { amount: existing.amount + abs, rows: existing.rows + 1 });
       }
@@ -1282,7 +1284,7 @@ export class ReportsService {
     const categoryMap = new Map<string, { name: string; amount: number; count: number }>();
     expenseTransactions.forEach(t => {
       const categoryId = t.categoryId || 'uncategorized';
-      const categoryName = t.category?.name || 'Без категории';
+      const categoryName = t.category?.name || UNCATEGORIZED_CATEGORY_NAME;
       const existing = categoryMap.get(categoryId) || { name: categoryName, amount: 0, count: 0 };
       categoryMap.set(categoryId, {
         name: categoryName,
@@ -1378,7 +1380,7 @@ export class ReportsService {
       .filter(t => t.transactionType === TransactionType.EXPENSE)
       .forEach(t => {
         const categoryId = t.categoryId || 'uncategorized';
-        const categoryName = t.category?.name || 'Без категории';
+        const categoryName = t.category?.name || UNCATEGORIZED_CATEGORY_NAME;
         const existing = categoryMap.get(categoryId) || { name: categoryName, amount: 0, count: 0 };
         categoryMap.set(categoryId, {
           name: categoryName,
@@ -1571,7 +1573,7 @@ export class ReportsService {
       switch (groupBy) {
         case ReportGroupBy.CATEGORY:
           key = t.categoryId || 'uncategorized';
-          label = t.category?.name || 'Без категории';
+          label = t.category?.name || UNCATEGORIZED_CATEGORY_NAME;
           break;
         case ReportGroupBy.COUNTERPARTY:
           key = t.counterpartyName;
@@ -1757,7 +1759,7 @@ export class ReportsService {
       credit: transaction.credit != null ? Number(transaction.credit) : null,
       amount: transaction.amount != null ? Number(transaction.amount) : null,
       currency: transaction.currency || 'KZT',
-      category: neutralize(transaction.category?.name) || 'Без категории',
+      category: neutralize(transaction.category?.name) || UNCATEGORIZED_CATEGORY_NAME,
       branch: neutralize(transaction.branch?.name),
       wallet: neutralize(transaction.wallet?.name),
       documentNumber: neutralize(transaction.documentNumber),
@@ -2233,7 +2235,8 @@ export class ReportsService {
         totals.income += abs;
       } else {
         ts.expense += abs;
-        const category = (t.category?.name || 'Без категории').trim() || 'Без категории';
+        const category =
+          (t.category?.name || UNCATEGORIZED_CATEGORY_NAME).trim() || UNCATEGORIZED_CATEGORY_NAME;
         const existing = categoryMap.get(category) || { amount: 0, rows: 0 };
         categoryMap.set(category, { amount: existing.amount + abs, rows: existing.rows + 1 });
         totals.expense += abs;
@@ -2435,7 +2438,8 @@ export class ReportsService {
 
       const categoryKey = transaction.category?.id || 'without-category';
       const categoryName =
-        (transaction.category?.name || 'Без категории').trim() || 'Без категории';
+        (transaction.category?.name || UNCATEGORIZED_CATEGORY_NAME).trim() ||
+        UNCATEGORIZED_CATEGORY_NAME;
       const categoryCurrent = categoryMap.get(categoryKey) || {
         id: transaction.category?.id || null,
         name: categoryName,

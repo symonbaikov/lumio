@@ -333,7 +333,7 @@ describe('ClassificationService', () => {
             },
             {
               id: 'income-2',
-              name: 'Без категории',
+              name: 'Uncategorized',
               type: CategoryType.INCOME,
               isEnabled: true,
             },
@@ -592,6 +592,28 @@ describe('ClassificationService', () => {
           source: CategorySource.PARSING,
         }),
       );
+    });
+
+    it('takes the category a parallel import created first instead of failing', async () => {
+      jest
+        .spyOn(categoryRepository, 'findOne')
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'created-in-parallel' } as Category);
+      jest.spyOn(categoryRepository, 'create').mockImplementation(data => data as Category);
+      jest
+        .spyOn(categoryRepository, 'save')
+        .mockRejectedValue(Object.assign(new Error('duplicate key'), { code: '23505' }));
+
+      const result = await (service as any).ensureCategory(
+        '1',
+        'Uncategorized',
+        CategoryType.EXPENSE,
+        undefined,
+        'ws-1',
+      );
+
+      expect(result).toBe('created-in-parallel');
     });
   });
 });
