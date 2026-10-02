@@ -1,14 +1,295 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "4ddef0b8292b7a8b085562b86df69cfa9e5d9e02"
+      "main": "5c7f15aa19bb4dd62217f91d9c3091ef7416228f"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-10-01T22:30:40.428Z",
+    "lastGeneratedAt": "2026-10-02T00:17:44.102Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-10-02-5c7f15a",
+      "version": "main-5c7f15a",
+      "branch": "main",
+      "date": "2026-10-02T00:17:44.102Z",
+      "title": "Release update - October 2, 2026",
+      "summary": "This release includes 6 features, 1 improvement, and 4 fixes.",
+      "markdown": "## Features\n- **review-inbox**: One queue for everything that needs a decision\n- **receipts**: Match receipts to bank rows, split by line items, read email bodies\n- **telegram**: Take receipts and expenses from the chat\n- **subscriptions**: Price-change alerts, duplicates, cost per use, sinking funds, bills in the calendar\n- **budgets**: Rollover modes, parent-category budgets, \"what would this do\" before booking\n- **workspaces**: Home or Business profile that trims the menu\n\n## Improvements\n- **review**: Biome formatting and no non-null assertion in the nav test\n\n## Fixes\n- **telegram**: Trim merchant separators without a backtracking regex\n- **telegram**: Book a redelivered update only once\n- **review**: Render the inbox after mount so dark mode is not lost\n- **backend**: Default imports of CommonJS packages were undefined at runtime",
+      "commits": [
+        {
+          "sha": "2e474b4e55bf7bd65c5837f06a577a749aa37c09",
+          "shortSha": "2e474b4e",
+          "subject": "feat(review-inbox): one queue for everything that needs a decision",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T13:43:13+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/review-inbox.e2e-spec.ts",
+            "backend/@tests/unit/common/workspace-processing.util.spec.ts",
+            "backend/@tests/unit/modules/review-inbox/review-inbox.service.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/common/utils/workspace-processing.util.ts",
+            "backend/src/modules/notifications/notification-translations.ts",
+            "backend/src/modules/review-inbox/dto/review-inbox.dto.ts",
+            "backend/src/modules/review-inbox/review-inbox.controller.ts",
+            "backend/src/modules/review-inbox/review-inbox.module.ts",
+            "backend/src/modules/review-inbox/review-inbox.scheduler.ts",
+            "backend/src/modules/review-inbox/review-inbox.service.ts",
+            "backend/src/modules/workspaces/dto/workspace-processing.dto.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/review/components/ReviewInboxView.tsx",
+            "frontend/app/(main)/review/hooks/useReviewInbox.ts",
+            "frontend/app/(main)/review/lib/review-inbox-model.test.ts",
+            "frontend/app/(main)/review/lib/review-inbox-model.ts",
+            "frontend/app/(main)/review/page.content.ts",
+            "frontend/app/(main)/review/page.tsx",
+            "frontend/app/components/Sidebar.tsx",
+            "frontend/app/components/navigation.content.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.ts",
+            "frontend/app/lib/query-keys.ts",
+            "frontend/app/settings/profile/components/ProcessingSection.tsx",
+            "frontend/app/settings/profile/hooks/useProcessing.ts",
+            "frontend/app/settings/profile/page.content.ts"
+          ]
+        },
+        {
+          "sha": "31b3b158c2f534133d6cdd0f6b624edef1057638",
+          "shortSha": "31b3b158",
+          "subject": "feat(receipts): match receipts to bank rows, split by line items, read email bodies",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T14:10:29+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/receipt-match.e2e-spec.ts",
+            "backend/@tests/unit/modules/gmail/gmail-receipt-parser.service.spec.ts",
+            "backend/@tests/unit/modules/receipts/receipt-split.util.spec.ts",
+            "backend/@tests/unit/modules/receipts/receipt-transaction-match.spec.ts",
+            "backend/@tests/unit/modules/receipts/receipts.controller.spec.ts",
+            "backend/src/entities/receipt.entity.ts",
+            "backend/src/modules/gmail/gmail-receipt-processor.ts",
+            "backend/src/modules/gmail/services/gmail-receipt-parser.service.ts",
+            "backend/src/modules/receipts/dto/approve-receipt.dto.ts",
+            "backend/src/modules/receipts/receipts.controller.ts",
+            "backend/src/modules/receipts/receipts.module.ts",
+            "backend/src/modules/receipts/receipts.service.ts",
+            "backend/src/modules/receipts/services/receipt-category.service.ts",
+            "backend/src/modules/receipts/services/receipt-match.service.ts",
+            "backend/src/modules/receipts/services/receipt-processor.service.ts",
+            "backend/src/modules/receipts/services/receipt-split.service.ts",
+            "backend/src/modules/receipts/services/receipt-split.util.ts",
+            "backend/src/modules/receipts/services/receipt-transaction-match.ts",
+            "backend/src/modules/transactions/transactions.module.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/components/receipts/ReceiptTransactionMatch.tsx",
+            "frontend/app/lib/api.ts",
+            "frontend/app/storage/receipts/[id]/page.content.ts",
+            "frontend/app/storage/receipts/[id]/page.tsx"
+          ]
+        },
+        {
+          "sha": "b5ce625e2ee7f2950ec71477b732f19a04b76813",
+          "shortSha": "b5ce625e",
+          "subject": "feat(telegram): take receipts and expenses from the chat",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T14:30:09+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/unit/modules/telegram/telegram-inbound.service.spec.ts",
+            "backend/@tests/unit/modules/telegram/telegram-inbound.util.spec.ts",
+            "backend/src/modules/receipts/receipts.service.ts",
+            "backend/src/modules/telegram/telegram-inbound.util.ts",
+            "backend/src/modules/telegram/telegram-translations.ts",
+            "backend/src/modules/telegram/telegram.module.ts",
+            "backend/src/modules/telegram/telegram.service.ts",
+            "docs/ROADMAP.md"
+          ]
+        },
+        {
+          "sha": "56344f067ba086379e2dfe754519e7c823f4a8dd",
+          "shortSha": "56344f06",
+          "subject": "feat(subscriptions): price-change alerts, duplicates, cost per use, sinking funds, bills in the calendar",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T18:51:00+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/subscriptions-insights.e2e-spec.ts",
+            "backend/@tests/unit/modules/subscriptions/subscription-detection.service.spec.ts",
+            "backend/@tests/unit/modules/subscriptions/subscription-insights.util.spec.ts",
+            "backend/@tests/unit/modules/subscriptions/subscriptions.service.spec.ts",
+            "backend/src/entities/notification-preference.entity.ts",
+            "backend/src/entities/notification.entity.ts",
+            "backend/src/entities/subscription.entity.ts",
+            "backend/src/migrations/1786730000000-AddSubscriptionUsageAndSinkingFund.ts",
+            "backend/src/modules/notifications/dto/update-notification-preferences.dto.ts",
+            "backend/src/modules/notifications/notification-translations.ts",
+            "backend/src/modules/notifications/notifications.service.ts",
+            "backend/src/modules/subscriptions/subscription-detection.service.ts",
+            "backend/src/modules/subscriptions/subscription-insights.util.ts",
+            "backend/src/modules/subscriptions/subscriptions.controller.ts",
+            "backend/src/modules/subscriptions/subscriptions.module.ts",
+            "backend/src/modules/subscriptions/subscriptions.service.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/subscriptions/components/SubscriptionCard.test.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionCard.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionChargeCalendar.tsx",
+            "frontend/app/(main)/subscriptions/components/SubscriptionsContent.tsx",
+            "frontend/app/(main)/subscriptions/hooks/useSubscriptionsPage.ts",
+            "frontend/app/(main)/subscriptions/subscriptions.content.ts",
+            "frontend/app/lib/query-keys.ts",
+            "frontend/app/settings/profile/page.content.ts",
+            "frontend/app/settings/profile/profileHelpers.ts"
+          ]
+        },
+        {
+          "sha": "b4a961457d4e7f5e02f58d0370d654f4bad17ac4",
+          "shortSha": "b4a96145",
+          "subject": "feat(budgets): rollover modes, parent-category budgets, \"what would this do\" before booking",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T19:08:42+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/budget-mechanics.e2e-spec.ts",
+            "backend/@tests/unit/modules/budgets/budget-rollover.util.spec.ts",
+            "backend/@tests/unit/modules/budgets/budgets.service.spec.ts",
+            "backend/src/entities/budget.entity.ts",
+            "backend/src/migrations/1786740000000-AddBudgetRolloverMode.ts",
+            "backend/src/modules/budgets/budget-rollover.util.ts",
+            "backend/src/modules/budgets/budgets.controller.ts",
+            "backend/src/modules/budgets/budgets.module.ts",
+            "backend/src/modules/budgets/budgets.service.ts",
+            "backend/src/modules/budgets/dto/budget-impact-query.dto.ts",
+            "backend/src/modules/budgets/dto/create-budget.dto.ts",
+            "backend/src/modules/budgets/dto/update-budget.dto.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/budgets/budgets.content.ts",
+            "frontend/app/(main)/budgets/components/BudgetCard.tsx",
+            "frontend/app/(main)/budgets/components/BudgetFormDrawer.tsx",
+            "frontend/app/(main)/budgets/hooks/useBudgetsPage.test.ts",
+            "frontend/app/(main)/budgets/hooks/useBudgetsPage.ts",
+            "frontend/app/(main)/statements/components/BudgetImpactNotice.test.tsx",
+            "frontend/app/(main)/statements/components/BudgetImpactNotice.tsx",
+            "frontend/app/(main)/statements/components/CreateExpenseDrawer.content.ts",
+            "frontend/app/(main)/statements/components/CreateExpenseDrawer.tsx",
+            "frontend/app/styles/components/_statements.scss"
+          ]
+        },
+        {
+          "sha": "1208e856798cb3f6172040e22ae82b3f96970b6a",
+          "shortSha": "1208e856",
+          "subject": "feat(workspaces): Home or Business profile that trims the menu",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T19:22:02+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/workspaces.e2e-spec.ts",
+            "backend/src/common/utils/workspace-profile.util.ts",
+            "backend/src/modules/workspaces/dto/create-workspace.dto.ts",
+            "backend/src/modules/workspaces/workspaces.service.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/workspaces/components/CreateWorkspaceModal.tsx",
+            "frontend/app/(main)/workspaces/components/create-workspace-modal.content.ts",
+            "frontend/app/components/Navigation.tsx",
+            "frontend/app/components/Sidebar.tsx",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.ts",
+            "frontend/app/components/welcome-tutorial/useTutorialSteps.ts",
+            "frontend/app/settings/profile/components/WorkspaceProfileSection.test.tsx",
+            "frontend/app/settings/profile/components/WorkspaceProfileSection.tsx",
+            "frontend/app/settings/profile/helpers/settings-url-state.ts",
+            "frontend/app/settings/profile/page.content.ts",
+            "frontend/app/settings/profile/tabs/DataTab.tsx"
+          ]
+        },
+        {
+          "sha": "407867a669cfd184e7562f2b6dbf3ff761f08125",
+          "shortSha": "407867a6",
+          "subject": "fix(telegram): trim merchant separators without a backtracking regex",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T23:41:55+03:00",
+          "files": [
+            "backend/@tests/unit/modules/telegram/telegram-inbound.util.spec.ts",
+            "backend/src/modules/telegram/telegram-inbound.util.ts"
+          ]
+        },
+        {
+          "sha": "f610bd0358d759d7293033d7693b8963178a840b",
+          "shortSha": "f610bd03",
+          "subject": "fix(telegram): book a redelivered update only once",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T23:55:33+03:00",
+          "files": [
+            "backend/@tests/unit/modules/telegram/telegram-inbound.service.spec.ts",
+            "backend/src/modules/telegram/telegram.module.ts",
+            "backend/src/modules/telegram/telegram.service.ts"
+          ]
+        },
+        {
+          "sha": "236f1d03eed737dd86cd067942b65a5579b10a16",
+          "shortSha": "236f1d03",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-10-01T22:30:40Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "9843d479341132d3246e9c6574de705dc3391230",
+          "shortSha": "9843d479",
+          "subject": "fix(review): render the inbox after mount so dark mode is not lost",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T01:45:06+03:00",
+          "files": [
+            "frontend/app/(main)/review/page.tsx"
+          ]
+        },
+        {
+          "sha": "0f8c5385e683c10b15e42c24766ef1e645b608e0",
+          "shortSha": "0f8c5385",
+          "subject": "fix(backend): default imports of CommonJS packages were undefined at runtime",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T02:15:05+03:00",
+          "files": [
+            "backend/@tests/unit/common/default-imports.spec.ts",
+            "backend/src/modules/application-settings/application-settings.service.ts",
+            "backend/src/modules/parsing/parsers/csv.parser.ts"
+          ]
+        },
+        {
+          "sha": "ef4c368873248b8165840e0833ed21275249cf08",
+          "shortSha": "ef4c3688",
+          "subject": "style(review): Biome formatting and no non-null assertion in the nav test",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T02:44:18+03:00",
+          "files": [
+            "backend/src/modules/review-inbox/review-inbox.controller.ts",
+            "backend/src/modules/review-inbox/review-inbox.service.ts",
+            "frontend/app/(main)/review/components/ReviewInboxView.tsx",
+            "frontend/app/(main)/review/hooks/useReviewInbox.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts"
+          ]
+        },
+        {
+          "sha": "d470af378080b4bcddae05622e52a3dc6966f090",
+          "shortSha": "d470af37",
+          "subject": "Merge pull request #241 from symonbaikov/fix/cjs-default-imports",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T02:52:34+03:00",
+          "files": []
+        },
+        {
+          "sha": "5c7f15aa19bb4dd62217f91d9c3091ef7416228f",
+          "shortSha": "5c7f15aa",
+          "subject": "Merge pull request #233 from symonbaikov/feat/phase1-review-inbox",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T03:17:20+03:00",
+          "files": []
+        }
+      ]
+    },
     {
       "id": "changelog-2026-10-01-4ddef0b",
       "version": "main-4ddef0b",
