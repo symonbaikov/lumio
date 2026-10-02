@@ -11,6 +11,17 @@
  * `message.from.language_code` and finally to 'ru'.
  */
 export type TelegramMessageKey =
+  | 'receipt_photo_received'
+  | 'receipt_photo_done'
+  | 'receipt_photo_unreadable'
+  | 'receipt_photo_failed'
+  | 'expense_text_done'
+  | 'expense_text_unparsed'
+  | 'expense_text_failed'
+  | 'delete_button'
+  | 'deleted'
+  | 'delete_failed'
+  | 'inbound_help'
   | 'connected'
   | 'start_greeting'
   | 'unknown_command'
@@ -52,6 +63,21 @@ export type TelegramMessageKey =
 type TranslationMap = Record<TelegramMessageKey, string>;
 
 const ru: TranslationMap = {
+  receipt_photo_received: '📷 Фото получено, распознаю чек…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Чек ждёт в разборе (статус: {{status}}).',
+  receipt_photo_unreadable: '🧾 Чек сохранён, но сумму прочитать не удалось. Он ждёт в разборе.',
+  receipt_photo_failed:
+    'Не удалось обработать фото. Попробуйте ещё раз или загрузите через веб-приложение.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} записано. Категорию можно выбрать в разборе.',
+  expense_text_unparsed: 'Не понял сумму. Напишите, например: «кофе 4.50» или «такси 1500 тг».',
+  expense_text_failed: 'Не удалось записать расход. Попробуйте ещё раз.',
+  delete_button: '🗑 Удалить',
+  deleted: 'Удалено.',
+  delete_failed: 'Не удалось удалить.',
+  inbound_help:
+    'Также можно:\n• прислать фото или картинку чека — я распознаю сумму и положу чек в разбор\n• написать расход текстом: «кофе 4.50», «такси 1500 тг»\n• прислать PDF выписки — она уйдёт на импорт',
   connected: '✅ Telegram подключен. Мы будем отправлять отчёты в этот чат.',
   start_greeting:
     '👋 Привет! Твой Telegram ID: {{telegramId}}. Добавь его в настройках профиля, чтобы получать отчёты.',
@@ -99,6 +125,22 @@ const ru: TranslationMap = {
 };
 
 const en: TranslationMap = {
+  receipt_photo_received: '📷 Photo received, reading the receipt…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. The receipt is waiting in the review inbox (status: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Receipt saved, but the amount could not be read. It is waiting in the review inbox.',
+  receipt_photo_failed: 'Could not process the photo. Try again or upload it through the web app.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} recorded. Pick a category in the review inbox.',
+  expense_text_unparsed:
+    'I could not find an amount. Try something like “coffee 4.50” or “taxi 15 EUR”.',
+  expense_text_failed: 'Could not record the expense. Please try again.',
+  delete_button: '🗑 Delete',
+  deleted: 'Deleted.',
+  delete_failed: 'Could not delete.',
+  inbound_help:
+    'You can also:\n• send a photo or image of a receipt — I read the amount and put it in the review inbox\n• type an expense: “coffee 4.50”, “taxi 15 EUR”\n• send a PDF statement — it goes to import',
   connected: "✅ Telegram connected. We'll send reports to this chat.",
   start_greeting:
     '👋 Hi! Your Telegram ID: {{telegramId}}. Add it in your profile settings to start receiving reports.',
@@ -146,6 +188,20 @@ const en: TranslationMap = {
 };
 
 const kk: TranslationMap = {
+  receipt_photo_received: '📷 Фото алынды, чекті оқып жатырмын…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Чек қарауда күтіп тұр (күйі: {{status}}).',
+  receipt_photo_unreadable: '🧾 Чек сақталды, бірақ сома оқылмады. Ол қарауда күтіп тұр.',
+  receipt_photo_failed:
+    'Фотоны өңдеу мүмкін болмады. Қайталап көріңіз немесе веб-қосымша арқылы жүктеңіз.',
+  expense_text_done: '✅ {{merchant}} — {{amount}} {{currency}} жазылды. Санатты қарауда таңдаңыз.',
+  expense_text_unparsed: 'Соманы таба алмадым. Мысалы: «кофе 4.50» немесе «такси 1500 тг».',
+  expense_text_failed: 'Шығынды жазу мүмкін болмады. Қайталап көріңіз.',
+  delete_button: '🗑 Жою',
+  deleted: 'Жойылды.',
+  delete_failed: 'Жою мүмкін болмады.',
+  inbound_help:
+    'Сондай-ақ:\n• чектің фотосын жіберіңіз — соманы оқып, чекті қарауға қоямын\n• шығынды мәтінмен жазыңыз: «кофе 4.50», «такси 1500 тг»\n• PDF үзінді көшірме жіберіңіз — ол импортқа кетеді',
   connected: '✅ Telegram қосылды. Осы чатқа есептер жібереміз.',
   start_greeting:
     '👋 Сәлем! Telegram ID-ің: {{telegramId}}. Есептерді алу үшін оны профиль баптауларында көрсет.',
@@ -193,6 +249,23 @@ const kk: TranslationMap = {
 };
 
 const de: TranslationMap = {
+  receipt_photo_received: '📷 Foto erhalten, Beleg wird gelesen…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Der Beleg wartet im Prüf-Posteingang (Status: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Beleg gespeichert, aber der Betrag war nicht lesbar. Er wartet im Prüf-Posteingang.',
+  receipt_photo_failed:
+    'Das Foto konnte nicht verarbeitet werden. Bitte erneut versuchen oder über die Web-App hochladen.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} erfasst. Die Kategorie wählen Sie im Prüf-Posteingang.',
+  expense_text_unparsed:
+    'Ich habe keinen Betrag gefunden. Versuchen Sie z. B. „Kaffee 4,50“ oder „Taxi 15 EUR“.',
+  expense_text_failed: 'Die Ausgabe konnte nicht erfasst werden. Bitte erneut versuchen.',
+  delete_button: '🗑 Löschen',
+  deleted: 'Gelöscht.',
+  delete_failed: 'Löschen fehlgeschlagen.',
+  inbound_help:
+    'Außerdem:\n• Foto oder Bild eines Belegs senden — ich lese den Betrag und lege ihn in den Prüf-Posteingang\n• Ausgabe als Text: „Kaffee 4,50“, „Taxi 15 EUR“\n• PDF-Kontoauszug senden — er geht in den Import',
   connected: '✅ Telegram verbunden. Wir senden Berichte an diesen Chat.',
   start_greeting:
     '👋 Hallo! Deine Telegram-ID: {{telegramId}}. Trage sie in den Profileinstellungen ein, um Berichte zu erhalten.',
@@ -241,6 +314,22 @@ const de: TranslationMap = {
 };
 
 const fr: TranslationMap = {
+  receipt_photo_received: '📷 Photo reçue, lecture du reçu…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Le reçu attend dans la boîte de revue (statut : {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Reçu enregistré, mais le montant est illisible. Il attend dans la boîte de revue.',
+  receipt_photo_failed:
+    'Impossible de traiter la photo. Réessayez ou importez-la via l’application web.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} enregistré. Choisissez la catégorie dans la boîte de revue.',
+  expense_text_unparsed: 'Je n’ai pas trouvé de montant. Essayez « café 4.50 » ou « taxi 15 EUR ».',
+  expense_text_failed: 'Impossible d’enregistrer la dépense. Réessayez.',
+  delete_button: '🗑 Supprimer',
+  deleted: 'Supprimé.',
+  delete_failed: 'Suppression impossible.',
+  inbound_help:
+    'Vous pouvez aussi :\n• envoyer une photo d’un reçu — je lis le montant et le place dans la boîte de revue\n• écrire une dépense : « café 4.50 », « taxi 15 EUR »\n• envoyer un relevé PDF — il part à l’import',
   connected: '✅ Telegram connecté. Nous enverrons les rapports dans ce chat.',
   start_greeting:
     '👋 Salut ! Votre ID Telegram : {{telegramId}}. Ajoutez-le dans les paramètres du profil pour recevoir des rapports.',
@@ -288,6 +377,22 @@ const fr: TranslationMap = {
 };
 
 const es: TranslationMap = {
+  receipt_photo_received: '📷 Foto recibida, leyendo el recibo…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. El recibo espera en la bandeja de revisión (estado: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Recibo guardado, pero no se pudo leer el importe. Espera en la bandeja de revisión.',
+  receipt_photo_failed:
+    'No se pudo procesar la foto. Inténtalo de nuevo o súbela desde la app web.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} registrado. Elige la categoría en la bandeja de revisión.',
+  expense_text_unparsed: 'No encontré un importe. Prueba con «café 4.50» o «taxi 15 EUR».',
+  expense_text_failed: 'No se pudo registrar el gasto. Inténtalo de nuevo.',
+  delete_button: '🗑 Eliminar',
+  deleted: 'Eliminado.',
+  delete_failed: 'No se pudo eliminar.',
+  inbound_help:
+    'También puedes:\n• enviar una foto de un recibo: leo el importe y lo pongo en la bandeja de revisión\n• escribir un gasto: «café 4.50», «taxi 15 EUR»\n• enviar un extracto PDF: va a importación',
   connected: '✅ Telegram conectado. Enviaremos los informes a este chat.',
   start_greeting:
     '👋 ¡Hola! Tu ID de Telegram: {{telegramId}}. Añádelo en la configuración del perfil para recibir informes.',
@@ -335,6 +440,22 @@ const es: TranslationMap = {
 };
 
 const pt: TranslationMap = {
+  receipt_photo_received: '📷 Foto recebida, a ler o recibo…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. O recibo aguarda na caixa de revisão (estado: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Recibo guardado, mas não foi possível ler o valor. Aguarda na caixa de revisão.',
+  receipt_photo_failed:
+    'Não foi possível processar a foto. Tente novamente ou carregue pela app web.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} registado. Escolha a categoria na caixa de revisão.',
+  expense_text_unparsed: 'Não encontrei um valor. Tente «café 4.50» ou «táxi 15 EUR».',
+  expense_text_failed: 'Não foi possível registar a despesa. Tente novamente.',
+  delete_button: '🗑 Eliminar',
+  deleted: 'Eliminado.',
+  delete_failed: 'Não foi possível eliminar.',
+  inbound_help:
+    'Também pode:\n• enviar uma foto de um recibo — leio o valor e coloco-o na caixa de revisão\n• escrever uma despesa: «café 4.50», «táxi 15 EUR»\n• enviar um extrato PDF — vai para importação',
   connected: '✅ Telegram conectado. Enviaremos os relatórios para este chat.',
   start_greeting:
     '👋 Olá! O seu ID do Telegram: {{telegramId}}. Adicione-o nas definições do perfil para receber relatórios.',
@@ -383,6 +504,21 @@ const pt: TranslationMap = {
 };
 
 const tr: TranslationMap = {
+  receipt_photo_received: '📷 Fotoğraf alındı, fiş okunuyor…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Fiş inceleme gelen kutusunda bekliyor (durum: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Fiş kaydedildi ama tutar okunamadı. İnceleme gelen kutusunda bekliyor.',
+  receipt_photo_failed: 'Fotoğraf işlenemedi. Tekrar deneyin veya web uygulamasından yükleyin.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} kaydedildi. Kategoriyi inceleme gelen kutusunda seçin.',
+  expense_text_unparsed: 'Tutar bulamadım. Örneğin “kahve 4.50” veya “taksi 15 EUR” yazın.',
+  expense_text_failed: 'Harcama kaydedilemedi. Tekrar deneyin.',
+  delete_button: '🗑 Sil',
+  deleted: 'Silindi.',
+  delete_failed: 'Silinemedi.',
+  inbound_help:
+    'Ayrıca:\n• bir fişin fotoğrafını gönderin — tutarı okuyup inceleme gelen kutusuna koyarım\n• harcamayı yazın: “kahve 4.50”, “taksi 15 EUR”\n• PDF ekstre gönderin — içe aktarmaya gider',
   connected: '✅ Telegram bağlandı. Raporları bu sohbete göndereceğiz.',
   start_greeting:
     "👋 Merhaba! Telegram ID'niz: {{telegramId}}. Rapor almak için bunu profil ayarlarına ekleyin.",
@@ -429,6 +565,21 @@ const tr: TranslationMap = {
 };
 
 const uk: TranslationMap = {
+  receipt_photo_received: '📷 Фото отримано, розпізнаю чек…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Чек чекає в розборі (статус: {{status}}).',
+  receipt_photo_unreadable: '🧾 Чек збережено, але суму прочитати не вдалося. Він чекає в розборі.',
+  receipt_photo_failed:
+    'Не вдалося обробити фото. Спробуйте ще раз або завантажте через вебзастосунок.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} записано. Категорію можна вибрати в розборі.',
+  expense_text_unparsed: 'Не зрозумів суму. Напишіть, наприклад: «кава 4.50» або «таксі 15 EUR».',
+  expense_text_failed: 'Не вдалося записати витрату. Спробуйте ще раз.',
+  delete_button: '🗑 Видалити',
+  deleted: 'Видалено.',
+  delete_failed: 'Не вдалося видалити.',
+  inbound_help:
+    'Також можна:\n• надіслати фото чека — я розпізнаю суму й покладу чек у розбір\n• написати витрату текстом: «кава 4.50», «таксі 15 EUR»\n• надіслати PDF виписки — вона піде на імпорт',
   connected: '✅ Telegram підключено. Надсилатимемо звіти в цей чат.',
   start_greeting:
     '👋 Привіт! Твій Telegram ID: {{telegramId}}. Додай його в налаштуваннях профілю, щоб отримувати звіти.',
@@ -475,6 +626,19 @@ const uk: TranslationMap = {
 };
 
 const zh: TranslationMap = {
+  receipt_photo_received: '📷 已收到照片，正在识别收据…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}。收据已进入审核收件箱（状态：{{status}}）。',
+  receipt_photo_unreadable: '🧾 收据已保存，但无法读取金额。它在审核收件箱中等待。',
+  receipt_photo_failed: '无法处理照片。请重试或通过网页应用上传。',
+  expense_text_done: '✅ 已记录 {{merchant}} — {{amount}} {{currency}}。请在审核收件箱中选择类别。',
+  expense_text_unparsed: '没有找到金额。试试“咖啡 4.50”或“出租车 15 EUR”。',
+  expense_text_failed: '无法记录支出，请重试。',
+  delete_button: '🗑 删除',
+  deleted: '已删除。',
+  delete_failed: '无法删除。',
+  inbound_help:
+    '您还可以：\n• 发送收据照片 — 我会识别金额并放入审核收件箱\n• 用文字记录支出：“咖啡 4.50”、“出租车 15 EUR”\n• 发送 PDF 对账单 — 将进入导入',
   connected: '✅ Telegram 已连接。我们会将报告发送到此聊天。',
   start_greeting: '👋 你好！你的 Telegram ID：{{telegramId}}。请在个人资料设置中添加它以接收报告。',
   unknown_command: '未知命令。使用 /help 查看命令列表。',
@@ -517,6 +681,21 @@ const zh: TranslationMap = {
 };
 
 const ar: TranslationMap = {
+  receipt_photo_received: '📷 تم استلام الصورة، جارٍ قراءة الإيصال…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. الإيصال بانتظارك في صندوق المراجعة (الحالة: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 تم حفظ الإيصال لكن تعذّر قراءة المبلغ. إنه بانتظارك في صندوق المراجعة.',
+  receipt_photo_failed: 'تعذّر معالجة الصورة. حاول مجددًا أو ارفعها عبر تطبيق الويب.',
+  expense_text_done:
+    '✅ تم تسجيل {{merchant}} — {{amount}} {{currency}}. اختر الفئة في صندوق المراجعة.',
+  expense_text_unparsed: 'لم أجد مبلغًا. جرّب مثلًا «قهوة 4.50» أو «تاكسي 15 EUR».',
+  expense_text_failed: 'تعذّر تسجيل المصروف. حاول مجددًا.',
+  delete_button: '🗑 حذف',
+  deleted: 'تم الحذف.',
+  delete_failed: 'تعذّر الحذف.',
+  inbound_help:
+    'يمكنك أيضًا:\n• إرسال صورة إيصال — أقرأ المبلغ وأضعه في صندوق المراجعة\n• كتابة مصروف: «قهوة 4.50»، «تاكسي 15 EUR»\n• إرسال كشف PDF — يذهب إلى الاستيراد',
   connected: '✅ تم ربط Telegram. سنرسل التقارير إلى هذه المحادثة.',
   start_greeting:
     '👋 مرحبًا! معرّف Telegram الخاص بك: {{telegramId}}. أضفه في إعدادات الملف الشخصي لتلقي التقارير.',
@@ -562,6 +741,22 @@ const ar: TranslationMap = {
 };
 
 const pl: TranslationMap = {
+  receipt_photo_received: '📷 Zdjęcie odebrane, odczytuję paragon…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Paragon czeka w skrzynce przeglądu (status: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Paragon zapisany, ale nie udało się odczytać kwoty. Czeka w skrzynce przeglądu.',
+  receipt_photo_failed:
+    'Nie udało się przetworzyć zdjęcia. Spróbuj ponownie lub prześlij przez aplikację web.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} zapisane. Kategorię wybierz w skrzynce przeglądu.',
+  expense_text_unparsed: 'Nie znalazłem kwoty. Spróbuj np. „kawa 4.50” lub „taxi 15 EUR”.',
+  expense_text_failed: 'Nie udało się zapisać wydatku. Spróbuj ponownie.',
+  delete_button: '🗑 Usuń',
+  deleted: 'Usunięto.',
+  delete_failed: 'Nie udało się usunąć.',
+  inbound_help:
+    'Możesz też:\n• wysłać zdjęcie paragonu — odczytam kwotę i umieszczę go w skrzynce przeglądu\n• wpisać wydatek: „kawa 4.50”, „taxi 15 EUR”\n• wysłać wyciąg PDF — trafi do importu',
   connected: '✅ Telegram połączony. Będziemy wysyłać raporty na ten czat.',
   start_greeting:
     '👋 Cześć! Twój Telegram ID: {{telegramId}}. Dodaj go w ustawieniach profilu, aby otrzymywać raporty.',
@@ -609,6 +804,21 @@ const pl: TranslationMap = {
 };
 
 const it: TranslationMap = {
+  receipt_photo_received: '📷 Foto ricevuta, leggo lo scontrino…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Lo scontrino attende nella posta di revisione (stato: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Scontrino salvato, ma l’importo non è leggibile. Attende nella posta di revisione.',
+  receipt_photo_failed: 'Impossibile elaborare la foto. Riprova o caricala dall’app web.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} registrato. Scegli la categoria nella posta di revisione.',
+  expense_text_unparsed: 'Non ho trovato un importo. Prova con “caffè 4.50” o “taxi 15 EUR”.',
+  expense_text_failed: 'Impossibile registrare la spesa. Riprova.',
+  delete_button: '🗑 Elimina',
+  deleted: 'Eliminato.',
+  delete_failed: 'Impossibile eliminare.',
+  inbound_help:
+    'Puoi anche:\n• inviare la foto di uno scontrino — leggo l’importo e lo metto nella posta di revisione\n• scrivere una spesa: “caffè 4.50”, “taxi 15 EUR”\n• inviare un estratto PDF — va all’importazione',
   connected: '✅ Telegram collegato. Invieremo i report in questa chat.',
   start_greeting:
     '👋 Ciao! Il tuo ID Telegram: {{telegramId}}. Aggiungilo nelle impostazioni del profilo per ricevere i report.',
@@ -656,6 +866,22 @@ const it: TranslationMap = {
 };
 
 const sk: TranslationMap = {
+  receipt_photo_received: '📷 Fotka prijatá, čítam účtenku…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Účtenka čaká v schránke na kontrolu (stav: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Účtenka uložená, ale sumu sa nepodarilo prečítať. Čaká v schránke na kontrolu.',
+  receipt_photo_failed:
+    'Fotku sa nepodarilo spracovať. Skúste znova alebo ju nahrajte cez webovú aplikáciu.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} zapísané. Kategóriu vyberte v schránke na kontrolu.',
+  expense_text_unparsed: 'Nenašiel som sumu. Skúste napr. „káva 4.50“ alebo „taxi 15 EUR“.',
+  expense_text_failed: 'Výdavok sa nepodarilo zapísať. Skúste znova.',
+  delete_button: '🗑 Zmazať',
+  deleted: 'Zmazané.',
+  delete_failed: 'Nepodarilo sa zmazať.',
+  inbound_help:
+    'Môžete tiež:\n• poslať fotku účtenky — prečítam sumu a dám ju do schránky na kontrolu\n• napísať výdavok: „káva 4.50“, „taxi 15 EUR“\n• poslať PDF výpis — pôjde na import',
   connected: '✅ Telegram pripojený. Správy budeme posielať do tohto chatu.',
   start_greeting:
     '👋 Ahoj! Tvoje Telegram ID: {{telegramId}}. Pridaj ho v nastaveniach profilu, aby si dostával správy.',
@@ -703,6 +929,23 @@ const sk: TranslationMap = {
 };
 
 const ja: TranslationMap = {
+  receipt_photo_received: '📷 写真を受け取りました。レシートを読み取り中…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}。レシートは確認用受信箱で待機中です（状態：{{status}}）。',
+  receipt_photo_unreadable:
+    '🧾 レシートは保存しましたが金額を読み取れませんでした。確認用受信箱で待機中です。',
+  receipt_photo_failed:
+    '写真を処理できませんでした。もう一度試すか、Web アプリからアップロードしてください。',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} を記録しました。カテゴリは確認用受信箱で選べます。',
+  expense_text_unparsed:
+    '金額が見つかりません。「コーヒー 4.50」や「タクシー 15 EUR」のように送ってください。',
+  expense_text_failed: '支出を記録できませんでした。もう一度お試しください。',
+  delete_button: '🗑 削除',
+  deleted: '削除しました。',
+  delete_failed: '削除できませんでした。',
+  inbound_help:
+    'ほかにもできること：\n• レシートの写真を送る — 金額を読み取って確認用受信箱に入れます\n• 支出をテキストで送る：「コーヒー 4.50」「タクシー 15 EUR」\n• PDF の明細を送る — インポートに回します',
   connected: '✅ Telegramが接続されました。このチャットにレポートを送信します。',
   start_greeting:
     '👋 こんにちは！あなたのTelegram ID：{{telegramId}}。レポートを受け取るにはプロフィール設定に追加してください。',
@@ -751,6 +994,21 @@ const ja: TranslationMap = {
 };
 
 const ko: TranslationMap = {
+  receipt_photo_received: '📷 사진을 받았습니다. 영수증을 읽는 중…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. 영수증이 검토함에서 기다리고 있습니다(상태: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 영수증은 저장했지만 금액을 읽지 못했습니다. 검토함에서 기다리고 있습니다.',
+  receipt_photo_failed: '사진을 처리할 수 없습니다. 다시 시도하거나 웹 앱에서 업로드하세요.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} 기록됨. 카테고리는 검토함에서 선택하세요.',
+  expense_text_unparsed: '금액을 찾지 못했습니다. “커피 4.50” 또는 “택시 15 EUR”처럼 보내 보세요.',
+  expense_text_failed: '지출을 기록하지 못했습니다. 다시 시도하세요.',
+  delete_button: '🗑 삭제',
+  deleted: '삭제되었습니다.',
+  delete_failed: '삭제하지 못했습니다.',
+  inbound_help:
+    '이 외에도:\n• 영수증 사진 보내기 — 금액을 읽어 검토함에 넣습니다\n• 지출을 글로 보내기: “커피 4.50”, “택시 15 EUR”\n• PDF 명세서 보내기 — 가져오기로 넘어갑니다',
   connected: '✅ Telegram이 연결되었습니다. 이 채팅으로 리포트를 보내드립니다.',
   start_greeting:
     '👋 안녕하세요! 회원님의 Telegram ID: {{telegramId}}. 리포트를 받으려면 프로필 설정에 추가하세요.',
@@ -797,6 +1055,20 @@ const ko: TranslationMap = {
 };
 
 const hi: TranslationMap = {
+  receipt_photo_received: '📷 फ़ोटो मिली, रसीद पढ़ी जा रही है…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}। रसीद समीक्षा इनबॉक्स में प्रतीक्षा कर रही है (स्थिति: {{status}})।',
+  receipt_photo_unreadable: '🧾 रसीद सहेजी गई, पर राशि नहीं पढ़ी जा सकी। यह समीक्षा इनबॉक्स में है।',
+  receipt_photo_failed: 'फ़ोटो संसाधित नहीं हो सकी। फिर कोशिश करें या वेब ऐप से अपलोड करें।',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} दर्ज किया गया। श्रेणी समीक्षा इनबॉक्स में चुनें।',
+  expense_text_unparsed: 'राशि नहीं मिली। जैसे “coffee 4.50” या “taxi 15 EUR” लिखें।',
+  expense_text_failed: 'खर्च दर्ज नहीं हो सका। फिर कोशिश करें।',
+  delete_button: '🗑 हटाएँ',
+  deleted: 'हटा दिया गया।',
+  delete_failed: 'हटाया नहीं जा सका।',
+  inbound_help:
+    'आप यह भी कर सकते हैं:\n• रसीद की फ़ोटो भेजें — मैं राशि पढ़कर उसे समीक्षा इनबॉक्स में रखूँगा\n• खर्च लिखकर भेजें: “coffee 4.50”, “taxi 15 EUR”\n• PDF स्टेटमेंट भेजें — वह आयात में जाएगा',
   connected: '✅ Telegram जुड़ गया। हम इस चैट में रिपोर्ट भेजेंगे।',
   start_greeting:
     '👋 नमस्ते! आपका Telegram ID: {{telegramId}}. रिपोर्ट पाने के लिए इसे प्रोफ़ाइल सेटिंग्स में जोड़ें।',
@@ -840,6 +1112,22 @@ const hi: TranslationMap = {
 };
 
 const nl: TranslationMap = {
+  receipt_photo_received: '📷 Foto ontvangen, bon wordt gelezen…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. De bon wacht in het beoordelingspostvak (status: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Bon opgeslagen, maar het bedrag was niet leesbaar. Hij wacht in het beoordelingspostvak.',
+  receipt_photo_failed:
+    'De foto kon niet worden verwerkt. Probeer het opnieuw of upload via de web-app.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} vastgelegd. Kies een categorie in het beoordelingspostvak.',
+  expense_text_unparsed: 'Ik vond geen bedrag. Probeer “koffie 4.50” of “taxi 15 EUR”.',
+  expense_text_failed: 'De uitgave kon niet worden vastgelegd. Probeer het opnieuw.',
+  delete_button: '🗑 Verwijderen',
+  deleted: 'Verwijderd.',
+  delete_failed: 'Verwijderen mislukt.',
+  inbound_help:
+    'Je kunt ook:\n• een foto van een bon sturen — ik lees het bedrag en zet hem in het beoordelingspostvak\n• een uitgave typen: “koffie 4.50”, “taxi 15 EUR”\n• een PDF-afschrift sturen — dat gaat naar import',
   connected: '✅ Telegram verbonden. We sturen rapporten naar deze chat.',
   start_greeting:
     '👋 Hoi! Je Telegram-ID: {{telegramId}}. Voeg dit toe in je profielinstellingen om rapporten te ontvangen.',
@@ -887,6 +1175,21 @@ const nl: TranslationMap = {
 };
 
 const sv: TranslationMap = {
+  receipt_photo_received: '📷 Foto mottaget, läser kvittot…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Kvittot väntar i granskningsinkorgen (status: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Kvittot sparades men beloppet gick inte att läsa. Det väntar i granskningsinkorgen.',
+  receipt_photo_failed: 'Fotot kunde inte behandlas. Försök igen eller ladda upp via webbappen.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} registrerat. Välj kategori i granskningsinkorgen.',
+  expense_text_unparsed: 'Jag hittade inget belopp. Prova ”kaffe 4.50” eller ”taxi 15 EUR”.',
+  expense_text_failed: 'Utgiften kunde inte registreras. Försök igen.',
+  delete_button: '🗑 Ta bort',
+  deleted: 'Borttaget.',
+  delete_failed: 'Kunde inte ta bort.',
+  inbound_help:
+    'Du kan också:\n• skicka ett foto på ett kvitto — jag läser beloppet och lägger det i granskningsinkorgen\n• skriva en utgift: ”kaffe 4.50”, ”taxi 15 EUR”\n• skicka ett PDF-kontoutdrag — det går till import',
   connected: '✅ Telegram anslutet. Vi skickar rapporter till den här chatten.',
   start_greeting:
     '👋 Hej! Ditt Telegram-ID: {{telegramId}}. Lägg till det i profilinställningarna för att få rapporter.',
@@ -934,6 +1237,21 @@ const sv: TranslationMap = {
 };
 
 const vi: TranslationMap = {
+  receipt_photo_received: '📷 Đã nhận ảnh, đang đọc hóa đơn…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Hóa đơn đang chờ trong hộp thư xem xét (trạng thái: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Đã lưu hóa đơn nhưng không đọc được số tiền. Nó đang chờ trong hộp thư xem xét.',
+  receipt_photo_failed: 'Không xử lý được ảnh. Thử lại hoặc tải lên qua ứng dụng web.',
+  expense_text_done:
+    '✅ Đã ghi {{merchant}} — {{amount}} {{currency}}. Chọn danh mục trong hộp thư xem xét.',
+  expense_text_unparsed: 'Không tìm thấy số tiền. Thử “cà phê 4.50” hoặc “taxi 15 EUR”.',
+  expense_text_failed: 'Không ghi được khoản chi. Vui lòng thử lại.',
+  delete_button: '🗑 Xóa',
+  deleted: 'Đã xóa.',
+  delete_failed: 'Không xóa được.',
+  inbound_help:
+    'Bạn cũng có thể:\n• gửi ảnh hóa đơn — tôi đọc số tiền và đưa vào hộp thư xem xét\n• nhập khoản chi: “cà phê 4.50”, “taxi 15 EUR”\n• gửi sao kê PDF — sẽ được đưa vào nhập dữ liệu',
   connected: '✅ Đã kết nối Telegram. Chúng tôi sẽ gửi báo cáo vào cuộc trò chuyện này.',
   start_greeting:
     '👋 Chào bạn! ID Telegram của bạn: {{telegramId}}. Thêm ID này vào cài đặt hồ sơ để nhận báo cáo.',
@@ -979,6 +1297,21 @@ const vi: TranslationMap = {
 };
 
 const id: TranslationMap = {
+  receipt_photo_received: '📷 Foto diterima, membaca struk…',
+  receipt_photo_done:
+    '🧾 {{vendor}} — {{amount}} {{currency}}. Struk menunggu di kotak masuk peninjauan (status: {{status}}).',
+  receipt_photo_unreadable:
+    '🧾 Struk disimpan, tetapi jumlahnya tidak terbaca. Menunggu di kotak masuk peninjauan.',
+  receipt_photo_failed: 'Foto tidak dapat diproses. Coba lagi atau unggah lewat aplikasi web.',
+  expense_text_done:
+    '✅ {{merchant}} — {{amount}} {{currency}} dicatat. Pilih kategori di kotak masuk peninjauan.',
+  expense_text_unparsed: 'Jumlah tidak ditemukan. Coba “kopi 4.50” atau “taksi 15 EUR”.',
+  expense_text_failed: 'Pengeluaran tidak dapat dicatat. Coba lagi.',
+  delete_button: '🗑 Hapus',
+  deleted: 'Dihapus.',
+  delete_failed: 'Tidak dapat menghapus.',
+  inbound_help:
+    'Anda juga bisa:\n• mengirim foto struk — saya membaca jumlahnya dan menaruhnya di kotak masuk peninjauan\n• menulis pengeluaran: “kopi 4.50”, “taksi 15 EUR”\n• mengirim laporan PDF — akan masuk ke impor',
   connected: '✅ Telegram terhubung. Kami akan mengirim laporan ke chat ini.',
   start_greeting:
     '👋 Hai! ID Telegram Anda: {{telegramId}}. Tambahkan di pengaturan profil untuk mulai menerima laporan.',

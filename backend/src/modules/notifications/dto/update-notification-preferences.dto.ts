@@ -68,4 +68,8 @@ export class UpdateNotificationPreferencesDto {
   @IsOptional()
   @IsBoolean()
   uncategorizedItems?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  subscriptionPrompts?: boolean;
 }

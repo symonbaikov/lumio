@@ -79,6 +79,9 @@ interface SubscriptionsContentProps {
     decision: 'keep' | 'review' | 'cancelled' | 'price_reduced',
     values?: { note?: string; reviewAt?: string; realizedAnnualSavings?: number },
   ) => Promise<void>;
+  recordUsage?: (id: string) => Promise<void>;
+  createSinkingFund?: (id: string) => Promise<void>;
+  duplicateIds?: Set<string>;
 }
 
 function SubscriptionRowSkeleton(): React.JSX.Element {
@@ -231,9 +234,20 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
           { label: t.kpiForecast.value, value: String(props.summary.upcoming30DaysCount) },
           {
             label: t.kpiPriceChanges.value,
-            value: String(props.summary.priceChangeCount),
+            // The yearly effect is the number people actually ask for.
+            value: props.summary.priceChangeYearlyEffect
+              ? `${props.summary.priceChangeCount} · ${t.yearlyEffect.value.replace(
+                  '{{amount}}',
+                  formatAmount(props.summary.priceChangeYearlyEffect, props.workspaceCurrency),
+                )}`
+              : String(props.summary.priceChangeCount),
             // Only a count that needs attention gets a colour.
             accent: props.summary.priceChangeCount > 0 ? 'warning.main' : undefined,
+          },
+          {
+            label: t.kpiDuplicates.value,
+            value: String(props.summary.duplicateCount ?? 0),
+            accent: props.summary.duplicateCount ? 'warning.main' : undefined,
           },
           {
             label: t.kpiReviewsOverdue.value,
@@ -481,6 +495,7 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                           <Typography fontWeight={600}>{subscription.vendorName}</Typography>
                           <Typography variant="caption" color="text.secondary">
                             {t[STATUS_LABELS[subscription.status]]}
+                            {props.duplicateIds?.has(subscription.id) && <> · {t.duplicateChip}</>}
                           </Typography>
                         </Box>
                       </Box>
@@ -520,6 +535,11 @@ export function SubscriptionsContent(props: SubscriptionsContentProps) {
                 onDelete={() => props.handleDelete(subscription.id)}
                 onConfirm={() => props.handleConfirm(subscription.id)}
                 onDismiss={() => props.handleDismiss(subscription.id)}
+                onUse={props.recordUsage && (() => props.recordUsage?.(subscription.id))}
+                onSinkingFund={
+                  props.createSinkingFund && (() => props.createSinkingFund?.(subscription.id))
+                }
+                duplicate={props.duplicateIds?.has(subscription.id)}
               />
             ))}
           </Box>

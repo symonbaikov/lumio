@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs/promises';
 import { Repository } from 'typeorm';
@@ -8,6 +8,7 @@ import { UniversalExtractorService } from '../../parsing/services/universal-extr
 import { ReceiptCategoryService } from './receipt-category.service';
 import { ReceiptDuplicateService } from './receipt-duplicate.service';
 import { ReceiptLocationService } from './receipt-location.service';
+import { ReceiptMatchService } from './receipt-match.service';
 
 const MANUAL_RECEIPT_WORKER_ID = 'manual-receipt-sync';
 
@@ -24,6 +25,8 @@ export class ReceiptProcessorService {
     private readonly duplicateService: ReceiptDuplicateService,
     private readonly categoryService: ReceiptCategoryService,
     private readonly locationService: ReceiptLocationService,
+    @Optional()
+    private readonly matchService?: ReceiptMatchService,
   ) {}
 
   async processReceipt(job: ReceiptProcessingJob): Promise<Receipt | null> {
@@ -129,6 +132,9 @@ export class ReceiptProcessorService {
           categoryId: suggestedCategory.id,
         };
       }
+
+      // The bank row this receipt documents, if one is already imported.
+      await this.matchService?.suggest(receipt);
 
       const savedReceipt = await this.receiptRepository.save(receipt);
 

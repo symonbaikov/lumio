@@ -225,6 +225,50 @@ export class ReceiptCategoryService {
     return null;
   }
 
+  /**
+   * One model call for several line descriptions; `null` where the model had
+   * no confident answer or is not configured. Index-aligned with the input.
+   */
+  async classifyDescriptions(
+    receipt: Receipt,
+    descriptions: string[],
+    categories: Category[],
+  ): Promise<Array<string | null>> {
+    const empty = descriptions.map(() => null);
+    if (descriptions.length === 0 || categories.length === 0) {
+      return empty;
+    }
+    try {
+      const aiSettings = await this.applicationSettingsService?.getAiSettingsForWorkspaceId(
+        receipt.workspaceId,
+      );
+      if (aiSettings) {
+        this.aiCategoryClassifier.configureAiClient(aiSettings);
+      }
+      if (!this.aiCategoryClassifier.isAvailable()) {
+        return empty;
+      }
+      const vendor = receipt.parsedData?.vendor ?? '';
+      const result = await this.aiCategoryClassifier.classifyBatch(
+        descriptions.map((description, index) => ({
+          index,
+          counterpartyName: vendor,
+          paymentPurpose: description,
+        })),
+        categories.map(category => ({ id: category.id, name: category.name })),
+      );
+      const known = new Set(categories.map(category => category.id));
+      const byIndex = new Map(result.matches.map(match => [match.index, match.categoryId]));
+      return descriptions.map((_, index) => {
+        const categoryId = byIndex.get(index);
+        return categoryId && known.has(categoryId) ? categoryId : null;
+      });
+    } catch (error) {
+      this.logger.warn('AI line-item classification failed', error);
+      return empty;
+    }
+  }
+
   private async matchByAi(receipt: Receipt, categories: Category[]): Promise<Category | null> {
     try {
       const aiSettings = await this.applicationSettingsService?.getAiSettingsForWorkspaceId(

@@ -47,6 +47,12 @@ export function SubscriptionChargeCalendar({
                 <span className="lumio-charge-calendar__vendor-inner">
                   {renderVendor?.(row)}
                   {row.vendorName}
+                  {row.kind === 'payable' && (
+                    <span className="lumio-charge-calendar__kind"> · {t.calendarKindPayable}</span>
+                  )}
+                  {row.kind === 'invoice' && (
+                    <span className="lumio-charge-calendar__kind"> · {t.calendarKindInvoice}</span>
+                  )}
                 </span>
               </th>
               {monthLabels.map((label, index) => {

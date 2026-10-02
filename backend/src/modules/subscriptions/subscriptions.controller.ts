@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { WorkspaceId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
@@ -41,6 +53,36 @@ export class SubscriptionsController {
   @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
   async getUpcoming(@WorkspaceId() workspaceId: string, @Query('days') days?: string) {
     return this.subscriptionsService.getUpcoming(workspaceId, days ? Number.parseInt(days, 10) : 7);
+  }
+
+  @Get('duplicates')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
+  async duplicates(@WorkspaceId() workspaceId: string) {
+    return this.subscriptionsService.getDuplicates(workspaceId);
+  }
+
+  @Get('sinking-funds')
+  @WorkspaceAuth(Permission.SUBSCRIPTION_VIEW)
+  async sinkingFunds(@WorkspaceId() workspaceId: string) {
+    return this.subscriptionsService.getSinkingFunds(workspaceId);
+  }
+
+  @Post(':id/usage')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
+  async recordUsage(@Param('id') id: string, @WorkspaceId() workspaceId: string) {
+    return this.subscriptionsService.recordUsage(id, workspaceId);
+  }
+
+  @Post(':id/sinking-fund')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.SUBSCRIPTION_EDIT)
+  async createSinkingFund(
+    @Param('id') id: string,
+    @WorkspaceId() workspaceId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.subscriptionsService.createSinkingFund(id, workspaceId, user.id);
   }
 
   @Get(':id')

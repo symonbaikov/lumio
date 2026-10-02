@@ -258,9 +258,40 @@ export const gmailReceiptsApi = {
 
 export type ReceiptLocationSource = 'merchant_address' | 'exif' | 'device' | 'manual' | 'fiscal_qr';
 
+export interface ReceiptTransactionMatch {
+  transactionIds: string[];
+  kind: 'single' | 'multi';
+  score: number;
+  computedAt: string;
+}
+
+export interface ReceiptMatchCandidate {
+  id: string;
+  transactionDate: string;
+  counterpartyName: string;
+  amount: number;
+  currency: string;
+  score: number;
+  daysApart: number;
+}
+
+export interface ReceiptSplitSuggestion {
+  transactionId: string;
+  total: number;
+  currency: string;
+  parts: Array<{
+    categoryId: string | null;
+    categoryName: string | null;
+    amount: number;
+    items: string[];
+  }>;
+  splittable: boolean;
+}
+
 export interface ReceiptRecord {
   id: string;
   statementId?: string | null;
+  transactionId?: string | null;
   subject: string;
   sender: string;
   source: string;
@@ -274,6 +305,7 @@ export interface ReceiptRecord {
       mimeType?: string;
       size?: number;
     }>;
+    transactionMatch?: ReceiptTransactionMatch | null;
   };
   parsedData?: {
     amount?: number;
@@ -342,9 +374,34 @@ export const receiptsApi = {
 
   approveReceipt: async (
     id: string,
-  ): Promise<{ receipt: ReceiptRecord; transaction: { id: string } }> => {
-    const response = await apiClient.post(`/receipts/${id}/approve`);
-    return response.data as { receipt: ReceiptRecord; transaction: { id: string } };
+    options: { transactionId?: string | null } = {},
+  ): Promise<{ receipt: ReceiptRecord; transaction: { id: string }; attached: boolean }> => {
+    const response = await apiClient.post(`/receipts/${id}/approve`, options);
+    return response.data as {
+      receipt: ReceiptRecord;
+      transaction: { id: string };
+      attached: boolean;
+    };
+  },
+
+  transactionMatches: async (
+    id: string,
+  ): Promise<{ suggestion: ReceiptTransactionMatch | null; data: ReceiptMatchCandidate[] }> => {
+    const response = await apiClient.get(`/receipts/${id}/transaction-matches`);
+    return response.data as {
+      suggestion: ReceiptTransactionMatch | null;
+      data: ReceiptMatchCandidate[];
+    };
+  },
+
+  splitSuggestion: async (id: string): Promise<ReceiptSplitSuggestion> => {
+    const response = await apiClient.get(`/receipts/${id}/split-suggestion`);
+    return response.data as ReceiptSplitSuggestion;
+  },
+
+  splitByLineItems: async (id: string): Promise<{ suggestion: ReceiptSplitSuggestion }> => {
+    const response = await apiClient.post(`/receipts/${id}/split`);
+    return response.data as { suggestion: ReceiptSplitSuggestion };
   },
 
   uploadReceipts: async (formData: FormData): Promise<{ receipts: ReceiptRecord[] }> => {

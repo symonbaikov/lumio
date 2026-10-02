@@ -123,6 +123,16 @@ export class Receipt {
     snippet?: string;
     potentialDuplicates?: string[];
     /**
+     * The bank row(s) this receipt most likely documents, found after parsing.
+     * Approve attaches to them instead of booking the expense a second time.
+     */
+    transactionMatch?: {
+      transactionIds: string[];
+      kind: 'single' | 'multi';
+      score: number;
+      computedAt: string;
+    } | null;
+    /**
      * Raw point captured with the photo, kept apart from the resolved location
      * so a reset to automatic can recompute without the upload request.
      */
@@ -150,6 +160,8 @@ export class Receipt {
     lineItems?: Array<{
       description: string;
       amount: number;
+      /** Set by the line-item split; the category this line was booked under. */
+      categoryId?: string | null;
     }>;
     transactionType?: 'income' | 'expense' | 'transfer' | 'unknown';
     confidence?: number;

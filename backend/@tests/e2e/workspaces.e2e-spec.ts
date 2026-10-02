@@ -109,6 +109,49 @@ describe('Workspaces (e2e)', () => {
     });
   });
 
+  describe('workspace profile', () => {
+    it('is business until told otherwise, and remembers home', async () => {
+      const before = await as(owner, request(server()).get(`/workspaces/${owner.workspaceId}`)).expect(
+        200,
+      );
+      expect(before.body.settings?.profile).toBeUndefined();
+
+      const res = await as(owner, request(server()).patch(`/workspaces/${owner.workspaceId}`))
+        .send({ profile: 'home' })
+        .expect(200);
+      expect(res.body.settings.profile).toBe('home');
+
+      const after = await as(owner, request(server()).get(`/workspaces/${owner.workspaceId}`)).expect(
+        200,
+      );
+      expect(after.body.settings.profile).toBe('home');
+    });
+
+    it('keeps other settings when the profile changes', async () => {
+      await as(owner, request(server()).patch(`/workspaces/${owner.workspaceId}`))
+        .send({ processing: { merchantLearning: false } })
+        .expect(200);
+      const res = await as(owner, request(server()).patch(`/workspaces/${owner.workspaceId}`))
+        .send({ profile: 'business' })
+        .expect(200);
+      expect(res.body.settings.profile).toBe('business');
+      expect(res.body.settings.processing.merchantLearning).toBe(false);
+    });
+
+    it('rejects a profile it does not know', () => {
+      return as(owner, request(server()).patch(`/workspaces/${owner.workspaceId}`))
+        .send({ profile: 'shop' })
+        .expect(400);
+    });
+
+    it('starts a new workspace in the chosen profile', async () => {
+      const res = await as(owner, request(server()).post('/workspaces'))
+        .send({ name: `Home ${stamp}`, profile: 'home' })
+        .expect(201);
+      expect(res.body.settings.profile).toBe('home');
+    });
+  });
+
   describe('invitations', () => {
     it('invites a user by email', async () => {
       const res = await as(

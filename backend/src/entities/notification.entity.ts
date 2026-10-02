@@ -32,6 +32,7 @@ export enum NotificationType {
   BUDGET_EXCEEDED = 'budget.exceeded',
   SUBSCRIPTION_DETECTED = 'subscription.detected',
   SUBSCRIPTION_UPCOMING = 'subscription.upcoming',
+  SUBSCRIPTION_PRICE_CHANGED = 'subscription.price_changed',
   TAX_THRESHOLD_WARNING = 'tax.threshold.warning',
   TAX_THRESHOLD_REACHED = 'tax.threshold.reached',
 }

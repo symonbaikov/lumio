@@ -21,6 +21,20 @@ export enum BudgetPeriodType {
 }
 
 /**
+ * What happens to the unspent part of a period.
+ * - none: every period starts at the limit (how budgets always behaved);
+ * - carry: leftover and overspend move into the next period without a cap,
+ *   the envelope for irregular costs such as car repairs;
+ * - refill: leftover tops the budget back up to the limit and never above it,
+ *   overspend still dents the next period ("refill up to").
+ */
+export enum BudgetRolloverMode {
+  NONE = 'none',
+  CARRY = 'carry',
+  REFILL = 'refill',
+}
+
+/**
  * One category may now carry several limits of the same period, as long as at
  * most one of them is unattached: the household grocery budget and the "food
  * during the move" budget are different intents over the same category, and a
@@ -81,6 +95,15 @@ export class Budget {
     enum: BudgetPeriodType,
   })
   periodType: BudgetPeriodType;
+
+  @Column({
+    name: 'rollover_mode',
+    type: 'enum',
+    enum: BudgetRolloverMode,
+    enumName: 'budgets_rollover_mode_enum',
+    default: BudgetRolloverMode.NONE,
+  })
+  rolloverMode: BudgetRolloverMode;
 
   @Column({ name: 'alert_at_80_sent', default: false })
   alertAt80Sent: boolean;

@@ -27,6 +27,8 @@ import {
   type AppLanguage,
   buildNavItems,
   isNavItemActive,
+  isNavItemVisible,
+  workspaceProfileOf,
 } from './navigation/helpers/navigation-config';
 import { useLanguageSelection } from './navigation/hooks/useLanguageSelection';
 import { useMobileMenu } from './navigation/hooks/useMobileMenu';
@@ -91,8 +93,12 @@ export default function Navigation() {
 
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
   const experimentalMode = useExperimentalMode();
-  const visibleNavItems = navItems.filter(
-    item => hasPermission(item.permission) && (!item.experimental || experimentalMode),
+  const visibleNavItems = navItems.filter(item =>
+    isNavItemVisible(item, {
+      hasPermission,
+      experimentalMode,
+      profile: workspaceProfileOf(currentWorkspace),
+    }),
   );
 
   const navigateFromUserMenu = useCallback(

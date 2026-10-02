@@ -17,6 +17,7 @@ import type { Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { retry, TimeoutError, withTimeout } from '../../common/utils/async.util';
 import { mergeProcessingSettings } from '../../common/utils/workspace-processing.util';
+import { mergeWorkspaceProfile } from '../../common/utils/workspace-profile.util';
 import {
   invitationRoleKey,
   renderInvitation,
@@ -857,6 +858,7 @@ export class WorkspacesService {
       backgroundImage: dto.backgroundImage || null,
       currency: dto.currency || null,
       ownerId: userId,
+      settings: dto.profile ? mergeWorkspaceProfile(null, dto.profile) : null,
     });
 
     const savedWorkspace = await this.workspaceRepository.save(workspace);
@@ -949,6 +951,9 @@ export class WorkspacesService {
         settings: mergeProcessingSettings(workspace.settings, dto.processing),
       }),
     });
+    if (dto.profile !== undefined) {
+      workspace.settings = mergeWorkspaceProfile(workspace.settings, dto.profile);
+    }
 
     const updated = await this.workspaceRepository.save(workspace);
     const stats = await this.getWorkspaceStats(updated.id);

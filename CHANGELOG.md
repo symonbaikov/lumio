@@ -9,6 +9,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Workspace profile: Home or Business (2026-10-01)
+
+- A workspace now says what it is for. **Home** hides invoices, the ledger, the tax declaration and
+  custom tables from the menu (and from the welcome tutorial); nothing is deleted and every page
+  still opens by link. **Business** is the default and is how every workspace behaved before.
+- Chosen when creating a workspace (first step) and changed any time in Settings → Data →
+  Workspace profile (`PATCH /workspaces/:id { profile }`, stored in `settings.profile`).
+
+#### Budget mechanics (2026-10-01)
+
+- **Rollover**: a budget now says what happens to unspent money. *Resets* is the old behaviour;
+  *Carries over* moves leftover and overspend whole into the next period (the envelope for
+  irregular costs); *Refills to the limit* tops the budget back up but never above it, and still
+  deducts an overspend. The card shows the amount available this period and what was carried in.
+- **Parent-category budgets**: a budget on "Food" counts "Groceries" and "Restaurants" too, and
+  a spend in a subcategory is checked against every budget up the tree.
+- **"What would this do"** under the category field of a manual expense: which budgets it pushes over
+  (and by how much), and whether it takes the default account below zero. Advice, never a gate
+  (`GET /budgets/impact`).
+
+#### Subscriptions 2.0 (2026-10-01)
+
+- **Price change with the yearly effect**: when the last two charges of a known subscription settle
+  on a new price (more than 5% off the old one), the row is flagged, the delta per charge and per
+  year is shown on the card, and the workspace gets a notification saying both numbers. A change is
+  announced once; "Keep" clears the flag.
+- **Possible duplicates**: two active or detected rows of one service (same domain, or the same
+  name without plan words such as Premium/Basic) are grouped under `GET /subscriptions/duplicates`,
+  counted on the page and marked on the row.
+- **Cost per use**: a "Used it" tap on the card counts a use; the card then shows the price per use
+  since the first tap, so "is Netflix worth it" has a number.
+- **Set aside for annual and quarterly bills**: the card offers the monthly amount that covers the
+  next charge by its date; one tap creates a savings goal linked to the subscription
+  (`POST /subscriptions/:id/sinking-fund`, idempotent; `GET /subscriptions/sinking-funds` lists them).
+- **Bills and invoices in the charge calendar**: open payables appear next to subscriptions with a
+  "bill" label; sent invoices appear as money coming in and stay out of the month totals.
+- **Switch for "is this a subscription?" prompts** in Settings → Notifications (`subscriptionPrompts`).
+
+#### Telegram inbound (2026-10-01)
+
+- **Send the bot a photo of a receipt** (or an image as a file): it goes through the same scan
+  pipeline as the in-app camera, lands in the review inbox, and the bot answers with the vendor,
+  the amount and a delete button. PDFs still go to statement import.
+- **Type an expense**: "coffee 4.50", "taxi 15 EUR", "такси 1500 тг" books a manual expense dated
+  today, unreviewed and uncategorised on purpose, so the category is picked in the review inbox.
+  The reply carries a delete button. `/help` explains both.
+
+#### Receipts meet bank rows (2026-10-01)
+
+- **Receipt → transaction match:** after parsing, a receipt is matched to the bank row it documents
+  (same money, same direction, within three days, the name agrees; exactly one plausible row) or to
+  the several charges of one order (Amazon bills per shipment). Approving attaches the receipt to
+  that row and copies its image as a transaction attachment instead of booking the expense a second
+  time; `POST /receipts/:id/approve` takes `{transactionId}` to pick another row or `null` to book
+  a new one, `GET /receipts/:id/transaction-matches` lists the candidates.
+- **Split by line items:** `GET /receipts/:id/split-suggestion` categorises each line (keywords,
+  then the model) and groups them into parts that add up to the transaction; `POST /receipts/:id/split`
+  applies it through the ordinary split. Line categories are remembered on the receipt.
+- **Receipts in the email body:** order confirmations without an attachment now get their line items
+  (and a total when the amount scan found none) from the stripped text, and a `YYYY-MM-DD` date
+  instead of the raw header.
+
+#### Review inbox (2026-10-01)
+
+- **One queue for everything that needs a decision** at `/review` (`GET /review-inbox`,
+  `GET /review-inbox/counts`): transactions nobody categorised or the model categorised, receipts
+  without an amount, suspected duplicates, detected subscriptions. Read from the existing rows,
+  so an item leaves the queue the moment it is resolved anywhere.
+- Keyboard-first on desktop (`j`/`k`, `x`, `a`, `c`, `Esc`), group by payee with one-click group
+  selection, a date range for "everything from the trip → Vacation", approve with a category or as
+  is (`POST /review-inbox/transactions/approve`, which records a manual pick and learns from it),
+  keep or confirm a duplicate (`POST /review-inbox/duplicates/:id/resolve`), approve receipts,
+  confirm or dismiss subscriptions. On mobile, swipe right approves and left skips.
+- Settings → Processing: "Trust AI picks" keeps the model's categories out of the queue.
+- A weekly notification "N items are waiting for review" (Monday morning, through the existing
+  "uncategorised items" preference and digest mode).
+
 #### Data you can trust: transfers, reimbursements, category provenance (2026-10-01)
 
 - **Transfers between your own accounts** are paired automatically after every statement import

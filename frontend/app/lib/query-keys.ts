@@ -24,6 +24,10 @@ export const queryKeys = {
   transactions: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['transactions', o.workspaceId, o.params] as const,
   categories: (workspaceId: string | null) => ['categories', workspaceId] as const,
+  reviewInbox: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
+    ['review-inbox', o.workspaceId, o.params] as const,
+  reviewInboxCounts: (workspaceId: string | null) =>
+    ['review-inbox', workspaceId, 'counts'] as const,
   wallets: (workspaceId: string | null) => ['wallets', workspaceId] as const,
   payablePaymentCandidates: (o: { workspaceId: string | null; payableId: string }) =>
     ['payables', o.workspaceId, o.payableId, 'payment-candidates'] as const,
@@ -80,6 +84,8 @@ export const queryKeys = {
     ['subscriptions', o.workspaceId, 'list', o.status] as const,
   subscriptionsSummary: (workspaceId: string | null) =>
     ['subscriptions', workspaceId, 'summary'] as const,
+  subscriptionsDuplicates: (workspaceId: string | null) =>
+    ['subscriptions', workspaceId, 'duplicates'] as const,
   subscriptionsChargeCalendar: (o: { workspaceId: string | null; months: number }) =>
     ['subscriptions', o.workspaceId, 'charge-calendar', o.months] as const,
   auditEvents: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>

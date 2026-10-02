@@ -2,7 +2,7 @@
 
 import Stack from '@mui/material/Stack';
 import type React from 'react';
-import { Cloud, MapPin, Shield, SlidersHorizontal } from '@/app/components/icons';
+import { Cloud, Home, MapPin, Shield, SlidersHorizontal } from '@/app/components/icons';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useIntlayer } from '@/app/i18n';
 import { MyDataSection } from '@/app/settings/profile/components/MyDataSection';
@@ -10,6 +10,7 @@ import { ProcessingSection } from '@/app/settings/profile/components/ProcessingS
 import { ReceiptLocationCaptureSection } from '@/app/settings/profile/components/ReceiptLocationCaptureSection';
 import { SettingsAccordion } from '@/app/settings/profile/components/SettingsAccordion';
 import { SyncSection } from '@/app/settings/profile/components/SyncSection';
+import { WorkspaceProfileSection } from '@/app/settings/profile/components/WorkspaceProfileSection';
 import { resolveOpenSection } from '@/app/settings/profile/helpers/settings-url-state';
 import { useProcessing } from '@/app/settings/profile/hooks/useProcessing';
 import { useSettingsText } from '@/app/settings/profile/hooks/useSettingsText';
@@ -45,6 +46,16 @@ export function DataTab({ section, user, logout }: SettingsTabProps): React.JSX.
 
   return (
     <Stack spacing={2}>
+      <SettingsAccordion
+        id="workspace-profile"
+        title={tx(['workspaceProfileCard', 'title'], 'Workspace profile')}
+        description={tx(['workspaceProfileCard', 'description'], '')}
+        icon={Home}
+        defaultExpanded={openSection === 'workspace-profile'}
+      >
+        <WorkspaceProfileSection tx={tx} />
+      </SettingsAccordion>
+
       <SettingsAccordion
         id="processing"
         title={tx(['processingCard', 'title'], 'Processing')}

@@ -8,23 +8,29 @@ import { useAuth } from '@/app/hooks/useAuth';
 import { usePermissions } from '@/app/hooks/usePermissions';
 import { useIntlayer } from '@/app/i18n';
 import { useExperimentalMode } from '@/app/lib/experimental-mode';
-import { buildNavItems, isNavItemActive } from './navigation/helpers/navigation-config';
+import {
+  buildNavItems,
+  isNavItemActive,
+  isNavItemVisible,
+  workspaceProfileOf,
+} from './navigation/helpers/navigation-config';
 
 // Matches buildNavItems() length so the skeleton doesn't jump when real items land.
-const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 14 }, (_, i) => `nav-skeleton-${i}`);
+const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 15 }, (_, i) => `nav-skeleton-${i}`);
 
 function SidebarContent() {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
   const { loading: authLoading } = useAuth();
-  const { loading: workspaceLoading } = useWorkspace();
+  const { loading: workspaceLoading, currentWorkspace } = useWorkspace();
   const { nav, supportProject, shell, userMenu } = useIntlayer('navigation');
 
   const isLoading = authLoading || workspaceLoading;
   const navItems = buildNavItems(nav as Parameters<typeof buildNavItems>[0]);
   const experimentalMode = useExperimentalMode();
-  const visibleNavItems = navItems.filter(
-    item => hasPermission(item.permission) && (!item.experimental || experimentalMode),
+  const profile = workspaceProfileOf(currentWorkspace);
+  const visibleNavItems = navItems.filter(item =>
+    isNavItemVisible(item, { hasPermission, experimentalMode, profile }),
   );
 
   return (

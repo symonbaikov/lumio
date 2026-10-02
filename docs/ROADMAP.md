@@ -15,19 +15,20 @@ that document has the evidence behind every line here. Dates are intentions, not
 
 ## Phase 1 — less manual work
 
-- [ ] Review inbox: one queue for uncategorised rows, low-confidence picks, receipts without an amount
-      and suspected duplicates; keyboard-first on desktop, card swipe on mobile; bulk by payee;
-      a "vacation mode"; auto-approve above a confidence threshold; a weekly "N waiting" digest.
-- [ ] Receipt → transaction match and one-click split by line-item category; Amazon orders matched to
-      several charges; receipts embedded in email bodies, not only attachments.
-- [ ] Telegram inbound: send a photo, a PDF or "coffee 4.50" to the bot and it lands in the review queue.
-- [ ] Subscriptions 2.0: price-change alerts with the yearly effect, duplicate subscriptions, cost per
-      use, a calendar of upcoming charges, sinking-fund suggestions for annual bills, an off switch
-      for "is this recurring?" prompts.
-- [ ] Budget mechanics: rollover, "refill up to" goals, parent-category budgets, a warning when a manual
-      entry would overdraw the account.
-- [ ] Workspace profile Home / Business: the home profile hides invoices, payables, ledger, tax and
-      custom tables.
+- [x] Review inbox (2026-10-01): one queue for uncategorised and AI-categorised rows, receipts
+      without an amount, suspected duplicates and detected subscriptions; keyboard-first on desktop,
+      swipe on mobile; group by payee; a date range for "vacation mode"; "Trust AI picks" switch;
+      a weekly "N waiting" notification.
+- [x] Receipt → transaction match and one-click split by line-item category; Amazon orders matched to
+      several charges; receipts embedded in email bodies, not only attachments (2026-10-01).
+- [x] Telegram inbound: send a photo, a PDF or "coffee 4.50" to the bot and it lands in the review queue (2026-10-01).
+- [x] Subscriptions 2.0: price-change alerts with the yearly effect, duplicate subscriptions, cost per
+      use, bills and invoices in the charge calendar, sinking-fund goals for annual bills, an off switch
+      for "is this recurring?" prompts (2026-10-01).
+- [x] Budget mechanics: rollover (carry / refill up to the limit), parent-category budgets, a warning
+      under a manual entry when it would push a budget over or overdraw the account (2026-10-01).
+- [x] Workspace profile Home / Business: the home profile hides invoices, ledger, tax declaration and
+      custom tables from the menu; picked at creation, switchable in Settings (2026-10-01).
 
 ## Phase 2 — planning ahead
 

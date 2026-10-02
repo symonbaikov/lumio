@@ -1,4 +1,8 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  type WorkspaceProfile,
+  workspaceProfiles,
+} from '../../../common/utils/workspace-profile.util';
 
 export class CreateWorkspaceDto {
   @IsString()
@@ -30,4 +34,9 @@ export class CreateWorkspaceDto {
   @IsOptional()
   @MaxLength(10)
   currency?: string;
+
+  /** Home hides the business pages from the navigation; business is the default. */
+  @IsIn(workspaceProfiles)
+  @IsOptional()
+  profile?: WorkspaceProfile;
 }

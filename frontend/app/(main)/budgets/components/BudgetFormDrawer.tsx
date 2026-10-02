@@ -200,6 +200,30 @@ function PeriodField({
   );
 }
 
+function RolloverField({
+  value,
+  onChange,
+}: {
+  value: BudgetFormData['rolloverMode'];
+  onChange: (value: BudgetFormData['rolloverMode']) => void;
+}): React.JSX.Element {
+  const t = useIntlayer('budgetsPage');
+  return (
+    <FormControl fullWidth>
+      <InputLabel>{t.fieldRollover}</InputLabel>
+      <Select
+        value={value}
+        label={t.fieldRollover.value}
+        onChange={event => onChange(event.target.value as BudgetFormData['rolloverMode'])}
+      >
+        <MenuItem value="none">{t.rolloverNone}</MenuItem>
+        <MenuItem value="carry">{t.rolloverCarry}</MenuItem>
+        <MenuItem value="refill">{t.rolloverRefill}</MenuItem>
+      </Select>
+    </FormControl>
+  );
+}
+
 function GoalField({
   value,
   goals,
@@ -327,6 +351,12 @@ function FormFields({
         value={formData.periodType}
         disabled={isEditing}
         onChange={value => onChange({ field: 'periodType', value })}
+      />
+      {/* Where the unspent part of a period goes: nowhere, into the next
+          period, or back up to the limit. */}
+      <RolloverField
+        value={formData.rolloverMode}
+        onChange={value => onChange({ field: 'rolloverMode', value })}
       />
       <GoalField
         value={formData.goalId}
