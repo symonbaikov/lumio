@@ -15,6 +15,7 @@ import { Transaction, TransactionCategorySource } from '../../entities/transacti
 import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { ApplicationSettingsService } from '../application-settings/application-settings.service';
+import { UNCATEGORIZED_CATEGORY_NAME } from '../categories/uncategorized-category';
 import { ClassificationService } from '../classification/services/classification.service';
 import { GoalsService } from '../goals/goals.service';
 import { NetWorthService } from '../net-worth/net-worth.service';
@@ -726,7 +727,7 @@ export class TelegramService {
     try {
       const categoryId = await this.classificationService?.ensureCategory(
         user.id,
-        'Без категории',
+        UNCATEGORIZED_CATEGORY_NAME,
         CategoryType.EXPENSE,
         undefined,
         workspaceId,

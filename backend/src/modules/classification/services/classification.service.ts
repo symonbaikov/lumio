@@ -24,6 +24,10 @@ import { ApplicationSettingsService } from '../../application-settings/applicati
 import { AuditService } from '../../audit/audit.service';
 import { CategoriesService } from '../../categories/categories.service';
 import {
+  isUncategorizedName,
+  UNCATEGORIZED_CATEGORY_NAME,
+} from '../../categories/uncategorized-category';
+import {
   AiCategoryClassifier,
   type AiCategoryMatch,
 } from '../helpers/ai-category-classifier.helper';
@@ -361,7 +365,7 @@ export class ClassificationService {
     // FALLBACK: Create "Uncategorized" to ensure transaction is categorized
     const fallbackId = await this.ensureCategory(
       userId,
-      'Без категории',
+      UNCATEGORIZED_CATEGORY_NAME,
       transactionType === TransactionType.INCOME ? CategoryType.INCOME : CategoryType.EXPENSE,
       undefined,
       workspaceId,
@@ -673,7 +677,7 @@ export class ClassificationService {
       }
 
       const normalizedName = category.name.trim().toLowerCase();
-      if (normalizedName === 'без категории' || normalizedName === 'other') {
+      if (isUncategorizedName(normalizedName) || normalizedName === 'other') {
         continue;
       }
 
@@ -790,7 +794,7 @@ export class ClassificationService {
     const categories = await this.categoriesService.findAll(workspaceId, type);
     return categories
       .filter(category => category.isEnabled !== false)
-      .filter(category => category.name.trim().toLowerCase() !== 'без категории')
+      .filter(category => !isUncategorizedName(category.name))
       .map(category => ({ id: category.id, name: category.name }));
   }
 
@@ -834,7 +838,17 @@ export class ClassificationService {
         source: workspaceId ? CategorySource.PARSING : CategorySource.USER,
         color,
       });
-      category = await this.categoryRepository.save(category);
+      try {
+        category = await this.categoryRepository.save(category);
+      } catch (error) {
+        // A parallel import created the same fallback first (UQ_categories_uncategorized).
+        if (!(workspaceId && (error as { code?: string }).code === '23505')) throw error;
+        const created = await this.categoryRepository.findOne({
+          where: { workspaceId, name: categoryName, type },
+        });
+        if (!created) throw error;
+        return created.id;
+      }
       if (workspaceId) {
         await this.invalidateWorkspaceCategoriesCache(workspaceId);
       }
