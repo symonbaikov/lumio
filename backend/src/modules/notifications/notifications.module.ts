@@ -11,6 +11,7 @@ import {
   WorkspaceMember,
 } from '../../entities';
 import { MailerModule } from '../mailer/mailer.module';
+import { PushModule } from '../push/push.module';
 import { TelegramModule } from '../telegram/telegram.module';
 import { NotificationDeliveryService } from './notification-delivery.service';
 import { NotificationEventsListener } from './notification-events.listener';
@@ -20,6 +21,7 @@ import { NotificationsService } from './notifications.service';
 
 @Module({
   imports: [
+    PushModule,
     TypeOrmModule.forFeature([
       Notification,
       NotificationPreference,

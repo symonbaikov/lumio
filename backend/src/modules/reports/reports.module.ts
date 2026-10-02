@@ -15,6 +15,7 @@ import { ApplicationSettingsModule } from '../application-settings/application-s
 import { AuditModule } from '../audit/audit.module';
 import { BalanceModule } from '../balance/balance.module';
 import { ExchangeRatesModule } from '../exchange-rates/exchange-rates.module';
+import { CashFlowMapService } from './cash-flow-map.service';
 import { ReportSchedulesScheduler } from './report-schedules.scheduler';
 import { ReportSchedulesService } from './report-schedules.service';
 import { ReportsController } from './reports.controller';
@@ -41,7 +42,7 @@ import { ReportsService } from './reports.service';
     ExchangeRatesModule,
   ],
   controllers: [ReportsController],
-  providers: [ReportsService, ReportSchedulesService, ReportSchedulesScheduler],
+  providers: [ReportsService, ReportSchedulesService, ReportSchedulesScheduler, CashFlowMapService],
   exports: [ReportsService, ReportSchedulesService],
 })
 export class ReportsModule {}

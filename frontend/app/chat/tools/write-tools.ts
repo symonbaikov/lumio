@@ -2,6 +2,9 @@ import { z } from 'zod';
 import apiClient from '@/app/lib/api';
 import type { ChatTool } from './types';
 
+/** Every write the assistant performs is audited as the assistant, not as the user. */
+export const AI_ACTOR_HEADERS = { 'X-Lumio-Actor': 'ai-chat' } as const;
+
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'YYYY-MM-DD');
 
 const createExpenseSchema = z.object({
@@ -57,6 +60,7 @@ export const writeTools: ChatTool[] = [
       const response = await apiClient.post('/statements/manual-expense', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          ...AI_ACTOR_HEADERS,
           'idempotency-key': crypto.randomUUID(),
         },
       });
@@ -75,9 +79,13 @@ export const writeTools: ChatTool[] = [
     },
     execute: async params => {
       const p = params as z.infer<typeof setCategorySchema>;
-      const response = await apiClient.put(`/transactions/${p.transactionId}`, {
-        categoryId: p.categoryId,
-      });
+      const response = await apiClient.put(
+        `/transactions/${p.transactionId}`,
+        {
+          categoryId: p.categoryId,
+        },
+        { headers: AI_ACTOR_HEADERS },
+      );
       return response.data;
     },
   },

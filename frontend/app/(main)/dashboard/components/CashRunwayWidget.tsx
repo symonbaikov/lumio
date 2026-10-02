@@ -118,10 +118,7 @@ export function CashRunwayWidget({
 
   const isEmpty = !data || (data.items.length === 0 && data.unscheduledCommitted === 0);
   return (
-    <DashboardCard
-      title={t.title}
-      action={<CardLink href="/statements/pay">{t.openPayables}</CardLink>}
-    >
+    <DashboardCard title={t.title} action={<CardLink href="/forecast">{t.openForecast}</CardLink>}>
       {isEmpty ? (
         <div className="lumio-dashboard__card-empty">{t.emptyDescription}</div>
       ) : (

@@ -13,6 +13,7 @@ import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
 import BalanceSheet from './components/BalanceSheet';
+import { CashFlowView } from './components/cash-flow/CashFlowView';
 import { type ReportGenerateParams, ReportGenerator } from './components/ReportGenerator';
 import { ReportHistory } from './components/ReportHistory';
 import { ReportSchedules } from './components/ReportSchedules';
@@ -89,7 +90,9 @@ export default function ReportsPage(): React.JSX.Element {
     },
   ];
 
-  const [tab, setTab] = useState<'templates' | 'history' | 'schedules' | 'tax'>('templates');
+  const [tab, setTab] = useState<'templates' | 'cashflow' | 'history' | 'schedules' | 'tax'>(
+    'templates',
+  );
   // Only the tax tab is linked to (threshold notifications). Followed on change,
   // not just read once: the link can be opened while this page is already up.
   const linkedToTax = useSearchParams().get('tab') === 'tax';
@@ -171,7 +174,7 @@ export default function ReportsPage(): React.JSX.Element {
           data-tour-id="reports-tabs"
           value={tab}
           // eslint-disable-next-line max-params
-          onChange={(_e, v: 'templates' | 'history' | 'schedules' | 'tax') => {
+          onChange={(_e, v: 'templates' | 'cashflow' | 'history' | 'schedules' | 'tax') => {
             setTab(v);
             setSelectedTemplate(null);
           }}
@@ -180,6 +183,7 @@ export default function ReportsPage(): React.JSX.Element {
           sx={sharedMuiTabsSx}
         >
           <Tab value="templates" label={text('tabTemplates', 'Templates')} />
+          <Tab value="cashflow" label={text('tabCashFlow', 'Cash flow')} />
           <Tab
             value="schedules"
             label={text('tabSchedules', 'Schedules')}
@@ -196,6 +200,7 @@ export default function ReportsPage(): React.JSX.Element {
 
       <Box sx={{ px: { xs: 2, sm: 4 }, py: 3 }}>
         {tab === 'tax' && <TaxReturnView />}
+        {tab === 'cashflow' && <CashFlowView />}
         {tab === 'templates' && (
           <>
             <Box

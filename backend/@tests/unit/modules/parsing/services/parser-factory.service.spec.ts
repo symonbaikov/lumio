@@ -183,6 +183,10 @@ describe('ParserFactoryService', () => {
       'ExcelParser',
       'CsvParser',
       'DocxParser',
+      'OfxParser',
+      'QifParser',
+      'Camt053Parser',
+      'Mt940Parser',
     ]);
   });
 });

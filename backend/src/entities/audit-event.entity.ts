@@ -17,6 +17,8 @@ export enum ActorType {
   USER = 'user',
   SYSTEM = 'system',
   INTEGRATION = 'integration',
+  /** The in-app assistant acting on the user's behalf. */
+  AI = 'ai',
 }
 
 export enum EntityType {

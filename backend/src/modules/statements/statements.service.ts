@@ -23,7 +23,7 @@ import { appError } from '../../common/errors/app-error';
 import { FileStorageService } from '../../common/services/file-storage.service';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
-import { getFileTypeFromMime, validateFile } from '../../common/utils/file-validator.util';
+import { resolveFileType, validateFile } from '../../common/utils/file-validator.util';
 import { normalizeFilename, sanitizeArchiveEntryName } from '../../common/utils/filename.util';
 import { toMinor } from '../../common/utils/money.util';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
@@ -416,7 +416,7 @@ export class StatementsService {
     if (primaryFile) {
       fileName = normalizeFilename(primaryFile.originalname);
       filePath = primaryFile.path;
-      fileType = getFileTypeFromMime(primaryFile.mimetype) as FileType;
+      fileType = resolveFileType(primaryFile) as FileType;
       fileHash = await calculateFileHash(primaryFile.path);
       fileSize = primaryFile.size;
       fileData = await fs.promises.readFile(primaryFile.path);
@@ -788,7 +788,7 @@ export class StatementsService {
         workspaceId,
         fileName: normalizedName,
         filePath: file.path,
-        fileType: getFileTypeFromMime(file.mimetype) as FileType,
+        fileType: resolveFileType(file) as FileType,
         fileSize: file.size,
         fileHash,
         bankName: BankName.OTHER, // Will be determined during parsing
@@ -1236,7 +1236,7 @@ export class StatementsService {
     const previousFilePath = statement.filePath;
     statement.fileName = normalizeFilename(file.originalname);
     statement.filePath = file.path;
-    statement.fileType = getFileTypeFromMime(file.mimetype) as FileType;
+    statement.fileType = resolveFileType(file) as FileType;
     statement.fileSize = file.size;
     statement.fileHash = await calculateFileHash(file.path);
 

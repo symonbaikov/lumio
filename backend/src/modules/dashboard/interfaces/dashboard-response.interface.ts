@@ -7,6 +7,8 @@ export interface DashboardFinancialSnapshot {
   totalOverdue: number;
   unapprovedCash: number;
   currency: string;
+  /** Currencies in the period's rows with no rate to `currency`: their amounts count at face value. */
+  missingRates: string[];
 }
 
 export interface DashboardActionItem {

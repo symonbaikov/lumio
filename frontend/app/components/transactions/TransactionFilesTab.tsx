@@ -256,7 +256,7 @@ export function TransactionFilesTab({ transactionId, labels }: TransactionFilesT
           component="input"
           ref={fileInputRef}
           type="file"
-          accept="image/*,.pdf,.csv,.xlsx,.xls,.docx"
+          accept="image/*,.pdf,.csv,.xlsx,.xls,.docx,.ofx,.qfx,.qif,.xml,.mt940,.sta,.940"
           capture="environment"
           sx={{ display: 'none' }}
           onChange={(event: React.ChangeEvent<HTMLInputElement>) =>

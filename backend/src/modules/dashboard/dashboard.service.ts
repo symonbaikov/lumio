@@ -240,12 +240,23 @@ export class DashboardService {
     let expense = 0;
     let unapprovedCash = 0;
     for (const row of txRows) {
-      income += await this.convertDashboardAmount(row.income, row.currency, targetCurrency);
-      expense += await this.convertDashboardAmount(row.expense, row.currency, targetCurrency);
+      income += await this.convertDashboardAmount(
+        row.income,
+        row.currency,
+        targetCurrency,
+        workspaceId,
+      );
+      expense += await this.convertDashboardAmount(
+        row.expense,
+        row.currency,
+        targetCurrency,
+        workspaceId,
+      );
       unapprovedCash += await this.convertDashboardAmount(
         row.unapprovedCash,
         row.currency,
         targetCurrency,
+        workspaceId,
       );
     }
 
@@ -273,13 +284,20 @@ export class DashboardService {
         row.totalPayable,
         row.currency,
         targetCurrency,
+        workspaceId,
       );
       totalOverdue += await this.convertDashboardAmount(
         row.totalOverdue,
         row.currency,
         targetCurrency,
+        workspaceId,
       );
     }
+
+    // Rows in a currency with no rate were counted at face value above; say so.
+    const coverage =
+      (await this.exchangeRatesService.coverageForWorkspace(workspaceId, targetCurrency)) ?? [];
+    const missingRates = coverage.filter(item => item.rate === null).map(item => item.currency);
 
     return {
       totalBalance,
@@ -290,6 +308,7 @@ export class DashboardService {
       totalOverdue,
       unapprovedCash,
       currency: targetCurrency,
+      missingRates,
     };
   }
 
@@ -310,7 +329,12 @@ export class DashboardService {
 
     let totalBalance = 0;
     for (const row of balanceRows) {
-      totalBalance += await this.convertDashboardAmount(row.balance, row.currency, targetCurrency);
+      totalBalance += await this.convertDashboardAmount(
+        row.balance,
+        row.currency,
+        targetCurrency,
+        workspaceId,
+      );
     }
     return totalBalance;
   }
@@ -326,6 +350,7 @@ export class DashboardService {
     amount: string | number | null | undefined,
     sourceCurrency: string | null | undefined,
     targetCurrency: string,
+    workspaceId: string,
   ): Promise<number> {
     const value = typeof amount === 'number' ? amount : Number.parseFloat(amount ?? '');
     if (!Number.isFinite(value) || value === 0) {
@@ -335,7 +360,12 @@ export class DashboardService {
     if (source === targetCurrency) {
       return value;
     }
-    const rate = await this.exchangeRatesService.getRate(source, targetCurrency);
+    const rate = await this.exchangeRatesService.getRate(
+      source,
+      targetCurrency,
+      undefined,
+      workspaceId,
+    );
     return value * rate;
   }
 
@@ -544,8 +574,18 @@ export class DashboardService {
     const points = new Map<string, DashboardCashFlowPoint>();
     for (const row of result) {
       const point = points.get(row.date) ?? { date: row.date, income: 0, expense: 0 };
-      point.income += await this.convertDashboardAmount(row.income, row.currency, targetCurrency);
-      point.expense += await this.convertDashboardAmount(row.expense, row.currency, targetCurrency);
+      point.income += await this.convertDashboardAmount(
+        row.income,
+        row.currency,
+        targetCurrency,
+        workspaceId,
+      );
+      point.expense += await this.convertDashboardAmount(
+        row.expense,
+        row.currency,
+        targetCurrency,
+        workspaceId,
+      );
       points.set(row.date, point);
     }
 
@@ -583,6 +623,7 @@ export class DashboardService {
         row.amount,
         row.currency,
         targetCurrency,
+        workspaceId,
       );
       existing.count += Number.parseInt(row.count, 10) || 0;
       rows.set(key, existing);
@@ -647,6 +688,7 @@ export class DashboardService {
         row.amount,
         row.currency,
         targetCurrency,
+        workspaceId,
       );
       existing.count += Number.parseInt(row.count, 10) || 0;
       rows.set(key, existing);
@@ -741,6 +783,7 @@ export class DashboardService {
           magnitude,
           row.currency,
           targetCurrency,
+          workspaceId,
         );
         const amount = row.transactionType === TransactionType.INCOME ? converted : -converted;
 
@@ -1278,7 +1321,12 @@ export class DashboardService {
     let unscheduledCommitted = 0;
 
     for (const payable of payables) {
-      const amount = await this.convertDashboardAmount(payable.amount, payable.currency, currency);
+      const amount = await this.convertDashboardAmount(
+        payable.amount,
+        payable.currency,
+        currency,
+        payable.workspaceId,
+      );
       if (amount === 0) {
         continue;
       }
@@ -1320,6 +1368,7 @@ export class DashboardService {
         subscription.amount,
         subscription.currency,
         currency,
+        subscription.workspaceId,
       );
       if (amount === 0) {
         continue;

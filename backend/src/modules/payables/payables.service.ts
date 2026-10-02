@@ -414,6 +414,7 @@ export class PayablesService {
         row.currency,
         targetCurrency,
         rateCache,
+        workspaceId,
       );
       const dueDate = this.parseDate(row.dueDate);
       const paidAt = this.parseDate(row.paidAt ?? row.updatedAt);
@@ -721,6 +722,7 @@ export class PayablesService {
     sourceCurrency: string | null | undefined,
     targetCurrency: string,
     rateCache: Map<string, number>,
+    workspaceId: string,
   ): Promise<number> {
     if (!Number.isFinite(amount) || amount === 0) {
       return 0;
@@ -734,7 +736,12 @@ export class PayablesService {
     const cacheKey = `${source}:${targetCurrency}`;
     let rate = rateCache.get(cacheKey);
     if (rate === undefined) {
-      rate = await this.exchangeRatesService.getRate(source, targetCurrency);
+      rate = await this.exchangeRatesService.getRate(
+        source,
+        targetCurrency,
+        undefined,
+        workspaceId,
+      );
       rateCache.set(cacheKey, rate);
     }
 

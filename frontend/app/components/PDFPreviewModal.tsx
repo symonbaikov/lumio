@@ -418,7 +418,7 @@ export function PDFPreviewModal({
                     <input
                       ref={attachInputRef}
                       type="file"
-                      accept="application/pdf,image/*,.csv,.xlsx,.xls,.docx"
+                      accept="application/pdf,image/*,.csv,.xlsx,.xls,.docx,.ofx,.qfx,.qif,.xml,.mt940,.sta,.940"
                       onChange={handleAttachFile}
                       className="lumio-pdf-preview-modal__hidden-input"
                     />

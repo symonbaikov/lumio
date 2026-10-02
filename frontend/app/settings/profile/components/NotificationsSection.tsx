@@ -35,6 +35,7 @@ const CHANNEL_FALLBACKS: Record<NotificationChannel, string> = {
   inApp: 'Bell',
   email: 'Email',
   telegram: 'Telegram',
+  push: 'Push',
 };
 
 type Props = {

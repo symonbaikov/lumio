@@ -100,6 +100,12 @@ export class FileStorageService {
       case FileType.DOCX:
       case 'docx':
         return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case FileType.OFX:
+      case FileType.QIF:
+      case FileType.MT940:
+        return 'text/plain';
+      case FileType.CAMT:
+        return 'application/xml';
       case FileType.IMAGE:
       case 'jpg':
       case 'jpeg':

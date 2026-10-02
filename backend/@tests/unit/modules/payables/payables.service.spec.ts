@@ -564,7 +564,7 @@ describe('PayablesService', () => {
       expect(result.dueThisWeek).toBe(10);
       expect(result.paidThisMonth).toBe(2);
       expect(result.paidTotal).toBe(2);
-      expect(exchangeRatesService.getRate).toHaveBeenCalledWith('KZT', 'USD');
+      expect(exchangeRatesService.getRate).toHaveBeenCalledWith('KZT', 'USD', undefined, 'workspace-1');
       jest.useRealTimers();
     });
 
@@ -588,7 +588,7 @@ describe('PayablesService', () => {
 
       expect(result.toPay).toBe(5000);
       expect(result.dueThisWeek).toBe(5000);
-      expect(exchangeRatesService.getRate).toHaveBeenCalledWith('USD', 'KZT');
+      expect(exchangeRatesService.getRate).toHaveBeenCalledWith('USD', 'KZT', undefined, 'workspace-1');
       jest.useRealTimers();
     });
 

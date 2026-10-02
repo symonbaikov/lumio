@@ -167,7 +167,7 @@ Lumio is a full-stack financial operations platform built for teams that need to
 
 Setting expectations upfront:
 
-- **Not a bank integration** — Lumio parses statement files you export from your bank. It does not connect to bank APIs or fetch transactions automatically.
+- **Not a bank integration** — Lumio holds no bank integration of its own: it parses statement files you export from your bank. If you have your own account with an aggregator that speaks an open protocol (SimpleFIN Bridge today), you can connect it under Integrations and Lumio pulls your statements through the same import; Lumio itself never talks to a bank.
 - **Not an accrual accounting suite** — The ledger records what your statements and manual entries say. There is no automatic accrual, depreciation schedule, or period-end closing workflow.
 - **Not a filing service or tax adviser** — Lumio computes tax figures and drafts VAT and income tax documents, but it does not submit anything to a tax authority on your behalf. An income tax draft is not tax advice — check it before you file.
 - **Not a replacement for accounting software** — Lumio keeps double-entry books of your bank activity and issues invoices, but it does not run payroll or file statutory reports. Use it next to QuickBooks, Xero, or 1C rather than instead of them.
@@ -601,7 +601,7 @@ GEOCODER_URL=http://nominatim:8080
 ```
 
 - `maps` builds vector tiles from the extract with Planetiler and renders four styles — OSM Bright, Positron, Dark Matter and Basic — through tileserver-gl. The backend proxies the tiles, so the tile server never needs a public port. Users switch styles on the map in one click; the choice is saved to their profile.
-- `geocoder` runs Nominatim on the same extract. The first import takes from minutes for a small country to hours for a large one, and needs several GB of disk.
+- `geocoder` runs Nominatim on the same extract. The first import takes from minutes for a small country to hours for a large one, and needs several GB of disk. Each start also imports `infra/nominatim/special-phrases.csv`, which lets Lumio suggest shops near the phone when a receipt was photographed without GPS.
 - Without these variables the feature stays off: receipts still get a photo or device point, and the map says tiles are not configured.
 </details>
 

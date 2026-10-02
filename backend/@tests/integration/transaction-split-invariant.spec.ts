@@ -203,6 +203,8 @@ describe('split() preserves every money aggregate (real Postgres)', () => {
       getRate: jest.fn(() => {
         throw new Error('unexpected FX conversion in a single-currency fixture');
       }),
+      // The dashboard lists currencies without a rate; a KZT-only fixture has none.
+      coverageForWorkspace: jest.fn(async () => []),
     };
 
     moduleRef = await Test.createTestingModule({

@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
@@ -12,6 +12,8 @@ export interface GeneratedApiKey {
   key: string;
   prefix: string;
   name: string;
+  scopes: string[] | null;
+  expiresAt: Date | null;
   createdAt: Date;
 }
 
@@ -25,10 +27,21 @@ export class ApiKeysService {
     private readonly auditService: AuditService,
   ) {}
 
-  async generate(workspaceId: string, userId: string, name: string): Promise<GeneratedApiKey> {
+  async generate(
+    workspaceId: string,
+    userId: string,
+    name: string,
+    options: { scopes?: string[]; expiresAt?: string | null } = {},
+  ): Promise<GeneratedApiKey> {
     const rawKey = `lum_${randomBytes(32).toString('hex')}`;
     const keyHash = createHash('sha256').update(rawKey).digest('hex');
     const prefix = rawKey.slice(4, 12); // 8 chars after "lum_"
+    const scopes =
+      options.scopes && options.scopes.length > 0 ? [...new Set(options.scopes)] : null;
+    const expiresAt = options.expiresAt ? new Date(options.expiresAt) : null;
+    if (expiresAt && Number.isNaN(expiresAt.getTime())) {
+      throw new BadRequestException('expiresAt is not a date');
+    }
 
     const apiKey = this.apiKeyRepository.create({
       workspaceId,
@@ -36,6 +49,8 @@ export class ApiKeysService {
       name,
       keyHash,
       prefix,
+      scopes,
+      expiresAt,
     });
 
     const saved = await this.apiKeyRepository.save(apiKey);
@@ -48,7 +63,7 @@ export class ApiKeysService {
       entityId: saved.id,
       action: AuditAction.CREATE,
       severity: Severity.WARN,
-      meta: { name: saved.name, prefix: saved.prefix },
+      meta: { name: saved.name, prefix: saved.prefix, scopes: saved.scopes },
     });
 
     return {
@@ -56,6 +71,8 @@ export class ApiKeysService {
       key: rawKey,
       prefix: saved.prefix,
       name: saved.name,
+      scopes: saved.scopes,
+      expiresAt: saved.expiresAt,
       createdAt: saved.createdAt,
     };
   }

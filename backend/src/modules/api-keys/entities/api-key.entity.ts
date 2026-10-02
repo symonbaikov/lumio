@@ -49,6 +49,10 @@ export class ApiKey {
   @Column({ name: 'revoked_at', type: 'timestamptz', nullable: true, default: null })
   revokedAt: Date | null;
 
+  /** Permission strings the key is limited to; null = the owner's full reach (keys made before scopes). */
+  @Column({ type: 'jsonb', nullable: true, default: null })
+  scopes: string[] | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }

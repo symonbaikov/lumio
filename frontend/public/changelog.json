@@ -1,14 +1,284 @@
 {
   "meta": {
     "lastProcessedCommitByBranch": {
-      "main": "5c7f15aa19bb4dd62217f91d9c3091ef7416228f"
+      "main": "cd0a6600fe5ee832278366f0e8ac6907c500b241"
     },
     "initializedAt": "2026-03-05T22:23:31.634Z",
-    "lastGeneratedAt": "2026-10-02T00:17:44.102Z",
+    "lastGeneratedAt": "2026-10-02T10:31:08.691Z",
     "minCommits": 5,
     "lastRecoveryAt": "2026-05-07T18:30:33.797Z"
   },
   "entries": [
+    {
+      "id": "changelog-2026-10-02-cd0a660",
+      "version": "main-cd0a660",
+      "branch": "main",
+      "date": "2026-10-02T10:31:08.691Z",
+      "title": "Release update - October 2, 2026",
+      "summary": "This release includes 5 features and 5 fixes.",
+      "markdown": "## Features\n- **forecast**: Cash-flow forecast with safe-to-spend, runway and scenarios\n- **investments**: Accounts with holdings and ticker prices, contributions as transfers, net-worth ranges and all-time high\n- **reports**: Cash-flow map — sankey, treemap, period comparison, transfers switch, CSV\n- **agents**: Scoped API keys, agent writes audited as their actor and undoable, MCP and security docs\n- **smb**: Bank reconciliation, AR/AP ageing, duplicate bills, dunning reminders, owners report\n\n## Fixes\n- **smb**: Offer a bank row as payment only near the bill's due date\n- **forecast**: Read the runway off the projected balance\n- **forecast**: Show the runway with one decimal in the reader's locale\n- **reports**: Balanced cash-flow sankey with readable labels\n- **reconcile**: Fit the page on a phone and space the ageing table",
+      "commits": [
+        {
+          "sha": "a8e14d909ca890a3f9899b8526c5888bdffd752a",
+          "shortSha": "a8e14d90",
+          "subject": "feat(forecast): cash-flow forecast with safe-to-spend, runway and scenarios",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T19:38:02+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/forecast.e2e-spec.ts",
+            "backend/@tests/unit/modules/forecast/forecast.engine.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/modules/forecast/dto/forecast-query.dto.ts",
+            "backend/src/modules/forecast/forecast.controller.ts",
+            "backend/src/modules/forecast/forecast.engine.ts",
+            "backend/src/modules/forecast/forecast.module.ts",
+            "backend/src/modules/forecast/forecast.service.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/dashboard/components/CashRunwayWidget.tsx",
+            "frontend/app/(main)/dashboard/components/cashRunwayWidget.content.ts",
+            "frontend/app/(main)/forecast/components/ForecastChart.tsx",
+            "frontend/app/(main)/forecast/components/ForecastContent.test.tsx",
+            "frontend/app/(main)/forecast/components/ForecastContent.tsx",
+            "frontend/app/(main)/forecast/components/ForecastEvents.tsx",
+            "frontend/app/(main)/forecast/hooks/useForecast.ts",
+            "frontend/app/(main)/forecast/page.content.ts",
+            "frontend/app/(main)/forecast/page.tsx",
+            "frontend/app/components/Sidebar.tsx",
+            "frontend/app/components/navigation.content.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts",
+            "frontend/app/components/navigation/helpers/navigation-config.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        },
+        {
+          "sha": "69b7afce9da670a4d8e9107f97d8fa4269ed9365",
+          "shortSha": "69b7afce",
+          "subject": "feat(investments): accounts with holdings and ticker prices, contributions as transfers, net-worth ranges and all-time high",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T19:53:47+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/investments.e2e-spec.ts",
+            "backend/@tests/unit/modules/investments/stock-price.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/entities/balance-account.entity.ts",
+            "backend/src/entities/index.ts",
+            "backend/src/entities/investment-holding.entity.ts",
+            "backend/src/entities/transaction.entity.ts",
+            "backend/src/migrations/1786750000000-AddInvestments.ts",
+            "backend/src/modules/crypto/crypto.module.ts",
+            "backend/src/modules/investments/dto/create-investment-account.dto.ts",
+            "backend/src/modules/investments/dto/link-contribution.dto.ts",
+            "backend/src/modules/investments/dto/upsert-holding.dto.ts",
+            "backend/src/modules/investments/investments.controller.ts",
+            "backend/src/modules/investments/investments.module.ts",
+            "backend/src/modules/investments/investments.service.ts",
+            "backend/src/modules/investments/stock-price.service.ts",
+            "backend/src/modules/net-worth/dto/net-worth-query.dto.ts",
+            "backend/src/modules/net-worth/net-worth.module.ts",
+            "backend/src/modules/net-worth/net-worth.service.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/net-worth/components/InvestmentsCard.test.tsx",
+            "frontend/app/(main)/net-worth/components/InvestmentsCard.tsx",
+            "frontend/app/(main)/net-worth/components/NetWorthContent.tsx",
+            "frontend/app/(main)/net-worth/hooks/useInvestments.ts",
+            "frontend/app/(main)/net-worth/hooks/useNetWorth.ts",
+            "frontend/app/(main)/net-worth/page.content.ts",
+            "frontend/app/components/transactions/TransactionDetailsTab.tsx",
+            "frontend/app/components/transactions/detailsDrawer.content.ts",
+            "frontend/app/components/transactions/hooks/useContributionLink.ts",
+            "frontend/app/components/transactions/types.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        },
+        {
+          "sha": "d7b0eed43283627eada39841b9af148aba2f3e81",
+          "shortSha": "d7b0eed4",
+          "subject": "feat(reports): cash-flow map — sankey, treemap, period comparison, transfers switch, CSV",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T20:05:22+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/cash-flow-map.e2e-spec.ts",
+            "backend/@tests/unit/modules/reports/cash-flow-map.util.spec.ts",
+            "backend/src/modules/reports/cash-flow-map.service.ts",
+            "backend/src/modules/reports/cash-flow-map.util.ts",
+            "backend/src/modules/reports/dto/cash-flow-map-query.dto.ts",
+            "backend/src/modules/reports/reports.controller.ts",
+            "backend/src/modules/reports/reports.module.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/reports/components/cash-flow/CashFlowTreemap.tsx",
+            "frontend/app/(main)/reports/components/cash-flow/CashFlowView.test.tsx",
+            "frontend/app/(main)/reports/components/cash-flow/CashFlowView.tsx",
+            "frontend/app/(main)/reports/components/cash-flow/cash-flow.chart.ts",
+            "frontend/app/(main)/reports/components/cash-flow/treemap-layout.test.ts",
+            "frontend/app/(main)/reports/components/cash-flow/treemap-layout.ts",
+            "frontend/app/(main)/reports/components/cash-flow/useCashFlowMap.ts",
+            "frontend/app/(main)/reports/page.content.ts",
+            "frontend/app/(main)/reports/page.tsx",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        },
+        {
+          "sha": "dcf173376683e9856f23e8f68831c79da25245ad",
+          "shortSha": "dcf17337",
+          "subject": "feat(agents): scoped API keys, agent writes audited as their actor and undoable, MCP and security docs",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T20:19:07+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/api-key-scopes.e2e-spec.ts",
+            "backend/@tests/unit/common/guards/permissions.guard.spec.ts",
+            "backend/@tests/unit/modules/api-keys/api-key-scopes.spec.ts",
+            "backend/@tests/unit/modules/api-keys/api-keys.service.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/common/audit-actor.context.ts",
+            "backend/src/common/guards/jwt-auth.guard.ts",
+            "backend/src/common/guards/permissions.guard.ts",
+            "backend/src/common/interceptors/audit-actor.interceptor.ts",
+            "backend/src/common/interfaces/authenticated-request.interface.ts",
+            "backend/src/entities/audit-event.entity.ts",
+            "backend/src/migrations/1786760000000-AddApiKeyScopesAndAiActor.ts",
+            "backend/src/modules/api-keys/api-key-scopes.ts",
+            "backend/src/modules/api-keys/api-keys.controller.ts",
+            "backend/src/modules/api-keys/api-keys.service.ts",
+            "backend/src/modules/api-keys/dto/api-key-response.dto.ts",
+            "backend/src/modules/api-keys/dto/create-api-key.dto.ts",
+            "backend/src/modules/api-keys/entities/api-key.entity.ts",
+            "backend/src/modules/audit/audit.service.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/audit/auditUi.content.ts",
+            "frontend/app/audit/components/AuditFilterBar.tsx",
+            "frontend/app/chat/agent/build-agent-prompt.ts",
+            "frontend/app/chat/tools/write-tools.ts",
+            "frontend/app/plugins/mcp-server/McpServerDrawer.content.ts",
+            "frontend/app/plugins/mcp-server/McpServerDrawer.tsx",
+            "frontend/app/plugins/mcp-server/useApiKeys.ts",
+            "frontend/lib/api/audit.ts",
+            "website/docs/guides/mcp.md",
+            "website/docs/guides/security-posture.md",
+            "website/sidebars.ts"
+          ]
+        },
+        {
+          "sha": "00ad8754974b3288d1da820b4fe8111f3b567010",
+          "shortSha": "00ad8754",
+          "subject": "feat(smb): bank reconciliation, AR/AP ageing, duplicate bills, dunning reminders, owners report",
+          "author": "Symon Baikov",
+          "date": "2026-10-01T20:32:54+03:00",
+          "files": [
+            "CHANGELOG.md",
+            "backend/@tests/e2e/smb.e2e-spec.ts",
+            "backend/@tests/unit/modules/smb/reconciliation.util.spec.ts",
+            "backend/src/app.module.ts",
+            "backend/src/entities/invoice.entity.ts",
+            "backend/src/migrations/1786770000000-AddInvoiceReminders.ts",
+            "backend/src/modules/smb/dto/confirm-reconciliation.dto.ts",
+            "backend/src/modules/smb/reconciliation.util.ts",
+            "backend/src/modules/smb/smb.controller.ts",
+            "backend/src/modules/smb/smb.module.ts",
+            "backend/src/modules/smb/smb.service.ts",
+            "backend/src/modules/subscriptions/subscriptions.controller.ts",
+            "backend/src/modules/subscriptions/subscriptions.service.ts",
+            "docs/ROADMAP.md",
+            "frontend/app/(main)/invoices/components/InvoiceDetailView.tsx",
+            "frontend/app/(main)/invoices/page.content.ts",
+            "frontend/app/(main)/statements/components/payables/PayablesView.test.tsx",
+            "frontend/app/(main)/statements/components/payables/PayablesView.tsx",
+            "frontend/app/(main)/statements/page.content.ts",
+            "frontend/app/(main)/statements/reconcile/components/ReconcileView.test.tsx",
+            "frontend/app/(main)/statements/reconcile/components/ReconcileView.tsx",
+            "frontend/app/(main)/statements/reconcile/page.content.ts",
+            "frontend/app/(main)/statements/reconcile/page.tsx",
+            "frontend/app/(main)/statements/reconcile/useReconciliation.ts",
+            "frontend/app/(main)/subscriptions/components/SubscriptionsContent.tsx",
+            "frontend/app/(main)/subscriptions/subscriptions.content.ts",
+            "frontend/app/lib/invoices-api.ts",
+            "frontend/app/lib/query-keys.ts"
+          ]
+        },
+        {
+          "sha": "e51079ed951eddb0c1a67ebf895614c3bc0028a7",
+          "shortSha": "e51079ed",
+          "subject": "fix(smb): offer a bank row as payment only near the bill's due date",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T01:40:24+03:00",
+          "files": [
+            "backend/@tests/unit/modules/smb/reconciliation.util.spec.ts",
+            "backend/src/modules/smb/reconciliation.util.ts"
+          ]
+        },
+        {
+          "sha": "64a048f8b42ca8e1d133da53b7464c562fd8c3a9",
+          "shortSha": "64a048f8",
+          "subject": "fix(forecast): read the runway off the projected balance",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T01:40:24+03:00",
+          "files": [
+            "backend/@tests/unit/modules/forecast/forecast.engine.spec.ts",
+            "backend/src/modules/forecast/forecast.engine.ts",
+            "backend/src/modules/forecast/forecast.service.ts"
+          ]
+        },
+        {
+          "sha": "cae4f5a5dbc5071e2e74f2f1cc372099493fd1f0",
+          "shortSha": "cae4f5a5",
+          "subject": "fix(forecast): show the runway with one decimal in the reader's locale",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T01:46:43+03:00",
+          "files": [
+            "frontend/app/(main)/forecast/components/ForecastContent.test.tsx",
+            "frontend/app/(main)/forecast/components/ForecastContent.tsx"
+          ]
+        },
+        {
+          "sha": "33479697d58a56c8d9f26a428a855fca4203c8ba",
+          "shortSha": "33479697",
+          "subject": "fix(reports): balanced cash-flow sankey with readable labels",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T01:54:51+03:00",
+          "files": [
+            "backend/@tests/unit/modules/reports/cash-flow-map.util.spec.ts",
+            "backend/src/modules/reports/cash-flow-map.service.ts",
+            "backend/src/modules/reports/cash-flow-map.util.ts",
+            "frontend/app/(main)/reports/components/cash-flow/cash-flow.chart.test.ts",
+            "frontend/app/(main)/reports/components/cash-flow/cash-flow.chart.ts",
+            "frontend/app/(main)/reports/components/cash-flow/useCashFlowMap.ts"
+          ]
+        },
+        {
+          "sha": "126b13535cadb4d41fa69bc8755a2fc0f3a947c7",
+          "shortSha": "126b1353",
+          "subject": "fix(reconcile): fit the page on a phone and space the ageing table",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T02:38:21+03:00",
+          "files": [
+            "frontend/app/(main)/statements/reconcile/components/ReconcileView.tsx"
+          ]
+        },
+        {
+          "sha": "c65b8c3e225262f07b34ad3d5d106a2241e381e5",
+          "shortSha": "c65b8c3e",
+          "subject": "chore(changelog): update generated changelog [skip ci]",
+          "author": "github-actions[bot]",
+          "date": "2026-10-02T00:17:44Z",
+          "files": [
+            "frontend/public/changelog.json"
+          ]
+        },
+        {
+          "sha": "cd0a6600fe5ee832278366f0e8ac6907c500b241",
+          "shortSha": "cd0a6600",
+          "subject": "Merge pull request #234 from symonbaikov/feat/phase2-planning",
+          "author": "Symon Baikov",
+          "date": "2026-10-02T13:30:42+03:00",
+          "files": [
+            "frontend/app/components/navigation/helpers/navigation-config.test.ts"
+          ]
+        }
+      ]
+    },
     {
       "id": "changelog-2026-10-02-5c7f15a",
       "version": "main-5c7f15a",

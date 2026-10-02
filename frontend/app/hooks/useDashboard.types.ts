@@ -15,6 +15,8 @@ export interface DashboardFinancialSnapshot {
   totalOverdue: number;
   unapprovedCash: number;
   currency: string;
+  /** Currencies with no rate to the workspace currency; their amounts count at face value. */
+  missingRates?: string[];
 }
 
 export interface DashboardActionItem {

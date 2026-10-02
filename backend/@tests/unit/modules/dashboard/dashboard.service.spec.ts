@@ -71,6 +71,7 @@ describe('DashboardService', () => {
   const subscriptionRepo = createRepoMock();
   const exchangeRatesService = {
     getRate: jest.fn(),
+    coverageForWorkspace: jest.fn(async () => []),
   };
 
   beforeEach(() => {
@@ -502,6 +503,7 @@ describe('DashboardService', () => {
       totalOverdue: 50,
       unapprovedCash: 0,
       currency: 'USD',
+      missingRates: [],
     });
     // walletRepo should NOT be used for balance computation
     expect(walletRepo.createQueryBuilder).not.toHaveBeenCalled();
@@ -542,7 +544,7 @@ describe('DashboardService', () => {
       unapprovedCash: 500,
       currency: 'KZT',
     });
-    expect(exchangeRatesService.getRate).toHaveBeenCalledWith('USD', 'KZT');
+    expect(exchangeRatesService.getRate).toHaveBeenCalledWith('USD', 'KZT', undefined, 'ws-1');
   });
 
   it('getSnapshot excludes error and processing statements from period totals', async () => {

@@ -47,10 +47,35 @@ import {
   costPerUse,
   describePriceChange,
   findDuplicateGroups,
+  monthlyCost,
   monthlySetAside,
 } from './subscription-insights.util';
 
 const DEFAULT_CALENDAR_MONTHS = 6;
+
+export interface BusinessSubscriptionsReport {
+  currency: string;
+  rows: Array<{
+    id: string;
+    vendorName: string;
+    owner: string | null;
+    ownerId: string | null;
+    monthlyCost: number;
+    frequency: SubscriptionFrequency;
+    amount: number;
+    subscriptionCurrency: string;
+    nextChargeDate: Date | null;
+    reviewAt: Date | null;
+    riskStatus: SubscriptionRiskStatus;
+  }>;
+  byOwner: Array<{
+    owner: string | null;
+    ownerId: string | null;
+    monthlyCost: number;
+    count: number;
+  }>;
+  totalMonthlyCost: number;
+}
 
 export interface ChargeCalendarRow {
   subscriptionId: string;
@@ -395,6 +420,7 @@ export class SubscriptionsService {
           sub.currency,
           workspaceCurrency,
           new Date(),
+          workspaceId,
         );
         return converted.converted;
       }),
@@ -434,6 +460,7 @@ export class SubscriptionsService {
           sub.currency,
           workspaceCurrency,
           new Date(),
+          workspaceId,
         );
         return converted.converted;
       }),
@@ -516,6 +543,7 @@ export class SubscriptionsService {
             sub.currency,
             workspaceCurrency,
             new Date(),
+            workspaceId,
           );
           amount = converted.converted;
         }
@@ -578,7 +606,13 @@ export class SubscriptionsService {
     const convert = async (amount: number, currency: string): Promise<number> => {
       if (!workspaceCurrency || currency.toUpperCase() === workspaceCurrency) return amount;
       return (
-        await this.exchangeRatesService.convert(amount, currency, workspaceCurrency, new Date())
+        await this.exchangeRatesService.convert(
+          amount,
+          currency,
+          workspaceCurrency,
+          new Date(),
+          workspaceId,
+        )
       ).converted;
     };
     const rows: Array<{
@@ -638,6 +672,67 @@ export class SubscriptionsService {
   }
 
   /** One "I used it" tap. The counter starts on the first tap, so cost per use is honest from then on. */
+  /**
+   * Who pays for what: every active subscription with its owner, monthly cost
+   * in the workspace currency, next charge and last review — the list a
+   * finance lead asks for once a quarter.
+   */
+  async getBusinessReport(workspaceId: string): Promise<BusinessSubscriptionsReport> {
+    const workspace = await this.workspaceRepository.findOne({ where: { id: workspaceId } });
+    const currency = workspace?.currency?.toUpperCase() ?? 'KZT';
+    const subs = await this.subscriptionRepository.find({
+      where: { workspaceId, status: SubscriptionStatus.ACTIVE },
+      relations: ['owner'],
+      order: { vendorName: 'ASC' },
+    });
+    const rows: BusinessSubscriptionsReport['rows'] = [];
+    for (const sub of subs) {
+      let monthly = monthlyCost(Number(sub.amount), sub.frequency);
+      if (sub.currency.toUpperCase() !== currency) {
+        const converted = await this.exchangeRatesService.convert(
+          monthly,
+          sub.currency,
+          currency,
+          new Date(),
+          workspaceId,
+        );
+        monthly = converted.converted;
+      }
+      rows.push({
+        id: sub.id,
+        vendorName: sub.vendorName,
+        owner: sub.owner?.name || sub.owner?.email || null,
+        ownerId: sub.ownerId ?? null,
+        monthlyCost: Math.round(monthly * 100) / 100,
+        frequency: sub.frequency,
+        amount: Number(sub.amount),
+        subscriptionCurrency: sub.currency,
+        nextChargeDate: sub.nextChargeDate,
+        reviewAt: sub.reviewAt,
+        riskStatus: sub.riskStatus,
+      });
+    }
+    const byOwnerMap = new Map<string, BusinessSubscriptionsReport['byOwner'][number]>();
+    for (const row of rows) {
+      const key = row.ownerId ?? '';
+      const current = byOwnerMap.get(key) ?? {
+        owner: row.owner,
+        ownerId: row.ownerId,
+        monthlyCost: 0,
+        count: 0,
+      };
+      current.monthlyCost = Math.round((current.monthlyCost + row.monthlyCost) * 100) / 100;
+      current.count += 1;
+      byOwnerMap.set(key, current);
+    }
+    return {
+      currency,
+      rows,
+      byOwner: [...byOwnerMap.values()].sort((a, b) => b.monthlyCost - a.monthlyCost),
+      totalMonthlyCost: Math.round(rows.reduce((sum, row) => sum + row.monthlyCost, 0) * 100) / 100,
+    };
+  }
+
   async recordUsage(
     id: string,
     workspaceId: string,

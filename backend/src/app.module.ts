@@ -16,6 +16,7 @@ import { CommonModule } from './common/common.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { CsrfGuard } from './common/guards/csrf.guard';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { AuditActorInterceptor } from './common/interceptors/audit-actor.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { getDatabaseConfig } from './config/database.config';
 import {
@@ -71,6 +72,7 @@ import { AuditInterceptor } from './modules/audit/interceptors/audit.interceptor
 import { AuthModule } from './modules/auth/auth.module';
 import { BackupsModule } from './modules/backups/backups.module';
 import { BalanceModule } from './modules/balance/balance.module';
+import { BankSyncModule } from './modules/bank-sync/bank-sync.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
 import { CategoriesModule } from './modules/categories/categories.module';
@@ -81,11 +83,13 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DataEntryModule } from './modules/data-entry/data-entry.module';
 import { DropboxModule } from './modules/dropbox/dropbox.module';
 import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module';
+import { ForecastModule } from './modules/forecast/forecast.module';
 import { GmailModule } from './modules/gmail/gmail.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { GoogleDriveModule } from './modules/google-drive/google-drive.module';
 import { IncomeTaxModule } from './modules/income-tax/income-tax.module';
 import { InsightsModule } from './modules/insights/insights.module';
+import { InvestmentsModule } from './modules/investments/investments.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
 import { MapsModule } from './modules/maps/maps.module';
@@ -97,10 +101,12 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { OpenProtocolIntegrationsModule } from './modules/open-protocol-integrations/open-protocol-integrations.module';
 import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
+import { PushModule } from './modules/push/push.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { ReviewInboxModule } from './modules/review-inbox/review-inbox.module';
 import { SearchModule } from './modules/search/search.module';
+import { SmbModule } from './modules/smb/smb.module';
 import { StatementsModule } from './modules/statements/statements.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
@@ -248,6 +254,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     InsightsModule,
     ObservabilityModule,
     OpenProtocolIntegrationsModule,
+    BankSyncModule,
     DashboardModule,
     SearchModule,
     PayablesModule,
@@ -255,6 +262,10 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     ExchangeRatesModule,
     SubscriptionsModule,
     ReviewInboxModule,
+    ForecastModule,
+    InvestmentsModule,
+    SmbModule,
+    PushModule,
     CryptoModule,
     WebhooksModule,
     ApiKeysModule,
@@ -273,6 +284,11 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: HttpMetricsInterceptor,
+    },
+    // Before AuditInterceptor: the actor must be known when events are written.
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditActorInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,

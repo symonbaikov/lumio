@@ -158,7 +158,11 @@ export class TransactionsService {
       currency: tx.currency || 'KZT',
       date: tx.transactionDate,
     }));
-    const conversions = await this.exchangeRatesService.bulkConvert(items, targetCurrency);
+    const conversions = await this.exchangeRatesService.bulkConvert(
+      items,
+      targetCurrency,
+      workspaceId,
+    );
 
     const data: TransactionWithConversion[] = rawData.map((tx, i) => {
       const conv = conversions[i];

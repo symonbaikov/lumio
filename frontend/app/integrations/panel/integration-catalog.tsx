@@ -1,3 +1,4 @@
+import AccountBalanceOutlinedIcon from '@mui/icons-material/AccountBalanceOutlined';
 import AlternateEmailOutlinedIcon from '@mui/icons-material/AlternateEmailOutlined';
 import CategoryOutlinedIcon from '@mui/icons-material/CategoryOutlined';
 import CloudQueueOutlinedIcon from '@mui/icons-material/CloudQueueOutlined';
@@ -15,7 +16,13 @@ import type {
   ProtocolIntegrationPageProps,
 } from '../open-protocol-page';
 
-export type IntegrationCategoryKey = 'ai' | 'application' | 'storage' | 'email' | 'messaging';
+export type IntegrationCategoryKey =
+  | 'ai'
+  | 'application'
+  | 'bank'
+  | 'storage'
+  | 'email'
+  | 'messaging';
 
 type CatalogText = ReturnType<typeof useIntlayer<'integrationCatalog'>>;
 
@@ -27,7 +34,8 @@ type ProtocolConfig = Omit<ProtocolIntegrationPageProps, 'embedded' | 'onConnect
  */
 export type IntegrationDetail =
   | { kind: 'protocol'; config: ProtocolConfig; secondary?: ProtocolConfig }
-  | { kind: 'local-categorization' };
+  | { kind: 'local-categorization' }
+  | { kind: 'bank-sync' };
 
 export type IntegrationEntry = {
   key: string;
@@ -333,6 +341,18 @@ function buildIntegrationCatalog(t: CatalogText): IntegrationEntry[] {
           workflow: e.imap.workflow.value,
         },
       },
+    },
+    {
+      key: 'simplefin',
+      name: e.simplefin.name.value,
+      description: e.simplefin.description.value,
+      badge: 'Open protocol',
+      category: 'bank',
+      recommended: false,
+      icon: <AccountBalanceOutlinedIcon sx={{ fontSize: 22 }} aria-hidden="true" />,
+      statusPath: '/integrations/simplefin/status',
+      docsUrl: 'https://www.simplefin.org/protocol.html',
+      detail: { kind: 'bank-sync' },
     },
     {
       key: 'telegram',

@@ -301,7 +301,12 @@ export class CryptoSyncService {
       return false;
     }
 
-    const usdRate = await this.exchangeRatesService.getRateOrNull('USD', currency, date);
+    const usdRate = await this.exchangeRatesService.getRateOrNull(
+      'USD',
+      currency,
+      date,
+      wallet.workspaceId,
+    );
     if (usdRate === null) {
       return false;
     }

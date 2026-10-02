@@ -38,10 +38,14 @@ export async function buildRateMap(
   exchangeRates: ExchangeRatesService,
   currencies: string[],
   target: string,
+  workspaceId: string,
 ): Promise<Map<string, number>> {
   const rates = new Map<string, number>();
   for (const source of new Set(currencies.map(normalizeCurrency))) {
-    rates.set(source, source === target ? 1 : await exchangeRates.getRate(source, target));
+    rates.set(
+      source,
+      source === target ? 1 : await exchangeRates.getRate(source, target, undefined, workspaceId),
+    );
   }
   return rates;
 }

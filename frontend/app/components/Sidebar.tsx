@@ -16,7 +16,7 @@ import {
 } from './navigation/helpers/navigation-config';
 
 // Matches buildNavItems() length so the skeleton doesn't jump when real items land.
-const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 15 }, (_, i) => `nav-skeleton-${i}`);
+const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 16 }, (_, i) => `nav-skeleton-${i}`);
 
 function SidebarContent() {
   const pathname = usePathname();

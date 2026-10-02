@@ -24,6 +24,8 @@ const sidebars: SidebarsConfig = {
         'guides/receipt-maps',
         'guides/income-tax-declaration',
         'guides/observability',
+        'guides/mcp',
+        'guides/security-posture',
       ],
     },
     {

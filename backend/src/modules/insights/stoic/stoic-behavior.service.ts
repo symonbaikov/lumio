@@ -145,6 +145,7 @@ export class StoicBehaviorService {
         ...subscriptions.map(item => item.currency),
       ],
       currency,
+      workspaceId,
     );
 
     return {
