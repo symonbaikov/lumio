@@ -14,8 +14,10 @@ const categories = [
 const labels = {
   uncategorised: 'Uncategorised',
   otherSources: 'Other sources',
-  total: 'Income',
+  total: 'Money flow',
   transfers: 'Transfers',
+  fromBalance: 'From your balance',
+  leftOver: 'Left over',
 };
 const row = (partial: Partial<CashFlowRow> & { amount: number }): CashFlowRow => ({
   type: 'expense',
@@ -103,6 +105,28 @@ describe('buildCashFlowMap', () => {
     expect(map.transfers).toBe(500);
     expect(map.expense.total).toBe(0);
     expect(map.sankey.links).toContainEqual({ source: 'total', target: 'transfers', value: 500 });
+  });
+
+  it('draws spending beyond income as coming from the balance', () => {
+    const map = buildCashFlowMap([row({ amount: 300, categoryId: 'rent' })], null, categories, { labels });
+    expect(map.sankey.nodes).toContainEqual({ id: 'balance', name: 'From your balance', kind: 'balance' });
+    expect(map.sankey.links).toContainEqual({ source: 'balance', target: 'total', value: 300 });
+    expect(map.sankey.nodes.find(node => node.id === 'saved')).toBeUndefined();
+  });
+
+  it('draws what income left unspent as left over', () => {
+    const map = buildCashFlowMap(
+      [
+        row({ type: 'income', amount: 1000, counterpartyName: 'ACME' }),
+        row({ amount: 300, categoryId: 'rent' }),
+        row({ amount: 200, isTransfer: true }),
+      ],
+      null,
+      categories,
+      { labels },
+    );
+    expect(map.sankey.links).toContainEqual({ source: 'total', target: 'saved', value: 500 });
+    expect(map.sankey.nodes.find(node => node.id === 'balance')).toBeUndefined();
   });
 
   it('rolls the long tail of payers into one node', () => {

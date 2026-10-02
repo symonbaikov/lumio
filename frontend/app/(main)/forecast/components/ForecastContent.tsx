@@ -186,7 +186,11 @@ export function ForecastContent() {
                 value={
                   data.runwayMonths === null
                     ? t.runwayGrowing.value
-                    : fill(t.runwayMonths.value, { months: String(data.runwayMonths) })
+                    : fill(t.runwayMonths.value, {
+                        months: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(
+                          data.runwayMonths,
+                        ),
+                      })
                 }
                 tone={data.runwayMonths !== null && data.runwayMonths < 3 ? 'error' : undefined}
               />

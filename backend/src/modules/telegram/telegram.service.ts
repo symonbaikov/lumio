@@ -7,6 +7,7 @@ import type { Repository } from 'typeorm';
 import { retry, TimeoutError } from '../../common/utils/async.util';
 import { formatMoney } from '../../common/utils/format-money.util';
 import { CategoryType } from '../../entities/category.entity';
+import { IdempotencyKey } from '../../entities/idempotency-key.entity';
 import type { Insight } from '../../entities/insight.entity';
 import { ReceiptSource } from '../../entities/receipt.entity';
 import { ReportStatus, ReportType, TelegramReport } from '../../entities/telegram-report.entity';
@@ -71,6 +72,8 @@ interface TelegramCallbackQueryPayload {
 }
 
 export interface TelegramUpdatePayload {
+  /** Telegram resends an update with the same id when the webhook answer is late or fails. */
+  update_id?: number;
   message?: TelegramMessagePayload;
   callback_query?: TelegramCallbackQueryPayload;
 }
@@ -143,6 +146,9 @@ export class TelegramService {
     @Optional()
     @InjectRepository(Transaction)
     private readonly transactionRepository?: Repository<Transaction>,
+    @Optional()
+    @InjectRepository(IdempotencyKey)
+    private readonly idempotencyKeyRepository?: Repository<IdempotencyKey>,
   ) {
     this.botToken = this.configService.get<string>('TELEGRAM_BOT_TOKEN');
     this.apiBase = this.botToken ? `https://api.telegram.org/bot${this.botToken}` : undefined;
@@ -475,6 +481,7 @@ export class TelegramService {
     if (!message) {
       return;
     }
+    const updateId = update.update_id;
 
     const chatId = message.chat?.id ? String(message.chat.id) : null;
     const text: string | undefined = message.text?.trim();
@@ -537,6 +544,7 @@ export class TelegramService {
           mime_type: 'image/jpeg',
         },
         locale,
+        updateId,
       );
       return;
     }
@@ -544,9 +552,9 @@ export class TelegramService {
     if (message.document) {
       const mimeType = (message.document.mime_type || '').toLowerCase();
       if (IMAGE_MIME_TYPES.has(mimeType)) {
-        await this.handleReceiptImage(chatId, telegramId, message.document, locale);
+        await this.handleReceiptImage(chatId, telegramId, message.document, locale, updateId);
       } else {
-        await this.handleDocumentUpload(chatId, telegramId, message.document, locale);
+        await this.handleDocumentUpload(chatId, telegramId, message.document, locale, updateId);
       }
       return;
     }
@@ -557,15 +565,20 @@ export class TelegramService {
     }
 
     if (text) {
-      await this.handleExpenseText(chatId, telegramId, text, locale);
+      await this.handleExpenseText(chatId, telegramId, text, locale, updateId);
     }
   }
 
-  /** The user and workspace behind a chat, or a reply explaining why there is none. */
+  /**
+   * The user and workspace behind a chat, or a reply explaining why there is none.
+   * With an update id it also claims the update, and returns null without a reply
+   * for a redelivery: the first delivery has already booked and answered it.
+   */
   private async resolveSender(
     chatId: string,
     telegramId: string | null,
     fallbackLocale: string,
+    updateId?: number,
   ): Promise<{ user: User; workspaceId: string } | null> {
     if (!telegramId) {
       await this.sendMessage(
@@ -583,7 +596,39 @@ export class TelegramService {
       );
       return null;
     }
+    if (updateId !== undefined && !(await this.claimUpdate(updateId, user.id, workspaceId))) {
+      this.logger.log(`Telegram update ${updateId} was already handled; skipping the redelivery`);
+      return null;
+    }
     return { user, workspaceId };
+  }
+
+  /** Inserts the update's key; the unique (key, user, workspace) constraint makes the claim atomic. */
+  private async claimUpdate(
+    updateId: number,
+    userId: string,
+    workspaceId: string,
+  ): Promise<boolean> {
+    if (!this.idempotencyKeyRepository) {
+      return true;
+    }
+    try {
+      await this.idempotencyKeyRepository.insert({
+        key: `telegram:update:${updateId}`,
+        userId,
+        workspaceId,
+        responseHash: '',
+        responseData: {},
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      });
+      return true;
+    } catch (error) {
+      // QueryFailedError carries the driver's fields; 23505 is a unique violation.
+      if ((error as { code?: string }).code === '23505') {
+        return false;
+      }
+      throw error;
+    }
   }
 
   /**
@@ -595,8 +640,9 @@ export class TelegramService {
     telegramId: string | null,
     document: TelegramDocumentPayload,
     fallbackLocale: string,
+    updateId?: number,
   ): Promise<void> {
-    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale);
+    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale, updateId);
     if (!sender) {
       return;
     }
@@ -658,6 +704,7 @@ export class TelegramService {
     telegramId: string | null,
     text: string,
     fallbackLocale: string,
+    updateId?: number,
   ): Promise<void> {
     const parsed = parseExpenseText(text);
     if (!parsed) {
@@ -669,7 +716,7 @@ export class TelegramService {
       );
       return;
     }
-    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale);
+    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale, updateId);
     if (!sender) {
       return;
     }
@@ -978,24 +1025,13 @@ export class TelegramService {
     telegramId: string | null,
     document: TelegramDocumentPayload,
     fallbackLocale: string,
+    updateId?: number,
   ): Promise<void> {
-    if (!telegramId) {
-      await this.sendMessage(
-        chatId,
-        renderTelegramMessage(fallbackLocale, 'document_telegram_id_unknown'),
-      );
+    const sender = await this.resolveSender(chatId, telegramId, fallbackLocale, updateId);
+    if (!sender) {
       return;
     }
-
-    const user = await this.findUserByTelegram(telegramId, chatId);
-    const workspaceId = user ? await this.resolveWorkspaceId(user) : null;
-    if (!(user && workspaceId)) {
-      await this.sendMessage(
-        chatId,
-        renderTelegramMessage(fallbackLocale, 'document_user_not_connected', { telegramId }),
-      );
-      return;
-    }
+    const { user, workspaceId } = sender;
 
     const locale = user.locale || 'en';
     const fileName = this.sanitizeFileName(

@@ -60,7 +60,8 @@ describe('workspace profile', () => {
   });
 
   it('still respects permission and experimental mode', () => {
-    const ledger = buildNavItems(nav).find(item => item.path === '/ledger')!;
+    const ledger = buildNavItems(nav).find(item => item.path === '/ledger');
+    if (!ledger) throw new Error('the ledger is missing from the menu');
     expect(
       isNavItemVisible(ledger, { hasPermission: allowAll, experimentalMode: false, profile: 'business' }),
     ).toBe(false);

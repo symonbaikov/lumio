@@ -3,6 +3,7 @@
 import apiClient from '@/app/lib/api';
 import type { DeviceLocation } from '@/app/lib/device-location';
 import { enqueue, indexedDbStore, isOfflineStoreAvailable } from '@/app/lib/offline/offline-queue';
+import { enqueuePlaceFollowups, needsPlaceFollowup } from '@/app/lib/receipt-place-followup';
 
 export const RECEIPT_SCAN_UPLOAD_BATCH_SIZE = 5;
 
@@ -201,8 +202,15 @@ export const uploadScanDrawerFiles = async ({
   }
 
   const workspaceId = readOpenWorkspaceId();
+  const capturedAt = Date.now();
   // Bounded by getDeviceLocation's timeout and usually settled by now.
   const deviceLocation = payload.deviceLocationRequest ? await payload.deviceLocationRequest : null;
+  // A request exists only for a camera shot the user agreed to tag. Without a
+  // good fix the shop is asked about once GPS comes back.
+  const askForPlace =
+    Boolean(payload.deviceLocationRequest) &&
+    workspaceId !== null &&
+    needsPlaceFollowup(deviceLocation);
   await uploadReceiptScanFiles({
     files: payload.files,
     deviceLocation,
@@ -210,6 +218,13 @@ export const uploadScanDrawerFiles = async ({
     labels,
     onUploadSuccess,
     refreshAfterCreate,
-    onBatchCreated,
+    onBatchCreated: (fileOffset, statementIds) => {
+      if (askForPlace && workspaceId) {
+        enqueuePlaceFollowups(
+          statementIds.map(statementId => ({ statementId, workspaceId, capturedAt })),
+        );
+      }
+      onBatchCreated?.(fileOffset, statementIds);
+    },
   });
 };

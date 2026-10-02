@@ -40,6 +40,8 @@ export enum ReceiptLocationSource {
   MANUAL = 'manual',
   /** Reserved for the tax-authority QR lookup; nothing writes it yet. */
   FISCAL_QR = 'fiscal_qr',
+  /** A shop the user picked from the places near them; details in metadata.place. */
+  PLACE = 'place',
 }
 
 @Entity('receipts')
@@ -142,6 +144,13 @@ export class Receipt {
       accuracyM?: number;
       source: 'exif' | 'device';
       capturedAt: string;
+    };
+    /** The OpenStreetMap place behind a PLACE location. */
+    place?: {
+      name: string;
+      category: string | null;
+      osmType: string;
+      osmId: string;
     };
   };
 

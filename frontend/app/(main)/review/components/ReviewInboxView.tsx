@@ -13,7 +13,10 @@ import Typography from '@mui/material/Typography';
 import Link from 'next/link';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { formatAmount, formatDate } from '@/app/components/transactions/helpers/transactionFormatters';
+import {
+  formatAmount,
+  formatDate,
+} from '@/app/components/transactions/helpers/transactionFormatters';
 import { Alert } from '@/app/components/ui/alert';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { Select } from '@/app/components/ui/select';
@@ -168,7 +171,12 @@ export function ReviewInboxView({ state }: Props) {
     if (item.kind === 'transaction') {
       body = renderTransaction(item);
       actions = (
-        <Button size="small" variant="outlined" disabled={busy} onClick={() => approveWithCategory([item.id])}>
+        <Button
+          size="small"
+          variant="outlined"
+          disabled={busy}
+          onClick={() => approveWithCategory([item.id])}
+        >
           {categoryId ? t.approveWithCategory.value : t.approveAsIs.value}
         </Button>
       );
@@ -189,10 +197,19 @@ export function ReviewInboxView({ state }: Props) {
       );
       actions = (
         <>
-          <Button size="small" variant="outlined" disabled={busy} onClick={() => void state.resolveDuplicate(item.id, 'keep')}>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={busy}
+            onClick={() => void state.resolveDuplicate(item.id, 'keep')}
+          >
             {t.keep.value}
           </Button>
-          <Button size="small" disabled={busy} onClick={() => void state.resolveDuplicate(item.id, 'confirm')}>
+          <Button
+            size="small"
+            disabled={busy}
+            onClick={() => void state.resolveDuplicate(item.id, 'confirm')}
+          >
             {t.confirmDuplicate.value}
           </Button>
         </>
@@ -211,10 +228,19 @@ export function ReviewInboxView({ state }: Props) {
       );
       actions = (
         <>
-          <Button size="small" variant="outlined" component={Link} href={`/storage/receipts/${item.id}`}>
+          <Button
+            size="small"
+            variant="outlined"
+            component={Link}
+            href={`/storage/receipts/${item.id}`}
+          >
             {t.openReceipt.value}
           </Button>
-          <Button size="small" disabled={busy || item.amount === null} onClick={() => void state.approveReceipt(item.id)}>
+          <Button
+            size="small"
+            disabled={busy || item.amount === null}
+            onClick={() => void state.approveReceipt(item.id)}
+          >
             {t.approveReceipt.value}
           </Button>
         </>
@@ -236,10 +262,19 @@ export function ReviewInboxView({ state }: Props) {
       );
       actions = (
         <>
-          <Button size="small" variant="outlined" disabled={busy} onClick={() => void state.decideSubscription(item.id, 'dismiss')}>
+          <Button
+            size="small"
+            variant="outlined"
+            disabled={busy}
+            onClick={() => void state.decideSubscription(item.id, 'dismiss')}
+          >
             {t.dismissSubscription.value}
           </Button>
-          <Button size="small" disabled={busy} onClick={() => void state.decideSubscription(item.id, 'confirm')}>
+          <Button
+            size="small"
+            disabled={busy}
+            onClick={() => void state.decideSubscription(item.id, 'confirm')}
+          >
             {t.confirmSubscription.value}
           </Button>
         </>
@@ -273,7 +308,10 @@ export function ReviewInboxView({ state }: Props) {
           inputProps={{ 'aria-label': item.id }}
         />
         <Box sx={{ flex: 1, minWidth: 0 }}>{body}</Box>
-        <Typography variant="body2" sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+        <Typography
+          variant="body2"
+          sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+        >
           {amount}
         </Typography>
         {!isMobile && (
@@ -332,12 +370,22 @@ export function ReviewInboxView({ state }: Props) {
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
         {kind !== 'subscription' && (
           <>
-            <CustomDatePicker value={state.from} onChange={state.setFrom} label={t.dateFrom.value} />
+            <CustomDatePicker
+              value={state.from}
+              onChange={state.setFrom}
+              label={t.dateFrom.value}
+            />
             <CustomDatePicker value={state.to} onChange={state.setTo} label={t.dateTo.value} />
           </>
         )}
         <FormControlLabel
-          control={<Switch size="small" checked={grouped} onChange={event => setGrouped(event.target.checked)} />}
+          control={
+            <Switch
+              size="small"
+              checked={grouped}
+              onChange={event => setGrouped(event.target.checked)}
+            />
+          }
           label={t.groupByPayee.value}
         />
         {!isMobile && (
@@ -375,7 +423,12 @@ export function ReviewInboxView({ state }: Props) {
             {fill(t.selected.value, { count: selected.size })}
           </Typography>
           <Box ref={categorySelectRef} sx={{ minWidth: 220 }}>
-            <Select id="review-category" value={categoryId} onChange={setCategoryId} options={categoryOptions} />
+            <Select
+              id="review-category"
+              value={categoryId}
+              onChange={setCategoryId}
+              options={categoryOptions}
+            />
           </Box>
           <Button
             size="small"
@@ -413,7 +466,11 @@ export function ReviewInboxView({ state }: Props) {
                 <Typography variant="subtitle2">
                   {group.payee} · {group.items.length}
                 </Typography>
-                <Button size="small" variant="text" onClick={() => selectIds(group.items.map(item => item.id))}>
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => selectIds(group.items.map(item => item.id))}
+                >
                   {t.selectGroup.value}
                 </Button>
               </Box>

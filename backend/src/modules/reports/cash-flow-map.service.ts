@@ -9,6 +9,7 @@ import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import {
   buildCashFlowMap,
   type CashFlowMap,
+  type CashFlowMapOptions,
   type CashFlowRow,
   type CategoryNode,
   previousPeriod,
@@ -24,21 +25,22 @@ export interface CashFlowMapResponse extends CashFlowMap {
   availableCategories: CategoryNode[];
 }
 
-const LABELS: Record<
-  string,
-  { uncategorised: string; otherSources: string; total: string; transfers: string }
-> = {
+const LABELS: Record<string, CashFlowMapOptions['labels']> = {
   en: {
     uncategorised: 'Uncategorised',
     otherSources: 'Other sources',
-    total: 'Income',
+    total: 'Money flow',
     transfers: 'Transfers & investments',
+    fromBalance: 'From your balance',
+    leftOver: 'Left over',
   },
   ru: {
     uncategorised: 'Без категории',
     otherSources: 'Другие источники',
-    total: 'Доход',
+    total: 'Денежный поток',
     transfers: 'Переводы и инвестиции',
+    fromBalance: 'Из остатка',
+    leftOver: 'Осталось',
   },
 };
 

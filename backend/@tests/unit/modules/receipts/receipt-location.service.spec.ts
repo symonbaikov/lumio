@@ -58,6 +58,25 @@ describe('ReceiptLocationService', () => {
       });
     });
 
+    it('never moves a shop the user picked', async () => {
+      geocode.mockResolvedValue({ lat: 43.2383, lng: 76.9453 });
+      const receipt = buildReceipt({
+        parsedData: { merchantAddress: 'г. Алматы, ул. Абая 10' },
+        metadata: { place: { name: 'Carrefour', category: 'shop', osmType: 'node', osmId: '274497719' } },
+        locationLat: 43.7308,
+        locationLng: 7.417,
+        locationSource: ReceiptLocationSource.PLACE,
+      });
+
+      await service.applyAutoLocation(receipt);
+
+      expect(geocode).not.toHaveBeenCalled();
+      expect(receipt).toMatchObject({
+        locationLat: 43.7308,
+        locationSource: ReceiptLocationSource.PLACE,
+      });
+    });
+
     it('prefers the geocoded merchant address over the capture point', async () => {
       geocode.mockResolvedValue({ lat: 43.2383, lng: 76.9453 });
       const receipt = buildReceipt({
@@ -184,6 +203,47 @@ describe('ReceiptLocationService', () => {
       expect(repository.save).toHaveBeenCalledTimes(1);
     });
 
+    it('stores a picked shop as a place with its OSM identity', async () => {
+      repository.findOne.mockResolvedValue(
+        buildReceipt({ metadata: { snippet: 'kept' } }),
+      );
+
+      const saved = await service.setManual('receipt-1', 'ws-1', {
+        latitude: 43.730797,
+        longitude: 7.416968,
+        place: { name: 'Carrefour', category: 'shop', osmType: 'node', osmId: '274497719' },
+      }, 'user-1');
+
+      expect(saved).toMatchObject({
+        locationLat: 43.7308,
+        locationLng: 7.41697,
+        locationSource: ReceiptLocationSource.PLACE,
+        locationAccuracyM: null,
+        metadata: { snippet: 'kept', place: { name: 'Carrefour', category: 'shop', osmType: 'node', osmId: '274497719' } },
+      });
+    });
+
+    it('forgets the shop when the user then drops a pin by hand', async () => {
+      repository.findOne.mockResolvedValue(
+        buildReceipt({
+          metadata: { place: { name: 'Carrefour', category: 'shop', osmType: 'node', osmId: '274497719' } },
+          locationSource: ReceiptLocationSource.PLACE,
+          locationLat: 43.7308,
+          locationLng: 7.417,
+        }),
+      );
+
+      const saved = await service.setManual(
+        'receipt-1',
+        'ws-1',
+        { latitude: 43.8, longitude: 7.5 },
+        'user-1',
+      );
+
+      expect(saved?.locationSource).toBe(ReceiptLocationSource.MANUAL);
+      expect(saved?.metadata).not.toHaveProperty('place');
+    });
+
     it('returns null for a receipt from another workspace', async () => {
       repository.findOne.mockResolvedValue(null);
 
@@ -218,6 +278,22 @@ describe('ReceiptLocationService', () => {
         locationLng: 76.8,
         locationSource: ReceiptLocationSource.DEVICE,
       });
+    });
+
+    it('drops a picked shop together with its details', async () => {
+      repository.findOne.mockResolvedValue(
+        buildReceipt({
+          locationLat: 43.7308,
+          locationLng: 7.417,
+          locationSource: ReceiptLocationSource.PLACE,
+          metadata: { place: { name: 'Carrefour', category: 'shop', osmType: 'node', osmId: '274497719' } },
+        }),
+      );
+
+      const saved = await service.resetToAuto('receipt-1', 'ws-1', 'user-1');
+
+      expect(saved).toMatchObject({ locationLat: null, locationSource: null });
+      expect(saved?.metadata).not.toHaveProperty('place');
     });
 
     it('returns null when the receipt is not in the workspace', async () => {
@@ -257,6 +333,32 @@ describe('ReceiptLocationService', () => {
         },
         meta: { reason: 'location', change: 'manual', place: 'ул. Абая 10' },
       });
+    });
+
+    it('logs a picked shop by its name', async () => {
+      repository.findOne.mockResolvedValue(
+        buildReceipt({ parsedData: { vendor: 'Carrefour Monaco SAM' } }),
+      );
+
+      await service.setManual(
+        'receipt-1',
+        'ws-1',
+        {
+          latitude: 43.7308,
+          longitude: 7.417,
+          place: { name: 'Carrefour', category: 'shop', osmType: 'node', osmId: '274497719' },
+        },
+        'user-1',
+      );
+
+      expect(auditService.createEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          diff: expect.objectContaining({
+            after: expect.objectContaining({ locationSource: ReceiptLocationSource.PLACE }),
+          }),
+          meta: { reason: 'location', change: 'place', place: 'Carrefour' },
+        }),
+      );
     });
 
     it('logs a reset with the previous manual point as before', async () => {

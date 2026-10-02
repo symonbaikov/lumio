@@ -45,7 +45,17 @@ export function ReconcileView(): React.JSX.Element {
     formatMoney(value, currency ?? data?.currency ?? 'KZT', locale);
 
   return (
-    <Box sx={{ px: { xs: 2, md: 4 }, py: 3, display: 'grid', gap: 3 }}>
+    // minmax(0, 1fr): grid items default to min-width: auto, and the ageing
+    // table then pushed every card past the edge of a phone.
+    <Box
+      sx={{
+        px: { xs: 2, md: 4 },
+        py: 3,
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr)',
+        gap: 3,
+      }}
+    >
       <Box>
         <Typography variant="h5" fontWeight={700}>
           {t.title}
@@ -66,6 +76,7 @@ export function ReconcileView(): React.JSX.Element {
         <Box
           sx={{
             display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr)',
             gap: 3,
             opacity: isFetching ? 0.6 : 1,
             transition: 'opacity 150ms',
@@ -87,7 +98,10 @@ export function ReconcileView(): React.JSX.Element {
                     data-testid={`match-${match.itemId}`}
                     sx={{
                       display: 'grid',
-                      gridTemplateColumns: { xs: '1fr', md: '1fr 1fr auto' },
+                      gridTemplateColumns: {
+                        xs: 'minmax(0, 1fr)',
+                        md: 'minmax(0, 1fr) minmax(0, 1fr) auto',
+                      },
                       gap: 1.5,
                       alignItems: 'center',
                       py: 1,
@@ -131,42 +145,51 @@ export function ReconcileView(): React.JSX.Element {
             )}
           </Box>
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' },
+              gap: 3,
+            }}
+          >
             <Box sx={card}>
               <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1.5 }}>
                 {t.ageing}
               </Typography>
-              <Box
-                component="table"
-                sx={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  '& th': { textAlign: 'left', py: 0.5, color: 'text.secondary', fontSize: 12 },
-                  '& td': { py: 0.75, borderTop: 1, borderColor: 'divider', fontSize: 14 },
-                }}
-              >
-                <thead>
-                  <tr>
-                    <th />
-                    {BUCKETS.map(bucket => (
-                      <th key={bucket.key}>{t[bucket.label as 'bucketCurrent']}</th>
-                    ))}
-                    <th>{t.total}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.ageing.map(row => (
-                    <tr key={row.direction}>
-                      <td>{row.direction === 'receivable' ? t.receivables : t.payables}</td>
+              <Box sx={{ overflowX: 'auto' }}>
+                <Box
+                  component="table"
+                  sx={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    '& th, & td': { pr: 1.5, whiteSpace: 'nowrap' },
+                    '& th': { textAlign: 'left', py: 0.5, color: 'text.secondary', fontSize: 12 },
+                    '& td': { py: 0.75, borderTop: 1, borderColor: 'divider', fontSize: 14 },
+                  }}
+                >
+                  <thead>
+                    <tr>
+                      <th />
                       {BUCKETS.map(bucket => (
-                        <td key={bucket.key}>{money(row.buckets[bucket.key])}</td>
+                        <th key={bucket.key}>{t[bucket.label as 'bucketCurrent']}</th>
                       ))}
-                      <td>
-                        <strong>{money(row.total)}</strong>
-                      </td>
+                      <th>{t.total}</th>
                     </tr>
-                  ))}
-                </tbody>
+                  </thead>
+                  <tbody>
+                    {data.ageing.map(row => (
+                      <tr key={row.direction}>
+                        <td>{row.direction === 'receivable' ? t.receivables : t.payables}</td>
+                        {BUCKETS.map(bucket => (
+                          <td key={bucket.key}>{money(row.buckets[bucket.key])}</td>
+                        ))}
+                        <td>
+                          <strong>{money(row.total)}</strong>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Box>
               </Box>
             </Box>
 

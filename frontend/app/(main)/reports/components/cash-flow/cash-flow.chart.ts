@@ -11,10 +11,15 @@ export function buildCashFlowSankey(
   const isDark = resolvedTheme === 'dark';
   const color = isDark ? tokens.dark.color : tokens.color;
   const byId = new Map(data.sankey.nodes.map(node => [node.id, node]));
+  // Labels sit right of their node by default; the last column has no room there.
+  const hasOutflow = new Set(data.sankey.links.map(link => link.source));
   const nodeColor = (kind: string, name: string): string => {
     switch (kind) {
       case 'source':
+      case 'saved':
         return color.success;
+      case 'balance':
+        return color.warning;
       case 'total':
         return color.primary;
       case 'transfers':
@@ -54,6 +59,7 @@ export function buildCashFlowSankey(
         data: data.sankey.nodes.map(node => ({
           name: node.id,
           itemStyle: { color: nodeColor(node.kind, node.name) },
+          ...(hasOutflow.has(node.id) ? {} : { label: { position: 'left' } }),
         })),
         links: data.sankey.links,
       },

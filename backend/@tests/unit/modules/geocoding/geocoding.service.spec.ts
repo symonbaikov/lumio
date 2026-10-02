@@ -162,4 +162,118 @@ describe('GeocodingService', () => {
       lng: 76.9453,
     });
   });
+
+  describe('searchNearby', () => {
+    const near = { lat: 43.73081, lng: 7.41697, radiusM: 230 };
+    const carrefour = {
+      lat: '43.7307976',
+      lon: '7.4169685',
+      name: 'Carrefour',
+      category: 'shop',
+      type: 'supermarket',
+      osm_type: 'node',
+      osm_id: 274497719,
+      address: { road: 'Avenue Albert II', house_number: '4', town: 'Monaco' },
+    };
+
+    it('does nothing without a geocoder or without anything to look for', async () => {
+      await expect(create({}).service.searchNearby({ ...near, name: 'carrefour' })).resolves.toEqual(
+        [],
+      );
+      await expect(create().service.searchNearby(near)).resolves.toEqual([]);
+      await expect(
+        create().service.searchNearby({ ...near, lat: 91, placeType: 'cafe' }),
+      ).resolves.toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('searches a bounded box around the snapped point by kind of place', async () => {
+      fetchMock.mockResolvedValue(jsonResponse([carrefour]));
+      const { service } = create();
+
+      await expect(service.searchNearby({ ...near, placeType: 'supermarket' })).resolves.toEqual([
+        {
+          lat: 43.7307976,
+          lng: 7.4169685,
+          name: 'Carrefour',
+          category: 'shop',
+          type: 'supermarket',
+          address: 'Avenue Albert II 4',
+          locality: 'Monaco',
+          osmType: 'node',
+          osmId: '274497719',
+        },
+      ]);
+
+      const params = new URL(fetchMock.mock.calls[0][0] as string).searchParams;
+      expect(params.get('amenity')).toBe('supermarket');
+      expect(params.get('q')).toBeNull();
+      expect(params.get('bounded')).toBe('1');
+      expect(params.get('addressdetails')).toBe('1');
+      expect(params.get('format')).toBe('jsonv2');
+      const [west, north, east, south] = (params.get('viewbox') ?? '').split(',').map(Number);
+      // Centre snapped to 43.731 / 7.417, 230 m each way.
+      expect((north + south) / 2).toBeCloseTo(43.731, 5);
+      expect((west + east) / 2).toBeCloseTo(7.417, 5);
+      expect(Math.abs((north - south) * 111_320 - 460)).toBeLessThan(2);
+    });
+
+    it('searches by name in lower case', async () => {
+      fetchMock.mockResolvedValue(jsonResponse([]));
+      const { service } = create();
+
+      await service.searchNearby({ ...near, name: '  ООО  Carrefour ' });
+
+      const params = new URL(fetchMock.mock.calls[0][0] as string).searchParams;
+      expect(params.get('q')).toBe('ооо carrefour');
+      expect(params.get('amenity')).toBeNull();
+    });
+
+    it('drops unnamed and malformed places', async () => {
+      fetchMock.mockResolvedValue(
+        jsonResponse([
+          { ...carrefour, name: '' },
+          { ...carrefour, name: undefined },
+          { ...carrefour, lat: 'x' },
+          { ...carrefour, osm_type: undefined },
+          { ...carrefour, address: undefined, osm_id: 7 },
+        ]),
+      );
+      const { service } = create();
+
+      const places = await service.searchNearby({ ...near, placeType: 'supermarket' });
+
+      expect(places).toHaveLength(1);
+      expect(places[0]).toMatchObject({ osmId: '7', address: null, locality: null });
+    });
+
+    it('caches results under a hashed key and serves nearby fixes from it', async () => {
+      fetchMock.mockResolvedValue(jsonResponse([carrefour]));
+      const { service, cache } = create();
+
+      await service.searchNearby({ ...near, placeType: 'supermarket' });
+      await service.searchNearby({ ...near, lat: 43.73099, placeType: 'supermarket' });
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [key, , ttl] = cache.set.mock.calls[0];
+      expect(key).toMatch(/^nearby:v1:[0-9a-f]{64}$/);
+      expect(ttl).toBe(7 * DAY_MS);
+    });
+
+    it('returns nothing on failure, caches nothing and logs no coordinates', async () => {
+      fetchMock
+        .mockResolvedValueOnce(jsonResponse({ error: 'busy' }, 503))
+        .mockRejectedValueOnce(Object.assign(new Error('aborted'), { name: 'TimeoutError' }));
+      const { service, cache } = create();
+
+      await expect(service.searchNearby({ ...near, placeType: 'cafe' })).resolves.toEqual([]);
+      await expect(service.searchNearby({ ...near, placeType: 'cafe' })).resolves.toEqual([]);
+
+      expect(cache.set).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith('Geocoding request failed: http_503');
+      expect(warnSpy).toHaveBeenCalledWith('Geocoding request failed: timeout');
+      expect(JSON.stringify(warnSpy.mock.calls)).not.toMatch(/43\.7|7\.41/);
+    });
+  });
 });
+

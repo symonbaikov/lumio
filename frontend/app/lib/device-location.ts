@@ -97,3 +97,57 @@ export const getDeviceLocation = (
     }
   });
 };
+
+/**
+ * Reports fixes at least as precise as `maxAccuracyM` until stopped. Never
+ * prompts by itself in practice: callers only start it once the user has
+ * granted location for receipts. Errors (no fix yet, GPS off) are ignored,
+ * the watch simply keeps waiting.
+ */
+export const watchDeviceLocation = (
+  onFix: (location: DeviceLocation) => void,
+  maxAccuracyM: number,
+): (() => void) => {
+  if (!isDeviceLocationSupported()) {
+    return () => undefined;
+  }
+
+  let watchId: number | null = null;
+  try {
+    watchId = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        if (coords.accuracy <= maxAccuracyM) {
+          onFix({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy,
+          });
+        }
+      },
+      () => undefined,
+      { enableHighAccuracy: true, maximumAge: 10_000 },
+    );
+  } catch {
+    watchId = null;
+  }
+
+  return () => {
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+  };
+};
+
+/**
+ * Whether the browser says location is blocked for this site. Unknown (no
+ * Permissions API, as on older Safari) counts as not blocked.
+ */
+export const isDeviceLocationBlocked = async (): Promise<boolean> => {
+  try {
+    const status = await navigator.permissions?.query({ name: 'geolocation' });
+    return status?.state === 'denied';
+  } catch {
+    return false;
+  }
+};

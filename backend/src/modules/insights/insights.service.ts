@@ -14,8 +14,8 @@ import {
   renderInsight,
 } from './insight-translations';
 import { QUOTE_TEXTS } from './quotes/texts';
-import { isStoicKey } from './stoic-texts';
 import { type PhrasedText, StoicPhrasingService } from './stoic-phrasing.service';
+import { isStoicKey } from './stoic-texts';
 
 type ListInsightsParams = {
   userId: string;
