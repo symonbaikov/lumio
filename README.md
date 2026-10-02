@@ -601,7 +601,7 @@ GEOCODER_URL=http://nominatim:8080
 ```
 
 - `maps` builds vector tiles from the extract with Planetiler and renders four styles — OSM Bright, Positron, Dark Matter and Basic — through tileserver-gl. The backend proxies the tiles, so the tile server never needs a public port. Users switch styles on the map in one click; the choice is saved to their profile.
-- `geocoder` runs Nominatim on the same extract. The first import takes from minutes for a small country to hours for a large one, and needs several GB of disk.
+- `geocoder` runs Nominatim on the same extract. The first import takes from minutes for a small country to hours for a large one, and needs several GB of disk. Each start also imports `infra/nominatim/special-phrases.csv`, which lets Lumio suggest shops near the phone when a receipt was photographed without GPS.
 - Without these variables the feature stays off: receipts still get a photo or device point, and the map says tiles are not configured.
 </details>
 

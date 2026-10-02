@@ -159,8 +159,11 @@ services:
       PBF_URL: ${MAP_PBF_URL:-https://download.geofabrik.de/asia/kazakhstan-latest.osm.pbf}
       NOMINATIM_PASSWORD: ${NOMINATIM_PASSWORD:-nominatim}
     shm_size: 1gb
+    # Imports the special phrases that let the backend search by kind of place.
+    command: ["/lumio/start.sh"]
     volumes:
       - nominatim_data:/var/lib/postgresql/16/main
+      - ./infra/nominatim:/lumio:ro
     networks:
       finflow-network:
         aliases: [nominatim]
