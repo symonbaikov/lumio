@@ -32,15 +32,17 @@ that document has the evidence behind every line here. Dates are intentions, not
 
 ## Phase 2 — planning ahead
 
-- [ ] Cash-flow forecast for 30/90/365 days from subscriptions, payables, invoices, goals and category
-      averages; "safe to spend"; scenarios; runway for a business.
-- [ ] Investments v1: investment and retirement accounts with manual holdings and prices; contributions
-      count as transfers; net worth with more date ranges and an all-time high.
-- [ ] Reports: cash-flow Sankey, treemap, period comparison, "exclude transfers and investments".
-- [ ] MCP and AI as a trusted agent: scoped API keys, every AI write audited and undoable, a public
-      security posture page.
-- [ ] Small-business pack: bank reconciliation screen, AR/AP ageing, dunning reminders, duplicate
-      payables, a business-subscriptions report.
+- [x] Cash-flow forecast for 30/90/365 days from subscriptions, payables, invoices, goals, detected
+      paydays and the everyday average; "safe to spend"; scenarios; runway for a business (2026-10-01).
+- [x] Investments v1: investment and retirement accounts with manual holdings and ticker prices;
+      contributions count as transfers; net worth with 1M–5Y/All ranges, an all-time high and an
+      asset-class split (2026-10-01).
+- [x] Reports: cash-flow Sankey, treemap, period comparison, "include transfers and investments"
+      switch, category All/None filters, CSV export (2026-10-01).
+- [x] MCP and AI as a trusted agent: scoped API keys, every AI/MCP write audited as its actor and
+      undoable, MCP setup and security posture pages on the website (2026-10-01).
+- [x] Small-business pack: bank reconciliation screen, AR/AP ageing, dunning reminders, duplicate
+      payables, a business-subscriptions report with owners (2026-10-01).
 
 ## Phase 3 — by decision
 

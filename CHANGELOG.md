@@ -9,6 +9,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Small-business pack (2026-10-01)
+
+- **Bank reconciliation** (`/statements/reconcile`, linked from Payables): open bills and
+  receivables next to the bank rows that look like their payment (same amount and currency, the
+  vendor in the row's text, a date near the due date), one row per bill, confidence shown. *Confirm*
+  links the row and settles the bill through the existing mark-as-paid path.
+- **AR/AP ageing**: open amounts per direction in current / 1–30 / 31–60 / 61–90 / 90+ days past
+  due, with the largest counterparties.
+- **Duplicate bills**: open bills with the same counterparty, amount and currency due within a week.
+- **Dunning reminders**: *Send reminder* on a sent or overdue invoice emails the client (EN/RU) and
+  counts it on the invoice; needs SMTP and a client email, and says so otherwise.
+- **Owners report** for business subscriptions: every active subscription with owner, monthly cost in
+  the workspace currency, next charge and last review, totals per owner, CSV download
+  (`GET /subscriptions/business-report?format=csv`).
+
+#### MCP and AI as a trusted agent (2026-10-01)
+
+- **Scoped API keys**: a key names what it may do (the same strings as the permissions the routes
+  check), with *Read only* / *Read and write* / hand-picked presets in the MCP panel. A key is never
+  wider than its owner's role; managing keys, people, workspace settings or integrations is never
+  granted to a key. `GET /api-keys/scopes`; new keys require `scopes`. Keys made before scopes keep
+  their owner's full reach (`scopes: null`).
+- **Every agent write is on the record and undoable**: requests authenticated with an API key are
+  audited as the actor *Integration* with the key's name and prefix; the in-app assistant's writes
+  carry `X-Lumio-Actor: ai-chat` and are audited as the new actor *AI assistant*. Both record whom
+  they acted for and are undoable wherever rollback knows the entity. The activity log filters by
+  *AI assistant*.
+- The assistant is told that every number in a reply comes from a tool result, never from an estimate.
+- Docs: *MCP and API keys* (Claude Code / Claude Desktop setup, scopes) and *Security posture*
+  (threat model, what is encrypted, what leaves the server and when, how to switch AI off entirely).
+
+#### Reports: cash-flow map (2026-10-01)
+
+- **Cash flow** tab on the reports page: a Sankey of income sources → income → categories →
+  subcategories, a treemap of spending by size (click a category for its subcategories), and a
+  by-category table with the period before and the change.
+- Period presets or custom dates, a **"compare with the period before"** switch, an **"include
+  transfers and investments"** switch (off by default: they are not spending), category chips
+  with All / None, and a CSV export of the table.
+- `GET /reports/cash-flow-map?dateFrom&dateTo&compare&includeTransfers&categories&format=csv`.
+
+#### Investments v1 (2026-10-01)
+
+- **Investment and retirement accounts** under the balance sheet's Investments section, with
+  holdings entered by hand (ticker, class, quantity, price). The account's value is written as
+  today's balance snapshot on every change, so the balance sheet and net worth read the same number.
+- **Prices by ticker** from Stooq (free, no key; `AAPL` → `AAPL.US`, `VWCE.DE`), crypto from
+  CoinGecko; cached fifteen minutes, egress-guarded. A price that cannot be fetched is simply kept.
+- **Contributions count as transfers**: "Mark as a contribution" on an expense in the transaction
+  drawer turns it into a one-leg transfer of kind `investment`. It leaves every spending aggregate;
+  the account shows contributed, value and gain.
+- **Net worth**: ranges 1M / 3M / 6M / 1Y / 3Y / 5Y / All, the all-time high with its date, and an
+  allocation by asset class (stocks, ETFs, funds, bonds, crypto, cash, real estate, other).
+- Endpoints under `/investments` (accounts, holdings, `refresh-prices`, `contributions`).
+
+#### Cash-flow forecast (2026-10-01)
+
+- **`/forecast`**: the balance 30, 90 or 365 days ahead, day by day, from unpaid bills, active
+  subscriptions, sent invoices, dated goals (what each needs per month), paydays detected from
+  history and the everyday spending average of the last three months. The low point and its day,
+  the first day the balance goes negative, the closing balance.
+- **Safe to spend** until the next payday (committed items only, never below zero) for a home
+  workspace; **runway** in months at the current burn for a business one.
+- **Scenarios**: untick any item ("what if I cancel Netflix"), scale income (50–150%) and spending
+  (50–150%). `GET /forecast?days=&exclude=&incomeFactor=&expenseFactor=`.
+- The dashboard's cash runway card now opens the forecast.
+
 #### Workspace profile: Home or Business (2026-10-01)
 
 - A workspace now says what it is for. **Home** hides invoices, the ledger, the tax declaration and

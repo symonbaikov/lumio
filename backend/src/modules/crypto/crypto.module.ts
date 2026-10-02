@@ -29,6 +29,6 @@ import { TronGridClient } from './tron-grid.client';
     BitcoinClient,
     SolanaRpcClient,
   ],
-  exports: [CryptoService],
+  exports: [CryptoService, CryptoPriceService],
 })
 export class CryptoModule {}

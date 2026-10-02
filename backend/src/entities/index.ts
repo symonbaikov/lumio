@@ -40,6 +40,7 @@ export * from './import-session.entity';
 export * from './insight.entity';
 export * from './integration.entity';
 export * from './integration-token.entity';
+export * from './investment-holding.entity';
 export * from './invoice.entity';
 export * from './invoice-counter.entity';
 export * from './invoice-line-item.entity';

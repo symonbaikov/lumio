@@ -30,7 +30,7 @@ describe('ApiKeysService audit events', () => {
         entityId: 'key-1',
         action: AuditAction.CREATE,
         severity: Severity.WARN,
-        meta: { name: 'CI key', prefix: generated.prefix },
+        meta: { name: 'CI key', prefix: generated.prefix, scopes: null },
       }),
     );
     const payload = JSON.stringify(auditService.createEvent.mock.calls);

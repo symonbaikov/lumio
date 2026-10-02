@@ -41,7 +41,9 @@ export interface Transaction {
   // Transfer between the user's own accounts (both legs share the id)
   transferPairId?: string | null;
   transferPairSource?: 'auto' | 'manual' | 'rejected' | null;
-  transferPairKind?: 'transfer' | 'reimbursement' | null;
+  transferPairKind?: 'transfer' | 'reimbursement' | 'investment' | null;
+  // The investment account an expense was moved into (a one-leg transfer of kind `investment`)
+  investmentAccountId?: string | null;
   // Incoming row that pays back an expense (full repayments also become a pair)
   reimbursementOfId?: string | null;
   reimbursementOf?: {

@@ -4,7 +4,7 @@ export type AuditJsonValue = string | number | boolean | null | AuditJsonObject 
 
 export type AuditJsonObject = { [key: string]: AuditJsonValue };
 
-export type ActorType = 'user' | 'system' | 'integration';
+export type ActorType = 'user' | 'system' | 'integration' | 'ai';
 /** Mirrors the backend `EntityType` enum; the audit filter offers them in this order. */
 export const ENTITY_TYPES = [
   'transaction',

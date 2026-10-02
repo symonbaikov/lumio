@@ -90,6 +90,12 @@ export const queryKeys = {
     ['subscriptions', o.workspaceId, 'charge-calendar', o.months] as const,
   auditEvents: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['audit-events', o.workspaceId, o.params] as const,
+  forecast: (o: { workspaceId: string | null; days: number; scenario: string }) =>
+    ['forecast', o.workspaceId, o.days, o.scenario] as const,
+  investments: (workspaceId: string | null) => ['investments', workspaceId] as const,
+  reconciliation: (workspaceId: string | null) => ['reconciliation', workspaceId] as const,
+  cashFlowMap: (o: { workspaceId: string | null; params: string }) =>
+    ['reports', o.workspaceId, 'cash-flow-map', o.params] as const,
   netWorth: (o: { workspaceId: string | null; range: string }) =>
     ['net-worth', o.workspaceId, o.range] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,

@@ -36,6 +36,37 @@ describe('PermissionsGuard', () => {
     await testingModule.close();
   });
 
+  it('refuses a scoped API key outside its scopes, even for an admin, and allows inside them', () => {
+    jest
+      .spyOn(reflector, 'getAllAndOverride')
+      .mockReturnValue([PermissionEnum.STATEMENT_UPLOAD] as Permission[]);
+
+    const readOnly = createMockExecutionContext({
+      user: { id: 'admin', role: UserRole.ADMIN, permissions: null },
+      workspaceRole: WorkspaceRole.OWNER,
+      workspaceMemberPermissions: null,
+      apiKey: { scopes: [PermissionEnum.TRANSACTION_VIEW] },
+    });
+    expect(() => guard.canActivate(readOnly)).toThrow(/API key scope missing/);
+
+    const writer = createMockExecutionContext({
+      user: { id: 'admin', role: UserRole.ADMIN, permissions: null },
+      workspaceRole: WorkspaceRole.OWNER,
+      workspaceMemberPermissions: null,
+      apiKey: { scopes: [PermissionEnum.STATEMENT_UPLOAD] },
+    });
+    expect(guard.canActivate(writer)).toBe(true);
+
+    // A key made before scopes existed keeps its owner's reach.
+    const legacy = createMockExecutionContext({
+      user: { id: 'admin', role: UserRole.ADMIN, permissions: null },
+      workspaceRole: WorkspaceRole.OWNER,
+      workspaceMemberPermissions: null,
+      apiKey: { scopes: null },
+    });
+    expect(guard.canActivate(legacy)).toBe(true);
+  });
+
   it('allows workspace owner to upload statements', () => {
     const context = createMockExecutionContext({
       user: { id: 'user-1', role: UserRole.USER, permissions: null },

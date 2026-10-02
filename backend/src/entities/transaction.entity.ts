@@ -58,6 +58,8 @@ export enum TransferPairKind {
   TRANSFER = 'transfer',
   /** Money paid out and paid back in full (a work expense, a split bill). */
   REIMBURSEMENT = 'reimbursement',
+  /** Money moved into an investment or retirement account: a one-leg transfer. */
+  INVESTMENT = 'investment',
 }
 
 /** How the two legs of a transfer came to be linked. */
@@ -393,6 +395,15 @@ export class Transaction {
 
   @Column({ name: 'reimbursement_of_id', type: 'uuid', nullable: true })
   reimbursementOfId: string | null;
+
+  /**
+   * The investment account this expense bought into. Set together with a
+   * self-referencing `transferPairId` of kind `investment`, so the row leaves
+   * every spending aggregate the way a transfer does; the money shows up again
+   * as the account's holdings.
+   */
+  @Column({ name: 'investment_account_id', type: 'uuid', nullable: true })
+  investmentAccountId: string | null;
 
   @Column({ name: 'fingerprint', length: 64, nullable: true })
   fingerprint: string | null;
