@@ -3,7 +3,8 @@ import React from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationDropdown } from './NotificationDropdown';
+import { closeAppPanel, openAppPanel } from '@/app/components/panels/app-panels-store';
+import { NotificationsPanel } from './NotificationsPanel';
 
 const routerMocks = vi.hoisted(() => ({
   push: vi.fn(),
@@ -14,7 +15,7 @@ const notificationMocks = vi.hoisted(() => ({
   refetch: vi.fn(),
 }));
 
-const menuMocks = vi.hoisted(() => ({
+const drawerMocks = vi.hoisted(() => ({
   lastOpen: false,
 }));
 
@@ -47,19 +48,30 @@ vi.mock('@/app/i18n', () => ({
   useLocale: () => ({ locale: 'en' }),
 }));
 
-vi.mock('@mui/material', async () => {
-  const actual = await vi.importActual<typeof import('@mui/material')>('@mui/material');
-  return {
-    ...actual,
-    Menu: ({ open, children }: { open: boolean; children: React.ReactNode }) => {
-      menuMocks.lastOpen = open;
-      if (!open) {
-        return null;
-      }
-      return <div data-testid="notification-menu">{children}</div>;
-    },
-  };
-});
+vi.mock('@/app/components/ui/drawer-shell', () => ({
+  DrawerShell: ({
+    isOpen,
+    title,
+    children,
+  }: {
+    isOpen: boolean;
+    title: unknown;
+    children: React.ReactNode;
+  }) => {
+    drawerMocks.lastOpen = isOpen;
+    if (!isOpen) {
+      return null;
+    }
+    // The dictionary mock hands back `{ value }` nodes, which only intlayer renders.
+    const heading = (title as { value?: string } | null)?.value ?? '';
+    return (
+      <div data-testid="notification-panel">
+        <div>{heading}</div>
+        {children}
+      </div>
+    );
+  },
+}));
 
 vi.mock('@/app/hooks/useNotifications', () => ({
   useNotifications: () => ({
@@ -97,7 +109,7 @@ vi.mock('@/app/hooks/useNotifications', () => ({
   }),
 }));
 
-describe('NotificationDropdown', () => {
+describe('NotificationsPanel', () => {
   let container: HTMLDivElement;
 
   beforeEach(() => {
@@ -111,26 +123,25 @@ describe('NotificationDropdown', () => {
     routerMocks.push.mockReset();
     notificationMocks.markAsRead.mockReset();
     notificationMocks.refetch.mockReset();
-    menuMocks.lastOpen = false;
+    drawerMocks.lastOpen = false;
+    closeAppPanel();
   });
 
-  it('opens notifications in MUI menu on bell click', async () => {
+  it('opens the notifications panel when the account menu asks for it', async () => {
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(<NotificationDropdown />);
+      root.render(<NotificationsPanel />);
     });
 
-    const trigger = container.querySelector('button[aria-label="Notifications"]');
-    expect(trigger).toBeTruthy();
-    expect(menuMocks.lastOpen).toBe(false);
+    expect(drawerMocks.lastOpen).toBe(false);
 
     await act(async () => {
-      trigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      openAppPanel('notifications');
     });
 
-    expect(menuMocks.lastOpen).toBe(true);
-    expect(document.querySelector('[data-testid="notification-menu"]')).toBeTruthy();
+    expect(drawerMocks.lastOpen).toBe(true);
+    expect(document.querySelector('[data-testid="notification-panel"]')).toBeTruthy();
     expect(notificationMocks.refetch).toHaveBeenCalled();
   });
 
@@ -138,14 +149,11 @@ describe('NotificationDropdown', () => {
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(<NotificationDropdown />);
+      root.render(<NotificationsPanel />);
     });
 
-    const trigger = container.querySelector('button[aria-label="Notifications"]');
-    expect(trigger).toBeTruthy();
-
     await act(async () => {
-      trigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      openAppPanel('notifications');
     });
 
     const receiptNotification = Array.from(document.querySelectorAll('button')).find(button =>
@@ -165,14 +173,11 @@ describe('NotificationDropdown', () => {
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(<NotificationDropdown />);
+      root.render(<NotificationsPanel />);
     });
 
-    const trigger = container.querySelector('button[aria-label="Notifications"]');
-    expect(trigger).toBeTruthy();
-
     await act(async () => {
-      trigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      openAppPanel('notifications');
     });
 
     const transactionNotification = Array.from(document.querySelectorAll('button')).find(button =>
@@ -188,21 +193,18 @@ describe('NotificationDropdown', () => {
     expect(routerMocks.push).toHaveBeenCalledWith('/statements/statement-1/edit');
   });
 
-  it('uses theme-aware menu surfaces instead of hardcoded white backgrounds', async () => {
+  it('renders localized copy on theme-aware surfaces, not hardcoded white', async () => {
     const root = createRoot(container);
 
     await act(async () => {
-      root.render(<NotificationDropdown />);
+      root.render(<NotificationsPanel />);
     });
-
-    const trigger = container.querySelector('button[aria-label="Notifications"]');
-    expect(trigger).toBeTruthy();
 
     await act(async () => {
-      trigger?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      openAppPanel('notifications');
     });
 
-    const title = document.querySelector('[data-testid="notification-menu"]')?.textContent;
+    const title = document.querySelector('[data-testid="notification-panel"]')?.textContent;
     expect(title).toContain('Notifications');
     expect(title).toContain('Receipt without category');
     expect(title).toContain('Transactions without category');
@@ -215,7 +217,7 @@ describe('NotificationDropdown', () => {
     );
 
     expect(whiteSurface).toBeUndefined();
-    expect(document.querySelector('[data-testid="notification-menu"]')?.textContent).toContain(
+    expect(document.querySelector('[data-testid="notification-panel"]')?.textContent).toContain(
       'Notification settings',
     );
   });

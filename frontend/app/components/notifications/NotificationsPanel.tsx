@@ -1,22 +1,16 @@
 'use client';
-import { Divider, Menu } from '@mui/material';
+import Divider from '@mui/material/Divider';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Bell, CircleAlert, Info } from '@/app/components/icons';
+import { useEffect } from 'react';
+import { AlertTriangle, CircleAlert, Info } from '@/app/components/icons';
 import { notificationHref } from '@/app/components/notifications/notification-href';
+import { closeAppPanel, useAppPanelState } from '@/app/components/panels/app-panels-store';
+import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
-import { Spinner } from '@/app/components/ui/spinner';
 import { useNotifications } from '@/app/hooks/useNotifications';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { formatStoredDate } from '@/app/lib/user-format-store';
-import { tokens } from '@/lib/theme-tokens';
-
-type NotificationDropdownProps = {
-  triggerClassName?: string;
-  iconSize?: number;
-  align?: 'start' | 'end';
-};
 
 function formatRelativeTime(value: string, locale: string, justNowLabel: string): string {
   const date = new Date(value);
@@ -79,18 +73,19 @@ function resolveTranslationValue(
   return typeof value === 'string' ? value : (value?.value ?? fallback);
 }
 
-export function NotificationDropdown({
-  triggerClassName,
-  iconSize = 20,
-  align = 'end',
-}: NotificationDropdownProps) {
+/**
+ * Notifications as the second sidebar everything else in the app uses, opened
+ * from the account menu. A panel rather than a dropdown: the list is long, the
+ * rows are two lines each, and a popover that tall had to escape the sidebar.
+ */
+export function NotificationsPanel() {
   const t = useIntlayer('notificationDropdown');
   const { locale } = useLocale();
   const { notifications, unreadCount, isPending, refetch, markAsRead, markAllAsRead } =
     useNotifications();
   const router = useRouter();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
+  const { panel } = useAppPanelState();
+  const open = panel === 'notifications';
 
   useEffect(() => {
     if (open) {
@@ -98,20 +93,7 @@ export function NotificationDropdown({
     }
   }, [open, refetch]);
 
-  const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const unreadLabel = useMemo(() => {
-    if (unreadCount > 99) {
-      return '99+';
-    }
-    return String(unreadCount);
-  }, [unreadCount]);
+  const handleClose = closeAppPanel;
 
   const receiptUncategorizedTitle = resolveTranslationValue(
     t.notificationTypes?.receiptUncategorized?.title,
@@ -179,50 +161,12 @@ export function NotificationDropdown({
   };
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={handleOpen}
-        className={`lumio-notification-dropdown__trigger${triggerClassName ? ` ${triggerClassName}` : ''}`}
-        title={t.aria.notifications.value}
-        aria-label={t.aria.notifications.value}
-      >
-        <Bell size={iconSize} />
-        {isPending ? (
-          <span className="lumio-notification-dropdown__badge">
-            <Spinner size={12} sx={{ color: 'white' }} />
-          </span>
-        ) : unreadCount > 0 ? (
-          <span className="lumio-notification-dropdown__badge">{unreadLabel}</span>
-        ) : null}
-      </button>
-
-      <Menu
-        anchorEl={anchorEl}
-        open={open}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: align === 'start' ? 'left' : 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: align === 'start' ? 'left' : 'right' }}
-        PaperProps={{
-          sx: {
-            width: 360,
-            mt: 1,
-            p: 0,
-            overflow: 'hidden',
-            borderRadius: tokens.radius.lg,
-            border: '1px solid var(--border-color)',
-            backgroundColor: 'var(--card-bg)',
-            color: 'var(--card-foreground)',
-            boxShadow: '0 12px 32px rgba(15, 23, 42, 0.22)',
-          },
-        }}
-        MenuListProps={{ disablePadding: true }}
-      >
-        <div className="lumio-notification-dropdown__header">
-          <div className="lumio-notification-dropdown__title">{t.title.value}</div>
+    <DrawerShell isOpen={open} onClose={handleClose} position="right" width="md" title={t.title}>
+      <div className="lumio-notification-panel">
+        <div className="lumio-notification-panel__actions">
           <button
             type="button"
-            className="lumio-notification-dropdown__mark-all"
+            className="lumio-notification-panel__mark-all"
             onClick={() => markAllAsRead()}
             disabled={unreadCount === 0}
           >
@@ -230,13 +174,13 @@ export function NotificationDropdown({
           </button>
         </div>
 
-        <div className="lumio-notification-dropdown__list">
+        <div className="lumio-notification-panel__list">
           {isPending && notifications.length === 0 ? (
-            <div className="lumio-notification-dropdown__empty">{t.loading.value}</div>
+            <div className="lumio-notification-panel__empty">{t.loading.value}</div>
           ) : null}
 
           {!isPending && notifications.length === 0 ? (
-            <div className="lumio-notification-dropdown__empty">
+            <div className="lumio-notification-panel__empty">
               <EmptyStateIllustration name="notifications" size="sm" />
               {t.empty.value}
             </div>
@@ -268,23 +212,21 @@ export function NotificationDropdown({
                     router.push(href);
                   }
                 }}
-                className={`lumio-notification-dropdown__item${!notification.isRead ? ' lumio-notification-dropdown__item--unread' : ''}`}
+                className={`lumio-notification-panel__item${!notification.isRead ? ' lumio-notification-panel__item--unread' : ''}`}
               >
-                <div className="lumio-notification-dropdown__item-body">
-                  <div className="lumio-notification-dropdown__item-icon">{severityIcon}</div>
-                  <div className="lumio-notification-dropdown__item-content">
-                    <div className="lumio-notification-dropdown__item-header-row">
-                      <p className="lumio-notification-dropdown__item-title">
-                        {localizedCopy.title}
-                      </p>
+                <div className="lumio-notification-panel__item-body">
+                  <div className="lumio-notification-panel__item-icon">{severityIcon}</div>
+                  <div className="lumio-notification-panel__item-content">
+                    <div className="lumio-notification-panel__item-header-row">
+                      <p className="lumio-notification-panel__item-title">{localizedCopy.title}</p>
                       {!notification.isRead ? (
-                        <span className="lumio-notification-dropdown__unread-dot" />
+                        <span className="lumio-notification-panel__unread-dot" />
                       ) : null}
                     </div>
-                    <p className="lumio-notification-dropdown__item-message">
+                    <p className="lumio-notification-panel__item-message">
                       {localizedCopy.message}
                     </p>
-                    <p className="lumio-notification-dropdown__item-time">
+                    <p className="lumio-notification-panel__item-time">
                       {formatRelativeTime(notification.createdAt, locale, t.justNow.value)}
                     </p>
                   </div>
@@ -295,16 +237,16 @@ export function NotificationDropdown({
         </div>
 
         <Divider />
-        <div className="lumio-notification-dropdown__footer">
+        <div className="lumio-notification-panel__footer">
           <Link
             href="/settings/notifications"
-            className="lumio-notification-dropdown__settings-link"
+            className="lumio-notification-panel__settings-link"
             onClick={() => handleClose()}
           >
             {t.settingsLink.value}
           </Link>
         </div>
-      </Menu>
-    </>
+      </div>
+    </DrawerShell>
   );
 }

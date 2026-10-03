@@ -945,7 +945,7 @@
 
 /* ── Page header ── */
 .lumio-dashboard-header {
-  padding: 24px 32px 0; /* matches DashboardTabContent px:4 = 32px */
+  padding: var(--lumio-page-top, 24px) 32px 0; /* matches DashboardTabContent px:4 = 32px */
   min-width: 0;
   max-width: 100%;
 
@@ -963,49 +963,6 @@
 
     @include dark {
       color: $lumio-color-ink-500-dk;
-    }
-  }
-
-  &__title {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: $lumio-color-ink-900;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-
-    @media (max-width: 640px) {
-      font-size: 20px;
-    }
-
-    @include dark {
-      color: $lumio-color-ink-900-dk;
-    }
-  }
-
-  &__subtitle {
-    margin: 6px 0 0;
-    font-size: 14px;
-    color: $lumio-color-ink-500;
-
-    @media (max-width: 640px) {
-      margin-top: 4px;
-      font-size: 13px;
-    }
-
-    @include dark {
-      color: $lumio-color-ink-500-dk;
-    }
-  }
-
-  &__actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-shrink: 0;
-
-    @media (max-width: 640px) {
-      gap: 8px;
     }
   }
 
@@ -1044,24 +1001,7 @@
     }
   }
 
-  &__row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-
-    /* The heading column may shrink; the action buttons never wrap under it. */
-    > :first-child {
-      min-width: 0;
-    }
-  }
-
   &__tabs {
-    margin-top: 16px;
-
-    @media (max-width: 640px) {
-      margin-top: 8px;
-    }
     border-bottom: 1px solid $lumio-color-border;
 
     @include dark {

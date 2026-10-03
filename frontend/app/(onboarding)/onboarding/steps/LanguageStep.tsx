@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import { FORM_CONTROL_SX } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useIntlayer } from '@/app/i18n';
-import { SUPPORTED_LOCALES } from '@/app/lib/locale';
+import { LOCALE_DISPLAY_ORDER, LOCALE_ENDONYMS } from '@/app/lib/locale';
 import { formatTimeZoneLabel } from '@/app/lib/timezone';
 import { tokens } from '@/lib/theme-tokens';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
@@ -87,12 +87,9 @@ function useLanguageStepData(props: LanguageStepProps): LanguageStepData {
     return match ?? { value: timeZone, label: formatTimeZoneLabel(timeZone, locale) };
   }, [timeZone, timezoneSelectOptions, locale]);
 
-  const languageOptions: Array<{ value: SupportedLocale; label: string }> = SUPPORTED_LOCALES.map(
-    code => ({
-      value: code,
-      label: text(['language', 'localeOptions', code], code),
-    }),
-  );
+  // Each language in itself, never translated; English, Germanic, Romance first.
+  const languageOptions: Array<{ value: SupportedLocale; label: string }> =
+    LOCALE_DISPLAY_ORDER.map(code => ({ value: code, label: LOCALE_ENDONYMS[code] }));
 
   return { text, timezoneSelectOptions, selectedTimeZoneOption, languageOptions };
 }

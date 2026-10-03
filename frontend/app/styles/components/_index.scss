@@ -1,11 +1,12 @@
 // app/styles/components/_index.scss
 @forward 'empty-state';
-@forward 'language-switcher';
-@forward 'notification-dropdown';
+@forward 'notification-panel';
 @forward 'audit-panel';
 @forward 'pdf-preview-modal';
 @forward 'drawer-stack';
 @forward 'navigation';
+@forward 'account-menu';
+@forward 'auth';
 @forward 'dashboard';
 @forward 'dashboard-kit';
 @forward 'charts';
