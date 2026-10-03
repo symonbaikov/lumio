@@ -10,6 +10,7 @@ import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useCurrencyPickerState } from '@/app/hooks/useCurrencyPickerState';
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import type {
   CreatePayableInput,
   Payable,
@@ -41,7 +42,8 @@ interface CreatePayableDrawerProps {
     saving: string;
     cancel: string;
     sourceOptions: Record<PayableSource, string>;
-    statusOptions: Record<PayableStatus, string>;
+    /** `partially_paid` is derived from the payments, so it is never offered here. */
+    statusOptions: Record<Exclude<PayableStatus, 'partially_paid'>, string>;
   };
 }
 
@@ -102,7 +104,7 @@ export function CreatePayableDrawer({
   open,
   payable,
   initialValues,
-  defaultCurrency = 'KZT',
+  defaultCurrency = FALLBACK_CURRENCY,
   saving,
   onClose,
   onSubmit,

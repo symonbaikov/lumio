@@ -12,9 +12,10 @@ interface UnapprovedCashStatCardsProps {
   };
 }
 
+/** No fill, just a hairline: the tiles frame numbers, they are not cards to read. */
 const CARD_STYLE: React.CSSProperties = {
   border: '1px solid var(--border-color)',
-  background: 'var(--card-bg)',
+  background: 'transparent',
   padding: 12,
   borderRadius: tokens.radius.lg,
 };
@@ -26,12 +27,13 @@ const LABEL_STYLE: React.CSSProperties = {
   color: 'var(--muted-foreground)',
 };
 
-const VALUE_STYLE: React.CSSProperties = {
+/** A zero is "nothing to do": muted, so only real counts draw the eye. */
+const valueStyle = (value: number): React.CSSProperties => ({
   marginTop: 4,
   fontSize: 20,
   fontWeight: 600,
-  color: 'var(--foreground)',
-};
+  color: value === 0 ? 'var(--muted-foreground)' : 'var(--foreground)',
+});
 
 export function UnapprovedCashStatCards({
   totalCount,
@@ -42,19 +44,25 @@ export function UnapprovedCashStatCards({
     <div className="lumio-stat-tiles">
       <div style={CARD_STYLE}>
         <p style={LABEL_STYLE}>{labels.total}</p>
-        <p style={VALUE_STYLE}>{totalCount}</p>
+        <p style={valueStyle(totalCount)}>{totalCount}</p>
       </div>
       <div style={CARD_STYLE}>
         <p style={LABEL_STYLE}>{labels.missingCategory}</p>
-        <p style={VALUE_STYLE}>{reasonCounts['missing-category']}</p>
+        <p style={valueStyle(reasonCounts['missing-category'])}>
+          {reasonCounts['missing-category']}
+        </p>
       </div>
       <div style={CARD_STYLE}>
         <p style={LABEL_STYLE}>{labels.duplicates}</p>
-        <p style={VALUE_STYLE}>{reasonCounts['duplicate-detected']}</p>
+        <p style={valueStyle(reasonCounts['duplicate-detected'])}>
+          {reasonCounts['duplicate-detected']}
+        </p>
       </div>
       <div style={CARD_STYLE}>
         <p style={LABEL_STYLE}>{labels.confirmation}</p>
-        <p style={VALUE_STYLE}>{reasonCounts['requires-confirmation']}</p>
+        <p style={valueStyle(reasonCounts['requires-confirmation'])}>
+          {reasonCounts['requires-confirmation']}
+        </p>
       </div>
     </div>
   );

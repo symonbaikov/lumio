@@ -220,7 +220,7 @@ describe('buildFinanceOpsModel', () => {
     );
 
     expect(model.features.find(feature => feature.id === 'anomaly-feed')?.href).toBe(
-      '/statements/top-merchants',
+      '/reports?tab=cash-flow',
     );
   });
 });

@@ -1,8 +1,8 @@
 import Skeleton from '@mui/material/Skeleton';
 /* eslint-disable max-lines */
 import React from 'react';
+import { CheckCircleOutline } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
-import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import { tokens } from '@/lib/theme-tokens';
 import type {
   UnapprovedReasonId,
@@ -130,7 +130,12 @@ export function UnapprovedCashContent({
           textAlign: 'center',
         }}
       >
-        <EmptyStateIllustration name="unapproved-cash" size="md" />
+        {/* A thin status mark, not an illustration: an empty queue is good news. */}
+        <CheckCircleOutline
+          size={40}
+          aria-hidden
+          style={{ color: 'var(--color-success-soft-text)' }}
+        />
         <h2 style={{ marginTop: 12, fontSize: 14, fontWeight: 600, color: 'var(--foreground)' }}>
           {labels.empty.title}
         </h2>

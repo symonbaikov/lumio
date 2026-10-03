@@ -59,6 +59,7 @@ vi.mock('next-intlayer', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: routerPushMock, replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '/statements/submit',
 }));
 
 vi.mock('@/app/hooks/useIsMobile', () => ({

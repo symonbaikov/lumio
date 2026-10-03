@@ -1,5 +1,6 @@
 import { fillTemplate } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import type { DashboardActionItem, DashboardData } from '@/app/hooks/useDashboard';
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 
 export type FinanceOpsFeatureStatus = 'ready' | 'review' | 'blocked';
 
@@ -147,7 +148,7 @@ export function buildFinanceOpsModel(
     totalPayable: data.snapshot?.totalPayable ?? 0,
     totalOverdue: data.snapshot?.totalOverdue ?? 0,
     unapprovedCash: data.snapshot?.unapprovedCash ?? 0,
-    currency: data.snapshot?.currency ?? 'KZT',
+    currency: data.snapshot?.currency ?? FALLBACK_CURRENCY,
   };
   const actions = data.actions ?? [];
   const topCategories = data.topCategories ?? [];
@@ -219,7 +220,7 @@ export function buildFinanceOpsModel(
     {
       id: 'large-expenses',
       label: labels.savedViews.largeExpenses,
-      href: '/statements/top-spenders',
+      href: '/reports?tab=cash-flow',
       count: 0,
     },
     {
@@ -297,8 +298,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.anomalyDetectionFeed.summary,
       pendingCount: anomalyPending,
       status: statusFor(anomalyPending),
-      href:
-        snapshot.totalOverdue > 0 ? '/statements/pay?status=overdue' : '/statements/top-merchants',
+      href: snapshot.totalOverdue > 0 ? '/statements/pay?status=overdue' : '/reports?tab=cash-flow',
       primaryAction: labels.features.anomalyDetectionFeed.primaryAction,
       evidence:
         snapshot.totalOverdue > 0

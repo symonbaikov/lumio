@@ -1,3 +1,4 @@
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
 import type { StatementStage } from '@/app/lib/statement-workflow';
 
@@ -142,7 +143,7 @@ export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedSt
       ? (detectBankFromVendor(receipt.parsedData?.vendor) ?? 'receipt')
       : 'gmail',
     fileType: isLocalReceipt ? 'receipt' : 'gmail',
-    currency: receipt.parsedData?.currency || 'KZT',
+    currency: receipt.parsedData?.currency || FALLBACK_CURRENCY,
     user: null,
     errorMessage: receipt.status === 'failed' ? 'Failed to parse' : null,
     gmailMessageId: receipt.gmailMessageId,

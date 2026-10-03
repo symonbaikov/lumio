@@ -11,6 +11,7 @@ import { DrawerShell } from '@/app/components/ui/drawer-shell';
 import { FORM_CONTROL_SX, Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { DEFAULT_RECENT_CURRENCIES } from '@/app/lib/currency';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import {
   buildCurrencySearchIndex,
@@ -18,8 +19,6 @@ import {
 } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
 import type { EditableReceiptParsedData, ReceiptCategoryOption } from './receipt-types';
-
-const DEFAULT_RECENT_CURRENCIES = ['KZT', 'USD', 'EUR', 'RUB'] as const;
 
 /** Fields are stacked one per row so the form reads as a single column. */
 const FORM_MAX_WIDTH = 520;

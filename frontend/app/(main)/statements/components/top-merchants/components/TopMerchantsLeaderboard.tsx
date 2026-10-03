@@ -1,5 +1,9 @@
 'use client';
 
+import {
+  SortableHeader,
+  sortedCellStyle,
+} from '@/app/(main)/statements/components/analytics/AnalyticsSortableColumns';
 import { AnalyticsSourceBadge } from '@/app/(main)/statements/components/analytics/AnalyticsSourceBadge';
 import { rowsWithFocused } from '@/app/(main)/statements/components/analytics/focus-rows';
 import type {
@@ -58,6 +62,7 @@ function SortBtn({ label, active, onClick }: SortBtnProps): React.JSX.Element {
   return (
     <button
       type="button"
+      aria-pressed={active}
       style={{
         borderRadius: tokens.radius.sm,
         padding: '4px 10px',
@@ -78,11 +83,12 @@ function SortBtn({ label, active, onClick }: SortBtnProps): React.JSX.Element {
 
 type RowProps = {
   row: TopMerchantAggregateRow;
+  sortKey: AggregateSortKey;
   sourceLabels: SourceLabels;
   onRowClick: (id: string) => void;
 };
 
-function LeaderboardRow({ row, sourceLabels, onRowClick }: RowProps): React.JSX.Element {
+function LeaderboardRow({ row, sortKey, sourceLabels, onRowClick }: RowProps): React.JSX.Element {
   const lastDate =
     row.lastDate && !Number.isNaN(new Date(row.lastDate).getTime())
       ? formatStoredDate(row.lastDate)
@@ -115,20 +121,9 @@ function LeaderboardRow({ row, sourceLabels, onRowClick }: RowProps): React.JSX.
           labels={sourceLabels}
         />
       </td>
-      <td style={{ padding: '8px 16px 8px 0', textAlign: 'right' }}>{row.count}</td>
-      <td style={{ padding: '8px 16px 8px 0', textAlign: 'right' }}>
-        {formatMoney(row.average, row.currency)}
-      </td>
-      <td
-        style={{
-          padding: '8px 16px 8px 0',
-          textAlign: 'right',
-          fontWeight: 600,
-          color: 'var(--foreground)',
-        }}
-      >
-        {formatMoney(row.total, row.currency)}
-      </td>
+      <td style={sortedCellStyle('operations', sortKey)}>{row.count}</td>
+      <td style={sortedCellStyle('average', sortKey)}>{formatMoney(row.average, row.currency)}</td>
+      <td style={sortedCellStyle('amount', sortKey)}>{formatMoney(row.total, row.currency)}</td>
       <td style={{ padding: '8px 0', textAlign: 'right', color: 'var(--muted-foreground)' }}>
         {lastDate}
       </td>
@@ -210,15 +205,13 @@ export function TopMerchantsLeaderboard({
             >
               <th style={{ padding: '8px 16px 8px 0' }}>{columnLabels.merchant}</th>
               <th style={{ padding: '8px 16px 8px 0' }}>{columnLabels.source}</th>
-              <th style={{ padding: '8px 16px 8px 0', textAlign: 'right' }}>
-                {columnLabels.operations}
-              </th>
-              <th style={{ padding: '8px 16px 8px 0', textAlign: 'right' }}>
-                {columnLabels.average}
-              </th>
-              <th style={{ padding: '8px 16px 8px 0', textAlign: 'right' }}>
-                {columnLabels.amount}
-              </th>
+              <SortableHeader
+                column="operations"
+                sortKey={sortKey}
+                label={columnLabels.operations}
+              />
+              <SortableHeader column="average" sortKey={sortKey} label={columnLabels.average} />
+              <SortableHeader column="amount" sortKey={sortKey} label={columnLabels.amount} />
               <th style={{ padding: '8px 0', textAlign: 'right' }}>{columnLabels.lastOperation}</th>
             </tr>
           </thead>
@@ -235,6 +228,7 @@ export function TopMerchantsLeaderboard({
               <LeaderboardRow
                 key={row.id}
                 row={row}
+                sortKey={sortKey}
                 sourceLabels={sourceLabels}
                 onRowClick={onRowClick}
               />
