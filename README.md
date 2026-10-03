@@ -57,8 +57,9 @@
 
 > **TL;DR**
 >
-> - Upload bank statements (PDF / CSV / XLSX / image) → auto-parse → deduplicate → AI-categorize
-> - Multi-tenant workspaces with RBAC, audit log, and one-click rollback
+> - Import bank statements (PDF, CSV, XLSX, OFX/QFX, QIF, camt.053, MT940, photos) or pull them through your own SimpleFIN account → auto-parse → deduplicate → categorize → review
+> - Budgets, goals, forecast, net worth, investments, invoicing and a double-entry ledger on the same data
+> - Multi-tenant workspaces with RBAC, audit log, and one-click rollback; UI in 36 languages
 > - Full stack running locally in one command: `npm run setup:dev`
 >
 > Built for finance teams, accountants, and developers who need to process and analyze bank statement data without proprietary SaaS lock-in.
@@ -92,27 +93,34 @@ Lumio is a full-stack financial operations platform built for teams that need to
 
 ### Core capabilities
 
-- **Multi-format Statement Import** — PDF, CSV, XLSX, and image files. Native parsers for Kaspi Bank, Bereke Bank, and Bank Hapoalim / Isracard. Generic AI PDF parser for any other bank.
+- **Multi-format Statement Import** — PDF, CSV, XLSX, DOCX, OFX/QFX, QIF, camt.053, MT940 and image files. Native parsers for Kaspi Bank, Bereke Bank, and Bank Hapoalim / Isracard, 24 CSV presets for common banks (Revolut, Wise, N26, Monzo, Chase, ING, Sparkasse/DKB…), and a generic AI PDF parser for any other bank. Statements can also arrive as attachments in an IMAP mailbox.
+- **Bank Sync with your own aggregator account** — connect a SimpleFIN Bridge account under Integrations; Lumio pulls each enabled account as an OFX statement through the regular import, with the same deduplication.
 - **OCR for Image Statements** — Tesseract.js text extraction from scanned documents and photos.
 - **Idempotent Uploads** — SHA-256 file hashing prevents duplicate imports.
 - **Transaction Deduplication** — Fingerprint-based duplicate detection with confidence scoring, merge, and mark-as-duplicate workflows.
-- **AI Auto-Categorization** — OpenAI-compatible local/provider endpoint with per-workspace learning rules.
+- **AI Auto-Categorization** — OpenAI-compatible local/provider endpoint with per-workspace learning rules. Every transaction shows where its category came from (rule, AI, you), and a category you corrected twice is not overwritten again.
+- **Review Inbox** — one queue for what needs a decision: transactions without a category, suspected duplicates, receipts to approve or match to a bank row (including photos sent to the Telegram bot), and newly detected subscriptions.
+- **Transfers & Reimbursements** — moves between your own accounts are paired and left out of income and spending; a refund or a reimbursement can be linked to the expense it pays back.
+- **One currency per workspace** — every workspace has its own currency, used for new rows and as the target for reports; other currencies are converted with stored or per-workspace manual exchange rates, and missing rates are flagged instead of guessed.
 - **Multi-Tenant Workspaces** — Unlimited workspaces with invitation flows and per-workspace data isolation.
 - **Granular RBAC** — Roles: owner, admin, member, viewer. Per-user permission overrides.
-- **Dashboard & Reports** — Cash flow, top categories, trends, custom report builder with CSV/XLSX export.
+- **Dashboard & Reports** — Month-by-month dashboard with a spending calendar, top categories, recent transactions and goal progress. Reports add a cash-flow map (Sankey, treemap, period comparison), top spenders / merchants / categories, scheduled reports and a report builder with PDF/CSV/XLSX export.
+- **Forecast** — Projected balance from scheduled payables, invoices and subscriptions: safe-to-spend until payday, runway and the lowest balance ahead, with what-if scenarios.
 - **Audit Log** — Complete event trail with one-click rollback for supported operations.
 - **Webhooks** — Outbound event delivery to subscribed endpoints with token-based authentication.
-- **API Keys** — Programmatic access via `lum_`-prefixed, SHA-256 hashed keys with revocation support.
-- **Budgets** — Budget tracking with manual spend recording and alerts.
-- **Subscriptions** — Recurring billing detection and management with frequency-based tracking.
-- **Goals & Net Worth** — Savings goals with progress tracking, and net worth aggregated across accounts, wallets, and crypto holdings.
-- **Crypto Portfolio** — Crypto holdings with price and wallet sync, and transfer mapping into transactions.
-- **AI Chat & Semantic Search** — Ask questions about your data; embeddings-backed transaction search plus a global cross-entity search.
+- **API Keys** — Programmatic access via `lum_`-prefixed, SHA-256 hashed keys with scopes and revocation; actions taken by a key or by AI are marked as such in the audit log.
+- **Budgets** — Budgets per category (subcategories count toward the parent), rollover of leftovers or overspend into the next period, and a preview of what an expense would do to them before you record it.
+- **Subscriptions** — Recurring charges detected from your transactions, with alerts when a price changes, duplicate subscriptions, cost per use, and sinking funds for yearly payments.
+- **Goals & Net Worth** — Savings goals with progress, contributions and a cover image, and net worth aggregated across accounts, wallets, crypto and investments, with asset classes and the all-time high.
+- **Investments** — Holdings with quantities and prices (Stooq quotes); contributions are recorded as transfers so they do not count as spending.
+- **Crypto Portfolio** — Crypto holdings with price and wallet sync across Ethereum and L2s, Polygon, Tron, Bitcoin and Solana, and transfer mapping into transactions.
+- **AI Chat & Semantic Search** — Ask questions about your data; embeddings-backed transaction search, and a command palette (Ctrl/⌘ K) for search, navigation and actions across the app.
 - **Tax Engine** — VAT rates, rules, jurisdictions, thresholds, and VAT return generation.
 - **Double-Entry Ledger** — Every transaction is posted as a balanced journal entry into a chart of accounts built from your categories, bank accounts and wallets: VAT on its own account, other currencies converted into one base currency at the posting date, duplicates left out. Statement and wallet opening balances are booked against opening equity, and crypto transfers land on each crypto wallet's own account at the fiat value they were recorded at (not today's market value). Foreign-currency balances can be revalued at any day's rate, with the difference booked as FX gain or loss. Manual entries go through draft → post → reverse, and a posted entry can only be reversed, never edited. The database itself refuses an entry whose debits and credits differ. Trial balance, account ledger, profit and loss, and balance sheet are read straight from the journal, with each bank account reconciled against its latest statement. Opt in under Settings → Experimental.
 - **Income Tax Declaration** — Year-end draft for the self-employed, built only from the category → form-line mappings you confirm: Germany Anlage EÜR, Spain Modelo 100 (estimación directa simplificada), Poland PIT-36L / PIT-28 / PIT-36, and a generic income and expense summary everywhere else. Checks data completeness, converts currencies with the official source where one is verified (NBP for Poland, Banca d'Italia for Italy), shows filing deadlines and portals for 25 EU countries, and exports PDF or XLSX.
 - **Receipt Locations & Maps** — Every receipt can show where it was bought on a self-hosted map: a manual pin, the geocoded merchant address, the photo's GPS tag, or the device position.
 - **Backups** — Scheduled encrypted backups with export, import, and restore.
+- **Mobile & Offline** — Installable PWA with an offline queue for entries made without a connection, and web push notifications.
 - **Docker Ready** — One-command deployment with Docker Compose.
 
 <details>
@@ -121,16 +129,16 @@ Lumio is a full-stack financial operations platform built for teams that need to
 ### Intelligence
 
 - **ML Categorization Rules** — `CategoryLearning` remembers per-workspace merchant→category patterns and applies them automatically on future imports.
-- **AI Financial Insights** — Automatically generated insights surfaced on the dashboard; dismissible per-user.
+- **Financial Insights & Advice** — Insights on the dashboard and a daily piece of advice drawn from your budgets, goals and commitments, in the spirit of Stoic philosophy, with a verified daily quote; dismissible per user.
 - **Generic AI PDF Parser** — an OpenAI-compatible endpoint extracts structured transaction data from any PDF when no native parser matches.
 
 ### Integrations
 
-- **IMAP Receipts** — mailbox polling pulls email receipts, parses merchant/amount/tax/line-item data, links receipts to transactions.
+- **IMAP Receipts & Statements** — mailbox polling pulls email receipts (merchant, amount, tax, line items) and statement attachments; receipts are matched to the bank rows they belong to.
 - **S3-compatible Storage** — import and sync statement files with MinIO or another S3-compatible bucket.
 - **WebDAV Storage** — import and sync statement files with Nextcloud or another WebDAV-compatible server.
-- **Workbook Import** — export and import custom table data via XLSX, CSV, and ODS files.
-- **Telegram Bot** — Scheduled financial reports delivered to a Telegram chat or channel.
+- **Smart File Import** — drop an XLSX, CSV or ODS file and Lumio suggests where its rows belong: transactions, subscriptions, payables, invoices or budgets. Columns are mapped automatically (AI-assisted when configured), the result is previewed, and a whole import can be undone. Custom tables import the same files, Excel formulas included.
+- **Telegram Bot** — Scheduled financial reports to a chat or channel; send the bot a receipt photo, a typed expense ("coffee 4.50") or a PDF statement and it lands in the review inbox or the import.
 
 ### Collaboration & Access Control
 
@@ -141,9 +149,9 @@ Lumio is a full-stack financial operations platform built for teams that need to
 ### Finance & Reporting
 
 - **Balance Sheet** — Account-level balance tracking with historical snapshots and export.
-- **Accounts Payable** — Pay-tab workflow for managing and tracking payable records. Marking a bill paid links the bank transaction that settled it (matching candidates are suggested) or records a cash payment from a wallet, so the payment reaches the ledger.
-- **Invoicing** — Clients, itemized invoices with per-line tax rates, and server-generated PDFs. Sending an invoice assigns it a sequential number, opens a receivable that is chased and paid the same way as a bill, and (when the double-entry ledger is enabled) books the accrual entry straight away — Dr Accounts Receivable, Cr Revenue and VAT payable. Recurring invoices generate their next draft automatically.
-- **Custom Tables** — User-defined data structures with typed columns, batch editing, and formula support.
+- **Accounts Payable** — Pay-tab workflow for bills and receivables, with partial payments. Marking a bill paid links the bank transaction that settled it (matching candidates are suggested) or records a cash payment from a wallet, so the payment reaches the ledger. Reconciliation suggests matches for open items, and ageing shows what is overdue.
+- **Invoicing** — Clients, itemized invoices with per-line tax rates (prices with or without tax), and server-generated PDFs carrying your business profile (legal name, address, tax and registration IDs, bank details, logo) in the client's language. Sending an invoice assigns it a sequential number, opens a receivable that is chased and paid the same way as a bill, and (when the double-entry ledger is enabled) books the accrual entry straight away — Dr Accounts Receivable, Cr Revenue and VAT payable. Invoices can be e-mailed through your SMTP with delivery history and reminders, shared by a public link, and corrected with credit notes. Recurring invoices generate their next draft automatically.
+- **Custom Tables** — User-defined data structures with typed columns, batch editing, a formula engine with stored computed columns, and columns filled from Lumio data that refresh on demand.
 - **Manual Data Entry** — Record cash expenses, income, and receipts manually with custom fields and file attachments.
 - **Categories** — Hierarchical transaction categories with usage counts and enable/disable toggle.
 - **Reference Data** — Tax rates, branches, and wallets for enriching transactions.
@@ -155,9 +163,9 @@ Lumio is a full-stack financial operations platform built for teams that need to
 - **In-App Notifications** — Real-time feed with per-category preferences and unread badge count.
 - **WebSocket Support** — Live updates via Socket.IO for notifications and import progress.
 - **Observability** — Prometheus-format metrics endpoint (`/api/v1/metrics`), structured JSON logs, and correlation IDs — point your own collector at it.
-- **Guided Onboarding** — 9 interactive feature tours.
-- **Localization** — The UI ships in 36 languages via Intlayer; English is the default locale.
-- **Content Background** — A bundled or uploaded photo behind the app content, with adjustable dimming.
+- **Guided Onboarding** — A welcome tutorial for new accounts and interactive feature tours, started from the help menu.
+- **Home or Business workspaces** — a workspace profile that trims the menu to what a household or a small business needs.
+- **Localization** — The UI, e-mails, notifications and Telegram messages ship in 36 languages via Intlayer; English is the default locale. Language pickers list every language by its own name.
 
 </details>
 
@@ -182,7 +190,11 @@ Setting expectations upfront:
 | Bereke Bank (new format) | PDF | `BerekeNewParser` — native |
 | Bereke Bank (legacy format) | PDF | `BerekeOldParser` — native |
 | Bank Hapoalim / Isracard | PDF | `HapoalimParser` — native (Hebrew) |
-| Any bank | CSV | `CsvParser` — generic delimiter detection |
+| Any bank | CSV | `CsvParser` — generic delimiter detection, plus 24 bank presets |
+| Any bank | OFX / QFX | `OfxParser` |
+| Any bank | QIF | `QifParser` |
+| Any bank (ISO 20022) | camt.053 XML | `Camt053Parser` |
+| Any bank (SWIFT) | MT940 | `Mt940Parser` |
 | Any bank | XLSX / XLS | `ExcelParser` — generic |
 | Any bank | DOCX | `DocxParser` — generic table extraction |
 | Any bank | PDF | `GenericPdfParser` — AI-assisted via OpenAI-compatible endpoint |
@@ -255,13 +267,16 @@ Setting expectations upfront:
 lumio/
 ├── backend/                         # NestJS API server
 │   ├── src/
-│   │   ├── modules/                 # 49 feature modules
+│   │   ├── modules/                 # 57 feature modules
 │   │   │   ├── api-keys/            # Programmatic API key management
 │   │   │   ├── application-settings/ # Runtime system configuration
 │   │   │   ├── auth/                # Cookie sessions, CSRF, 2FA, password reset
-│   │   │   ├── users/               # User CRUD, avatars, backgrounds, email change, permissions
+│   │   │   ├── users/               # User CRUD, avatars, email change, permissions
 │   │   │   ├── workspaces/          # Multi-tenant workspaces, RBAC, invitations
 │   │   │   ├── statements/          # Bank statement upload & lifecycle management
+│   │   │   ├── bank-sync/           # Pull statements through your own SimpleFIN account
+│   │   │   ├── review-inbox/        # Queue of items waiting for a decision
+│   │   │   ├── entity-imports/      # Smart file import into subscriptions, payables, invoices, budgets, transactions
 │   │   │   ├── transactions/        # Transaction CRUD, search, deduplication
 │   │   │   ├── categories/          # Hierarchical category management
 │   │   │   ├── classification/      # AI auto-categorization + ML learning rules
@@ -289,7 +304,9 @@ lumio/
 │   │   │   ├── tax/                 # VAT rates, rules, jurisdictions, VAT returns
 │   │   │   ├── income-tax/          # Income tax declaration drafts, rule packs, FX sources
 │   │   │   ├── payables/            # Accounts payable workflow
-│   │   │   ├── invoices/            # Invoicing: clients, invoices, line items, PDF, recurrence
+│   │   │   ├── invoices/            # Invoicing: clients, invoices, credit notes, PDF, e-mail delivery, reminders, share links
+│   │   │   ├── business-profile/    # Seller details and logo for invoice documents
+│   │   │   ├── smb/                 # Reconciliation, ageing, dunning, owner reports
 │   │   │   ├── receipts/            # Receipt management, browser, locations
 │   │   │   ├── maps/                # Proxy to the self-hosted tile server
 │   │   │   ├── geocoding/           # Nominatim client for merchant addresses
@@ -301,13 +318,17 @@ lumio/
 │   │   │   ├── crypto/              # Crypto holdings, price and wallet sync
 │   │   │   ├── goals/               # Savings / financial goals
 │   │   │   ├── net-worth/           # Net worth aggregation across accounts
+│   │   │   ├── investments/         # Holdings, stock prices, contributions
+│   │   │   ├── forecast/            # Balance projection, safe-to-spend, runway
+│   │   │   ├── push/                # Web push subscriptions
+│   │   │   ├── vendor-icons/        # Merchant logos
 │   │   │   ├── backups/             # Encrypted scheduled backups, export & restore
 │   │   │   ├── mailer/              # Transactional email delivery
 │   │   │   └── observability/       # Prometheus metrics endpoint
-│   │   ├── entities/                # 89 TypeORM entities
+│   │   ├── entities/                # 100 TypeORM entities
 │   │   ├── common/                  # Guards, decorators, interceptors, filters
 │   │   ├── config/                  # App configuration
-│   │   └── migrations/              # 149 database migrations (auto-applied on startup)
+│   │   └── migrations/              # 195 database migrations (auto-applied on startup)
 │   ├── scripts/                     # Admin, seed, parse debug, storage repair
 │   └── @tests/                      # Unit and E2E test suites
 ├── frontend/                        # Next.js application
@@ -316,8 +337,12 @@ lumio/
 │   │   ├── (onboarding)/            # Onboarding flow
 │   │   ├── (main)/                  # Protected app routes
 │   │   │   ├── dashboard/           # Dashboard
-│   │   │   ├── statements/          # Statement list, detail, reports sub-routes
-│   │   │   ├── reports/             # Financial reports
+│   │   │   ├── statements/          # Statements with queue tabs (submit, approve, pay), payables, reconcile
+│   │   │   ├── reports/             # Reports, cash-flow map, scheduled reports
+│   │   │   ├── forecast/            # Forecast and safe-to-spend
+│   │   │   ├── review/              # Review inbox
+│   │   │   ├── invoices/            # Invoices, clients, credit notes
+│   │   │   ├── ledger/              # Double-entry ledger (experimental)
 │   │   │   ├── budgets/             # Budget tracking
 │   │   │   ├── goals/               # Financial goals
 │   │   │   ├── net-worth/           # Net worth overview
@@ -344,7 +369,7 @@ lumio/
 │   │   └── tours/                   # driver.js guided tour definitions
 │   └── public/                      # Static assets, bank logos
 ├── docs/
-│   ├── plans/                       # 35 feature design & implementation plans
+│   ├── plans/                       # 43 feature design, research & implementation plans
 │   ├── CI/                          # CI/CD pipeline documentation
 │   ├── security/                    # CVE allowlists, license exceptions
 │   └── statements-examples/         # Sample bank statement files for testing
@@ -739,7 +764,7 @@ make update            # Update npm dependencies
 
 ### Database Migrations
 
-Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 149 migrations covering the entire schema history.
+Lumio uses TypeORM migrations exclusively (`synchronize: false`). Migrations run automatically on every startup unless `RUN_MIGRATIONS=false` is set. There are currently 195 migrations covering the entire schema history.
 
 ```bash
 # Apply all pending migrations (Docker)
@@ -884,8 +909,8 @@ npm test               # Run all tests with Vitest
 ┌──────────▼────────────┐   ┌──────────▼────────────┐
 │   PostgreSQL 14       │   │     Redis 7           │
 │                       │   │                       │
-│  - 89 TypeORM entities│   │  - Cache              │
-│  - 149 migrations     │   │  - Rate limiting      │
+│ - 100 TypeORM entities│   │  - Cache              │
+│  - 195 migrations     │   │  - Rate limiting      │
 │  - Full-text search   │   │  - BullMQ queues      │
 └───────────────────────┘   └───────────────────────┘
 ```
@@ -911,7 +936,7 @@ npm test               # Run all tests with Vitest
 - SHA-256 `fileHash` on statements for idempotent re-upload detection
 - `Idempotency-Key` header supported on upload endpoints (stored in `IdempotencyKey` entity)
 - Transaction fingerprinting for cross-statement duplicate detection
-- 89 TypeORM entities covering all domain objects (see `backend/src/entities/`)
+- 100 TypeORM entities covering all domain objects (see `backend/src/entities/`)
 
 ### Parsing Pipeline
 
@@ -925,7 +950,9 @@ Upload request
       ├── HapoalimParser     (Bank Hapoalim / Isracard PDF)
       ├── GenericPdfParser   (AI-assisted: OpenAI-compatible endpoint)
       ├── ExcelParser        (XLSX / XLS)
-      ├── CsvParser          (CSV)
+      ├── CsvParser          (CSV, bank presets)
+      ├── OfxParser / QifParser (OFX, QFX, QIF)
+      ├── Camt053Parser / Mt940Parser (ISO 20022, SWIFT)
       ├── DocxParser         (DOCX tables)
       └── OCR Pipeline       (Tesseract.js for images)
   → ImportSession created (status: processing)
@@ -1042,7 +1069,7 @@ We welcome contributions from the community.
 - **Improve documentation** — fix typos, clarify guides, add examples
 - **Submit pull requests** — fix bugs, add features, write tests
 - **Add bank parsers** — support new banks by implementing the parser interface
-- **Translate** — improve any of the 21 UI locales (`*.content.ts` dictionaries)
+- **Translate** — improve any of the 36 UI locales (`*.content.ts` dictionaries); the 15 most recently added languages were machine-translated and benefit most from a native speaker's review
 
 ### Development Workflow
 
