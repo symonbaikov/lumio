@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Download, RefreshCcw } from '@/app/components/icons';
+import { ImportFromFileButton } from '@/app/components/import-wizard/ImportFromFileButton';
 import { Button } from '@/app/components/ui/button';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
@@ -727,6 +728,15 @@ export function PayablesView({ direction = 'payable' }: PayablesViewProps = {}):
                 <Download size={16} />
                 {labels.exportXlsx}
               </Button>
+              <ImportFromFileButton
+                target="payables"
+                onImported={() => void loadData({ silent: true })}
+                renderTrigger={(open, label) => (
+                  <Button variant="outline" onClick={open}>
+                    {label}
+                  </Button>
+                )}
+              />
               <Button onClick={openCreateDrawer}>{labels.add}</Button>
             </div>
           </div>

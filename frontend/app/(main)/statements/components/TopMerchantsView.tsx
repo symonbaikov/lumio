@@ -9,11 +9,12 @@ import {
   type TopMerchantsViewModelReturn,
   useTopMerchantsViewModel,
 } from '@/app/(main)/statements/components/top-merchants/hooks/useTopMerchantsViewModel';
+import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { tokens } from '@/lib/theme-tokens';
 
-type VmProps = { vm: TopMerchantsViewModelReturn };
+type VmProps = { vm: TopMerchantsViewModelReturn; focusId: string | null };
 
-function TopMerchantsBody({ vm }: VmProps): React.JSX.Element {
+function TopMerchantsBody({ vm, focusId }: VmProps): React.JSX.Element {
   if (vm.loading) {
     return <AnalyticsLeaderboardSkeleton />;
   }
@@ -34,16 +35,18 @@ function TopMerchantsBody({ vm }: VmProps): React.JSX.Element {
       </div>
     );
   }
-  return <TopMerchantsContent vm={vm} />;
+  return <TopMerchantsContent vm={vm} focusId={focusId} />;
 }
 
 export default function TopMerchantsView(): React.JSX.Element {
   const vm = useTopMerchantsViewModel();
+  // Stoic advice about a habit links at one merchant's row (insight-href.ts).
+  const focusId = useAttentionFocus();
   return (
     <div className="container-shared lumio-view-page">
       <TopMerchantsPageHeader vm={vm} />
       <div className="lumio-view-page__body">
-        <TopMerchantsBody vm={vm} />
+        <TopMerchantsBody vm={vm} focusId={focusId} />
       </div>
       <TopMerchantsFiltersDrawer vm={vm} />
       {vm.selectedRow ? (

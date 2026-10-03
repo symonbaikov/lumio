@@ -28,6 +28,7 @@ import {
 import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
 import { useParams, useRouter } from 'next/navigation';
+import { buildSourceColumnTitles } from '@/app/(main)/custom-tables/labels';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import {
   ArrowLeft,
@@ -163,6 +164,7 @@ export default function EditStatementPage(): React.JSX.Element {
   const router = useRouter();
   const { user } = useAuth();
   const t = useIntlayer('statementEditPage');
+  const tablesDictionary = useIntlayer('customTablesPage');
   const labels = t.labels as Record<string, { value?: string }>;
   const columns = t.columns as Record<string, { value?: string }>;
   const { locale } = useLocale();
@@ -242,6 +244,7 @@ export default function EditStatementPage(): React.JSX.Element {
       categoryUpdated: labels.categoryUpdated?.value || 'Category updated',
       categoryUpdateFailed: labels.categoryUpdateFailed?.value || 'Failed to update category',
     },
+    sourceColumnTitles: buildSourceColumnTitles(tablesDictionary),
   });
 
   const formatNumber = (num?: number | null): string => formatNumberHelper(num, locale);

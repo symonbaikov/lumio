@@ -36,6 +36,7 @@ export * from './gmail-watch-subscription.entity';
 export * from './goal.entity';
 export * from './goal-item.entity';
 export * from './idempotency-key.entity';
+export * from './import-batch.entity';
 export * from './import-session.entity';
 export * from './insight.entity';
 export * from './integration.entity';

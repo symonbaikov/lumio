@@ -33,6 +33,7 @@
     "create-admin:dev": "ts-node --transpile-only -r tsconfig-paths/register scripts/create-admin.ts",
     "seed:demo": "npm run build:scripts && node dist/scripts/seed-demo.js",
     "seed:demo:dev": "ts-node --transpile-only -r tsconfig-paths/register scripts/seed-demo.ts",
+    "recalc-tables:dev": "ts-node --transpile-only -r tsconfig-paths/register scripts/recalc-custom-tables.ts",
     "parse:debug": "ts-node -r tsconfig-paths/register scripts/parse-debug.ts",
     "parse:tables": "ts-node -r tsconfig-paths/register scripts/pdf-table-dump.ts",
     "parse:diff": "ts-node -r tsconfig-paths/register scripts/parse-diff.ts",
