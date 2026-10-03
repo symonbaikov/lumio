@@ -3,6 +3,7 @@
 import { Box, Stack, Typography } from '@mui/material';
 import { CheckCircle2, type LucideIcon } from '@/app/components/icons';
 import { useIntlayer } from '@/app/i18n';
+import { LOCALE_ENDONYMS } from '@/app/lib/locale';
 import { tokens } from '@/lib/theme-tokens';
 import { getNestedOnboardingValue, resolveOnboardingText } from '../lib/resolveOnboardingText';
 import type { SupportedLocale } from '../useOnboardingWizard';
@@ -34,7 +35,7 @@ export function CompletionStep({
   const text = (path: string[], fallback = '') =>
     resolveOnboardingText(getNestedOnboardingValue(t, path), fallback, locale);
 
-  const localeLabel = text(['language', 'localeOptions', locale], locale);
+  const localeLabel = LOCALE_ENDONYMS[locale];
 
   return (
     <Box component="section">

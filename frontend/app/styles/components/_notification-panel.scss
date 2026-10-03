@@ -1,63 +1,19 @@
 @use '../abstracts' as *;
 
-/* BEM block: lumio-notification-dropdown */
+/* BEM block: lumio-notification-panel — the drawer the account menu opens. */
 
-.lumio-notification-dropdown {
-  &__trigger {
-    position: relative;
-    width: 2rem;
-    height: 2rem;
-    border-radius: $lumio-radius-sm;
+.lumio-notification-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  // Cancels the drawer's body padding: the rows run edge to edge, as list rows do.
+  margin: 0 -16px;
+
+  &__actions {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-    background: none;
-    border: none;
-    cursor: pointer;
-  }
-
-  &__badge {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 4px;
-    border-radius: $lumio-radius-full;
-    background-color: #ff4d4f;
-    color: white;
-    font-size: 11px;
-    font-weight: 700;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid #1a2130;
-  }
-
-  &__header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid $color-border;
-    background-color: $color-card-bg;
-    padding: 12px 16px;
-
-    @include dark {
-      border-bottom-color: $color-border-dk;
-      background-color: $color-card-bg-dk;
-    }
-  }
-
-  &__title {
-    font-size: 14px;
-    font-weight: 600;
-    color: $color-foreground;
-
-    @include dark {
-      color: $color-foreground-dk;
-    }
+    justify-content: flex-end;
+    padding: 0 16px 8px;
   }
 
   &__mark-all {
@@ -88,13 +44,9 @@
   }
 
   &__list {
-    max-height: 420px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    background-color: $color-card-bg;
-
-    @include dark {
-      background-color: $color-card-bg-dk;
-    }
   }
 
   &__empty {
@@ -109,8 +61,10 @@
   }
 
   &__item {
+    display: block;
     width: 100%;
     text-align: left;
+    font-family: inherit;
     padding: 12px 16px;
     border-bottom: 1px solid rgba($color-border, 0.7);
     background: none;
@@ -219,12 +173,8 @@
   }
 
   &__footer {
-    padding: 8px 16px;
-    background-color: rgba($color-muted, 0.3);
-
-    @include dark {
-      background-color: rgba($color-muted-dk, 0.3);
-    }
+    flex-shrink: 0;
+    padding: 10px 16px 0;
   }
 
   &__settings-link {

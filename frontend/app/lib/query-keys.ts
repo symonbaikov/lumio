@@ -31,14 +31,21 @@ export const queryKeys = {
   wallets: (workspaceId: string | null) => ['wallets', workspaceId] as const,
   payablePaymentCandidates: (o: { workspaceId: string | null; payableId: string }) =>
     ['payables', o.workspaceId, o.payableId, 'payment-candidates'] as const,
+  payablePayments: (o: { workspaceId: string | null; payableId: string }) =>
+    ['payables', o.workspaceId, o.payableId, 'payments'] as const,
   // Tile-server configuration is the same in every workspace, hence no workspace segment.
   mapStyles: () => ['map-styles'] as const,
   categoryUsage: (workspaceId: string | null) => ['categories', workspaceId, 'usage'] as const,
   goalsList: (workspaceId: string | null) => ['goals', 'list', workspaceId] as const,
+  // Sits under the plain list prefix, so a contribution invalidates both.
+  goalsMonth: (o: { workspaceId: string | null; month: string }) =>
+    ['goals', 'list', o.workspaceId, o.month] as const,
   goalFlow: (o: { workspaceId: string | null; goalId: string; month: string }) =>
     ['goals', 'flow', o.workspaceId, o.goalId, o.month] as const,
   goalPlan: (o: { workspaceId: string | null; goalId: string }) =>
     ['goals', 'plan', o.workspaceId, o.goalId] as const,
+  spendFlow: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
+    ['reports', 'spend-flow', o.workspaceId, o.params] as const,
   goalItems: (o: { workspaceId: string | null; goalId: string }) =>
     ['goals', 'items', o.workspaceId, o.goalId] as const,
   // Локаль в ключе: сервер отдаёт текст совета на языке интерфейса, поэтому
@@ -105,7 +112,6 @@ export const queryKeys = {
   cryptoNetworks: (workspaceId: string | null) => ['crypto', 'networks', workspaceId] as const,
   notifications: (workspaceId: string | null) => ['notifications', workspaceId] as const,
   searchRecent: (workspaceId: string | null) => ['search', workspaceId, 'recent'] as const,
-  searchFavorites: (workspaceId: string | null) => ['search', workspaceId, 'favorites'] as const,
   search: (o: { workspaceId: string | null; q: string }) =>
     ['search', o.workspaceId, 'query', o.q] as const,
   notes: (o: { workspaceId: string | null; entityType: string; entityId: string }) =>

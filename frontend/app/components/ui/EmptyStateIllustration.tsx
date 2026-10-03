@@ -13,6 +13,7 @@ const ILLUSTRATIONS = {
   clients: { src: '/images/empty-states/clients.svg', width: 640, height: 480 },
   dashboard: { src: '/images/empty-states/dashboard.svg', width: 792, height: 399 },
   favorites: { src: '/images/empty-states/favorites.svg', width: 675, height: 424 },
+  'finance-control': { src: '/images/empty-states/finance-control.svg', width: 492, height: 503 },
   integrations: { src: '/images/empty-states/integrations.svg', width: 867, height: 673 },
   'load-error': { src: '/images/empty-states/load-error.svg', width: 640, height: 480 },
   'no-data': { src: '/images/empty-states/no-data.svg', width: 648, height: 632 },

@@ -25,11 +25,6 @@ vi.mock('react-intlayer', () => ({
       timeZonePlaceholder: 'Select timezone',
       timeZoneHint: 'You can change this later.',
       timeZoneNoOptions: 'No timezones found',
-      localeOptions: {
-        ru: { value: 'Русский' },
-        en: { value: 'English' },
-        kk: { value: 'Қазақша' },
-      },
     },
   }),
 }));

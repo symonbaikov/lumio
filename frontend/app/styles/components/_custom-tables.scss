@@ -5,10 +5,10 @@
   display: flex;
   flex-direction: column;
   gap: $lumio-space-4;
-  padding: $lumio-space-4 $lumio-space-4 $lumio-space-6;
+  padding: var(--lumio-page-top, #{$lumio-space-4}) $lumio-space-4 $lumio-space-6;
 
   @include respond-to('md') {
-    padding: $lumio-space-3 $lumio-space-3 $lumio-space-5;
+    padding: var(--lumio-page-top, #{$lumio-space-3}) $lumio-space-3 $lumio-space-5;
   }
 
   // ---- header -------------------------------------------------------------
@@ -907,6 +907,21 @@
       @include dark {
         background-color: $lumio-color-primary-50-dk;
       }
+    }
+  }
+
+  // Card illustration: large enough to be what the eye lands on first. The green
+  // reads as the accent of the dialog in both themes (--primary is the button
+  // green in light, the dark-theme accent in dark).
+  &__template-icon {
+    display: flex;
+    margin-bottom: $lumio-space-2;
+    color: var(--primary);
+
+    svg {
+      display: block;
+      width: 56px;
+      height: 56px;
     }
   }
 
