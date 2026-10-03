@@ -7,8 +7,8 @@ const placeholders = (text: string) =>
 describe('Stoic texts', () => {
   const en = STOIC_TEXTS.en;
 
-  it('has all 21 locales', () => {
-    expect(Object.keys(STOIC_TEXTS)).toHaveLength(21);
+  it('has all 36 locales', () => {
+    expect(Object.keys(STOIC_TEXTS)).toHaveLength(36);
   });
 
   // Советы без стоических ключей (operational.*, trend.*, pattern.*) живут
