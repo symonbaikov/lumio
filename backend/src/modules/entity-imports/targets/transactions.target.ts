@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { In } from 'typeorm';
 import { normalizeFilename } from '../../../common/utils/filename.util';
 import { generateTransactionFingerprint } from '../../../common/utils/fingerprint.util';
