@@ -164,12 +164,6 @@ export default function CustomTablesPage() {
 
   return (
     <div className="lumio-ct">
-      <header className="lumio-ct__header">
-        <div className="lumio-ct__title-row">
-          <h1 className="lumio-ct__title">{labels.header.title}</h1>
-          <p className="lumio-ct__description">{labels.header.subtitle}</p>
-        </div>
-      </header>
       <div className="lumio-ct__toolbar">
         <label className="lumio-ct__search" data-tour-id="search-bar">
           <Search size={16} aria-hidden className="lumio-ct__search-icon" />

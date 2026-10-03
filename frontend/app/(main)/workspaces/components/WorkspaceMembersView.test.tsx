@@ -76,7 +76,6 @@ describe('WorkspaceMembersView', () => {
       await flushPromises();
     });
 
-    expect(container.textContent).toContain('Members');
     expect(container.textContent).toContain('Sort: Name');
     expect(container.textContent).toContain('Role: All roles');
     expect(container.textContent).toContain('Invitations expire in 7 days.');

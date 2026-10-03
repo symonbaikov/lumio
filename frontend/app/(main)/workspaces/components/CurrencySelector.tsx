@@ -7,6 +7,7 @@ import React, { useMemo, useState } from 'react';
 import { Check, ChevronDown, Search, X } from '@/app/components/icons';
 import { closeOnBackdropClick } from '@/app/components/ui/backdrop-click';
 import { useIntlayer } from '@/app/i18n';
+import { DEFAULT_RECENT_CURRENCIES } from '@/app/lib/currency';
 import {
   buildCurrencySearchIndex,
   type CurrencySearchItem,
@@ -25,8 +26,6 @@ interface CurrencySelectorProps {
   minimal?: boolean;
   showPanelHeader?: boolean;
 }
-
-const DEFAULT_RECENT_CURRENCIES = ['USD', 'EUR', 'KZT', 'RUB'] as const;
 
 function useCurrencyOpenState({
   open,
