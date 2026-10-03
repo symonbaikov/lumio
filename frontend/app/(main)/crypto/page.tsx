@@ -48,25 +48,20 @@ export default function CryptoPage(): React.JSX.Element {
   const drawerServerError = error === 'duplicate' ? t.duplicate.value : null;
 
   return (
-    <Box component="main" sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
+    <Box
+      component="main"
+      sx={{ px: { xs: 2, md: 4 }, pt: 'var(--lumio-page-top, 24px)', pb: 3, width: '100%' }}
+    >
       <Box
         sx={{
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           alignItems: 'flex-start',
           gap: 2,
           mb: 3,
           flexWrap: 'wrap',
         }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            {t.title}
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {t.subtitle}
-          </Typography>
-        </Box>
         <Button variant="contained" onClick={() => setDrawerOpen(true)}>
           {t.connect}
         </Button>

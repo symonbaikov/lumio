@@ -10,6 +10,7 @@ import { ArrowDownRight, ArrowUpRight } from '@/app/components/icons';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import { formatMoney } from '@/app/lib/format-money';
 import { tokens } from '@/lib/theme-tokens';
 import { NET_WORTH_RANGES, type NetWorthRange, useNetWorth } from '../hooks/useNetWorth';
@@ -56,31 +57,22 @@ export function NetWorthContent() {
   const { locale } = useLocale();
   const { data, isPending, isFetching, error, range, setRange, classify } = useNetWorth();
 
-  const currency = data?.currency ?? 'KZT';
+  const currency = data?.currency ?? FALLBACK_CURRENCY;
   const isPositive = (data?.change ?? 0) >= 0;
   const hasData = Boolean(data && (data.assetsTotal !== 0 || data.liabilitiesTotal !== 0));
 
   return (
-    <Box sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
+    <Box sx={{ px: { xs: 2, md: 4 }, pt: 'var(--lumio-page-top, 24px)', pb: 3, width: '100%' }}>
       <Box
         sx={{
           display: 'flex',
           flexWrap: 'wrap',
           gap: 2,
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           alignItems: 'flex-start',
           mb: 3,
         }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight={700}>
-            {t.title}
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {t.subtitle}
-          </Typography>
-        </Box>
-
         <ToggleButtonGroup
           size="small"
           exclusive

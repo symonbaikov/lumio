@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 import { ModalFooter, ModalShell } from '@/app/components/ui/modal-shell';
 import { Select } from '@/app/components/ui/select';
@@ -9,6 +10,7 @@ import type { TableCategory } from '../hooks/useTablesList';
 import { findSource, SOURCE_KINDS, type SourceKind } from '../sources';
 import { TABLE_TEMPLATES, type TableTemplateId } from '../templates';
 import { SourceFilterPanel, type SourceFilterPanelLabels } from './SourceFilterPanel';
+import { SourceIcon, TemplateIcon } from './StartIcons';
 
 export interface TemplateCard {
   id: TableTemplateId | null;
@@ -54,6 +56,7 @@ interface CreateTableDialogProps {
 
 function StartCard({
   checked,
+  icon,
   name,
   description,
   columnCount,
@@ -61,6 +64,7 @@ function StartCard({
   onClick,
 }: {
   checked: boolean;
+  icon: ReactNode;
   name: string;
   description: string;
   columnCount: number;
@@ -75,6 +79,7 @@ function StartCard({
       className="lumio-ct__template"
       onClick={onClick}
     >
+      <span className="lumio-ct__template-icon">{icon}</span>
       <span className="lumio-ct__template-name">{name}</span>
       <span className="lumio-ct__template-desc">{description}</span>
       {columnCount ? (
@@ -151,6 +156,7 @@ function StartFromPicker({
             <StartCard
               key={card.id ?? 'blank'}
               checked={form.templateId === card.id}
+              icon={<TemplateIcon id={card.id} />}
               name={card.name}
               description={card.description}
               columnCount={card.columnCount}
@@ -165,6 +171,7 @@ function StartFromPicker({
             <StartCard
               key={source.id}
               checked={form.sourceKind === source.id}
+              icon={<SourceIcon id={source.id} />}
               name={labels.sources[source.id]?.name ?? source.name}
               description={labels.sources[source.id]?.description ?? source.description}
               columnCount={source.columnFields.length}

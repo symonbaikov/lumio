@@ -100,11 +100,8 @@ export function BudgetsContent({
     }
   }, [listReady]);
   return (
-    <Box sx={{ px: { xs: 2, md: 4 }, py: 3, width: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
-          {t.pageTitle}
-        </Typography>
+    <Box sx={{ px: { xs: 2, md: 4 }, pt: 'var(--lumio-page-top, 24px)', pb: 3, width: '100%' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
           {/* Budgets can fund a goal, so the goals page is reached from here. */}
           {hasPermission('goal.view') && (

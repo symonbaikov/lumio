@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useIntlayer } from '@/app/i18n';
 import { gmailReceiptsApi } from '@/app/lib/api';
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import type {
   EditableReceiptData,
   GmailReceipt,
@@ -108,7 +109,7 @@ export function useGmailReceiptActions({
       await gmailReceiptsApi.approveReceipt(receipt.id, {
         description: editedData.vendor || receipt.parsedData?.vendor || receipt.subject,
         amount,
-        currency: editedData.currency || receipt.parsedData?.currency || 'KZT',
+        currency: editedData.currency || receipt.parsedData?.currency || FALLBACK_CURRENCY,
         date: editedData.date || receipt.parsedData?.date || receipt.receivedAt,
       });
       toast.success(t.toasts.submitted.value);
