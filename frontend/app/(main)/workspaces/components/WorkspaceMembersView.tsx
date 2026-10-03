@@ -552,7 +552,7 @@ export default function WorkspaceMembersView() {
           gap: 2.5,
         }}
       >
-        {/* Title and every control in one toolbar row, straight on the page. */}
+        {/* Every control in one toolbar row, straight on the page. */}
         <Box
           sx={{
             display: 'flex',
@@ -561,16 +561,6 @@ export default function WorkspaceMembersView() {
             gap: 1.5,
           }}
         >
-          <Typography
-            component="h1"
-            sx={{ fontSize: 20, fontWeight: 600, color: 'var(--foreground)', mr: 'auto' }}
-          >
-            {t.title}{' '}
-            <Box component="span" sx={{ color: 'var(--muted-foreground)', fontWeight: 400 }}>
-              · {overview.members.length}
-            </Box>
-          </Typography>
-
           <TextField
             aria-label={t.searchAria.value}
             placeholder={t.searchPlaceholder.value}
@@ -883,8 +873,8 @@ export default function WorkspaceMembersView() {
                     <Tooltip
                       title={
                         isWorkspaceRole(member.role)
-                          ? t.roleTooltips[member.role]
-                          : t.roleTooltips.fallback
+                          ? t.roleTooltips[member.role].value
+                          : t.roleTooltips.fallback.value
                       }
                       placement="top"
                     >
