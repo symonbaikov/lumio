@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import type { Repository } from 'typeorm';
 import { appError } from '../../../common/errors/app-error';
 import type { CaptureLocation } from '../../../common/utils/capture-location.util';
+import { appDefaultCurrency } from '../../../common/utils/currency.util';
 import { calculateFileHash } from '../../../common/utils/file-hash.util';
 import { getFileTypeFromMime } from '../../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../../common/utils/filename.util';
@@ -169,7 +170,7 @@ export class ReceiptStatementService {
     const merchant =
       String(parsed.vendor || receipt.subject || fileName).trim() || 'Unknown merchant';
     const detectedBankName = ReceiptStatementService.detectBankFromVendor(merchant);
-    const currency = String(parsed.currency || 'KZT')
+    const currency = String(parsed.currency || appDefaultCurrency())
       .trim()
       .toUpperCase();
     const parsedDate = parsed.date ? new Date(parsed.date) : new Date();

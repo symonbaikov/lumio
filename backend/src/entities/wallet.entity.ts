@@ -43,7 +43,7 @@ export class Wallet {
   @Column({ name: 'bank_name', nullable: true })
   bankName: string | null;
 
-  @Column({ default: 'KZT' })
+  @Column()
   currency: string;
 
   @Column({ name: 'initial_balance', type: 'decimal', precision: 15, scale: 2, default: 0 })

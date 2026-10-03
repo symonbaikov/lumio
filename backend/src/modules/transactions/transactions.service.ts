@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import { type EntityTarget, In, type Repository } from 'typeorm';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { toMinor } from '../../common/utils/money.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
@@ -155,7 +156,7 @@ export class TransactionsService {
     const targetCurrency = filters.convertTo.toUpperCase();
     const items = rawData.map(tx => ({
       amount: Number(tx.amount) || Number(tx.debit) || Number(tx.credit) || 0,
-      currency: tx.currency || 'KZT',
+      currency: currencyCodeOrDefault(tx.currency),
       date: tx.transactionDate,
     }));
     const conversions = await this.exchangeRatesService.bulkConvert(

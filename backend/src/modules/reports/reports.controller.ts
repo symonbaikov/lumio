@@ -31,6 +31,7 @@ import { CustomTablesSummaryDto } from './dto/custom-tables-summary.dto';
 import { ExportFormat, type ExportReportDto } from './dto/export-report.dto';
 import { GenerateReportDto } from './dto/generate-report.dto';
 import { CreateReportScheduleDto, UpdateReportScheduleActiveDto } from './dto/report-schedule.dto';
+import { SpendFlowQueryDto } from './dto/spend-flow-query.dto';
 import { SpendOverTimeQueryDto } from './dto/spend-over-time-query.dto';
 import { TopCategoriesQueryDto } from './dto/top-categories-query.dto';
 import { type WorkspaceExportDto, WorkspaceExportFormat } from './dto/workspace-export.dto';
@@ -39,12 +40,14 @@ import type { DailyReport } from './interfaces/daily-report.interface';
 import type { MonthlyReport } from './interfaces/monthly-report.interface';
 import { ReportSchedulesService } from './report-schedules.service';
 import { ReportsService } from './reports.service';
+import { SpendFlowService } from './spend-flow.service';
 
 @Controller('reports')
 export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly reportSchedules: ReportSchedulesService,
+    private readonly spendFlowService: SpendFlowService,
     private readonly cashFlowMapService: CashFlowMapService,
   ) {}
 
@@ -100,6 +103,12 @@ export class ReportsController {
     @Query() query: TopCategoriesQueryDto,
   ) {
     return this.reportsService.getTopCategoriesReport(workspaceId, query);
+  }
+
+  @Get('spend-flow')
+  @WorkspaceAuth(Permission.REPORT_VIEW)
+  async getSpendFlow(@WorkspaceId() workspaceId: string, @Query() query: SpendFlowQueryDto) {
+    return this.spendFlowService.getSpendFlow(workspaceId, query);
   }
 
   @Get('spend-over-time')

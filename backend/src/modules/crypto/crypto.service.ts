@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { CryptoWallet } from '../../entities/crypto-wallet.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
@@ -478,7 +479,7 @@ export class CryptoService {
       where: { id: workspaceId },
       select: ['id', 'currency'],
     });
-    return workspace?.currency ?? 'USD';
+    return currencyCodeOrDefault(workspace?.currency);
   }
 }
 

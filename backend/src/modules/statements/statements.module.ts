@@ -10,6 +10,7 @@ import { AuditModule } from '../audit/audit.module';
 import { ParsingModule } from '../parsing/parsing.module';
 import { ReceiptsModule } from '../receipts/receipts.module';
 import { TaxModule } from '../tax/tax.module';
+import { WorkspaceCurrencyModule } from '../workspaces/workspace-currency.module';
 import { ReceiptStatementService } from './services/receipt-statement.service';
 import { StatementStageService } from './services/statement-stage.service';
 import { StatementsController } from './statements.controller';
@@ -30,6 +31,7 @@ import { StatementsService } from './statements.service';
     ParsingModule,
     TaxModule,
     ReceiptsModule,
+    WorkspaceCurrencyModule,
   ],
   controllers: [StatementsController],
   providers: [

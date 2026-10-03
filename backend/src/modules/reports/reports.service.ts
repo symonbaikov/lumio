@@ -7,6 +7,7 @@ import * as path from 'path';
 import { Between, In, IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
 import { appError } from '../../common/errors/app-error';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { formatMoney } from '../../common/utils/format-money.util';
 import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
@@ -1758,7 +1759,7 @@ export class ReportsService {
       debit: transaction.debit != null ? Number(transaction.debit) : null,
       credit: transaction.credit != null ? Number(transaction.credit) : null,
       amount: transaction.amount != null ? Number(transaction.amount) : null,
-      currency: transaction.currency || 'KZT',
+      currency: currencyCodeOrDefault(transaction.currency),
       category: neutralize(transaction.category?.name) || UNCATEGORIZED_CATEGORY_NAME,
       branch: neutralize(transaction.branch?.name),
       wallet: neutralize(transaction.wallet?.name),
@@ -2919,10 +2920,7 @@ export class ReportsService {
   }
 
   private normalizeCurrency(currency: string | null | undefined): string {
-    const normalized = String(currency || '')
-      .trim()
-      .toUpperCase();
-    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
+    return currencyCodeOrDefault(currency);
   }
 
   private async getWorkspaceCurrency(workspaceId: string): Promise<string> {

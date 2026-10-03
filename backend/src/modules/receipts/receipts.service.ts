@@ -6,6 +6,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { CaptureLocation } from '../../common/utils/capture-location.util';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import {
   Category,
@@ -24,6 +25,7 @@ import { AuditService } from '../audit/audit.service';
 import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
 import { TransactionAttachmentsService } from '../transactions/services/transaction-attachments.service';
+import { WorkspaceCurrencyService } from '../workspaces/workspace-currency.service';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
 import {
   attachReceiptCategories,
@@ -89,6 +91,7 @@ export class ReceiptsService {
     private readonly receiptProcessor: ReceiptProcessorService,
     private readonly eventEmitter: EventEmitter2,
     private readonly auditService: AuditService,
+    private readonly workspaceCurrency: WorkspaceCurrencyService,
     @Optional()
     private readonly attachmentsService?: TransactionAttachmentsService,
   ) {}
@@ -282,10 +285,11 @@ export class ReceiptsService {
     userId: string,
     options: { attachTo?: string | null } = {},
   ) {
+    const workspaceCurrency = await this.workspaceCurrency.resolve(workspaceId);
     const result = await this.approveOnce(
       id,
       workspaceId,
-      receipt => this.buildTransactionFromReceipt(receipt, workspaceId),
+      receipt => this.buildTransactionFromReceipt(receipt, workspaceId, workspaceCurrency),
       { ...options, userId },
     );
     if (!result) {
@@ -414,6 +418,9 @@ export class ReceiptsService {
     userId: string,
     categoryId?: string,
   ) {
+    // Resolved once for the batch: a receipt whose parse found no currency is
+    // booked in the workspace's own.
+    const workspaceCurrency = await this.workspaceCurrency.resolve(workspaceId);
     const results = {
       approved: 0,
       failed: 0,
@@ -442,7 +449,8 @@ export class ReceiptsService {
         const approved = await this.approveOnce(
           receiptId,
           workspaceId,
-          locked => this.buildTransactionFromReceipt(locked, workspaceId, categoryId),
+          locked =>
+            this.buildTransactionFromReceipt(locked, workspaceId, workspaceCurrency, categoryId),
           { userId },
         );
         if (!approved) {
@@ -718,6 +726,7 @@ export class ReceiptsService {
   private buildTransactionFromReceipt(
     receipt: Receipt,
     workspaceId: string,
+    workspaceCurrency: string,
     categoryId?: string,
   ): Partial<Transaction> {
     const transactionType =
@@ -732,7 +741,7 @@ export class ReceiptsService {
       counterpartyName: receipt.parsedData?.vendor || receipt.subject || 'Unknown',
       paymentPurpose: receipt.parsedData?.vendor || receipt.subject || '',
       amount: receipt.parsedData?.amount ?? null,
-      currency: receipt.parsedData?.currency || 'KZT',
+      currency: currencyCodeOrDefault(receipt.parsedData?.currency, workspaceCurrency),
       categoryId: categoryId ?? (receipt.parsedData?.categoryId || null),
       transactionType,
     };

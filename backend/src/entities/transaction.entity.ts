@@ -148,7 +148,7 @@ export class Transaction {
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   amount: number | null;
 
-  @Column({ default: 'KZT' })
+  @Column()
   currency: string;
 
   @Column({ name: 'exchange_rate', type: 'decimal', precision: 10, scale: 4, nullable: true })

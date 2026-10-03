@@ -7,6 +7,7 @@ import { CustomTableSource } from "../../../src/entities/custom-table.entity";
 import { CustomTableColumnType } from "../../../src/entities/custom-table-column.entity";
 import { TransactionType } from "../../../src/entities/transaction.entity";
 import { CustomTablesService } from "../../../src/modules/custom-tables/custom-tables.service";
+import { workspaceCurrencyStub } from '../../helpers/workspace-currency-stub';
 
 const createRepositoryMock = () => ({
 	findOne: jest.fn(),
@@ -55,6 +56,9 @@ const buildCustomTablesService = (classificationService?: {
 		workspaceMemberRepository as never,
 		auditService as never,
 		classificationService as never,
+		undefined,
+		undefined,
+		workspaceCurrencyStub('EUR') as never,
 	);
 
 	return {
@@ -498,7 +502,7 @@ describe("CustomTablesService.convertToStatement", () => {
 				paymentPurpose: "Hosting",
 				debit: 1234.5,
 				amount: 1234.5,
-				currency: "KZT",
+				currency: "EUR",
 				transactionType: TransactionType.EXPENSE,
 				article: "Infrastructure",
 			}),

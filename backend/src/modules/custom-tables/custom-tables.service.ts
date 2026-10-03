@@ -19,6 +19,7 @@ import {
 } from 'typeorm';
 import * as xlsx from 'xlsx';
 import { appError } from '../../common/errors/app-error';
+import { appDefaultCurrency, currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { normalizeFilename } from '../../common/utils/filename.util';
 import { generateTransactionFingerprint } from '../../common/utils/fingerprint.util';
@@ -52,6 +53,7 @@ import { User } from '../../entities/user.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 import { ClassificationService } from '../classification/services/classification.service';
+import { WorkspaceCurrencyService } from '../workspaces/workspace-currency.service';
 import { CustomTableSourcesService } from './custom-table-sources.service';
 import type { BatchCreateCustomTableRowsDto } from './dto/batch-create-custom-table-rows.dto';
 import type { ClassifyPaidStatusDto } from './dto/classify-paid-status.dto';
@@ -181,6 +183,8 @@ export class CustomTablesService {
     @Optional() private readonly customTableSources?: CustomTableSourcesService,
     // Optional too: unit specs build the service by hand and never recalc.
     @Optional() private readonly formulaRecalc?: FormulaRecalcService,
+    // Optional for the same reason: only converting rows to a statement needs it.
+    @Optional() private readonly workspaceCurrency?: WorkspaceCurrencyService,
   ) {}
 
   private getDriverErrorCode(error: unknown): string | undefined {
@@ -1128,7 +1132,7 @@ export class CustomTablesService {
       const data: RowInsertData = {};
       data[dateKey] = entry.date;
       data[amountKey] = entry.amount;
-      data[currencyKey] = entry.currency || 'KZT';
+      data[currencyKey] = currencyCodeOrDefault(entry.currency);
       data[noteKey] = entry.note || null;
 
       if (dto.scope === DataEntryToCustomTableScope.ALL && typeKey) {
@@ -1354,7 +1358,7 @@ export class CustomTablesService {
       const data: RowInsertData = {};
       data[dateKey] = entry.date;
       data[amountKey] = entry.amount;
-      data[currencyKey] = entry.currency || 'KZT';
+      data[currencyKey] = currencyCodeOrDefault(entry.currency);
       data[noteKey] = entry.note || null;
       return this.customTableRowRepository.create({
         tableId: table.id,
@@ -1486,7 +1490,7 @@ export class CustomTablesService {
         data[amountKey] = entry.amount;
       }
       if (currencyKey) {
-        data[currencyKey] = entry.currency || 'KZT';
+        data[currencyKey] = currencyCodeOrDefault(entry.currency);
       }
       if (noteKey) {
         data[noteKey] = entry.note || null;
@@ -1872,6 +1876,11 @@ export class CustomTablesService {
     };
   }
 
+  /** The workspace's currency, for rows whose money column does not name one. */
+  private async resolveWorkspaceCurrency(workspaceId: string): Promise<string> {
+    return (await this.workspaceCurrency?.resolve(workspaceId)) ?? appDefaultCurrency();
+  }
+
   async convertToStatement(
     userId: string,
     workspaceId: string,
@@ -1925,8 +1934,10 @@ export class CustomTablesService {
     // A money column already knows its currency; rows without an explicit one inherit it.
     const amountColumn = columns.find(column => column.key === mapping.amount);
     const amountCurrency = amountColumn?.config?.currency;
-    const defaultCurrency =
-      typeof amountCurrency === 'string' && amountCurrency ? amountCurrency : 'KZT';
+    const defaultCurrency = currencyCodeOrDefault(
+      typeof amountCurrency === 'string' ? amountCurrency : null,
+      await this.resolveWorkspaceCurrency(workspaceId),
+    );
 
     const converted: ConvertedTransactionInput[] = [];
     const warnings: string[] = [];
@@ -1985,7 +1996,7 @@ export class CustomTablesService {
       Math.max(...converted.map(row => row.transactionDate.getTime())),
     );
     const totalDebit = converted.reduce((sum, row) => sum + row.amount, 0);
-    const currency = converted[0]?.currency || 'KZT';
+    const currency = currencyCodeOrDefault(converted[0]?.currency);
     const fileHash = createHash('sha256').update(csv).digest('hex');
 
     const statementPayload: Partial<Statement> = {
