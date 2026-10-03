@@ -16,6 +16,7 @@ import * as React from 'react';
 import type { Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { retry, TimeoutError, withTimeout } from '../../common/utils/async.util';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { mergeProcessingSettings } from '../../common/utils/workspace-processing.util';
 import { mergeWorkspaceProfile } from '../../common/utils/workspace-profile.util';
 import {
@@ -146,6 +147,9 @@ export class WorkspacesService {
 
     const workspace = this.workspaceRepository.create({
       name: `${user.name || user.email} workspace`,
+      // No one picks a currency on sign-up, and a workspace without one is how
+      // a hardcoded default used to end up on every amount in it.
+      currency: currencyCodeOrDefault(null),
       ownerId: user.id,
     });
     const savedWorkspace = await this.workspaceRepository.save(workspace);
@@ -856,7 +860,7 @@ export class WorkspacesService {
       icon: dto.icon || null,
       color: dto.color || null,
       backgroundImage: dto.backgroundImage || null,
-      currency: dto.currency || null,
+      currency: currencyCodeOrDefault(dto.currency),
       ownerId: userId,
       settings: dto.profile ? mergeWorkspaceProfile(null, dto.profile) : null,
     });
@@ -944,7 +948,9 @@ export class WorkspacesService {
       ...(dto.icon !== undefined && { icon: dto.icon }),
       ...(dto.color !== undefined && { color: dto.color }),
       ...(dto.backgroundImage !== undefined && { backgroundImage: dto.backgroundImage }),
-      ...(dto.currency !== undefined && { currency: dto.currency }),
+      ...(dto.currency !== undefined && {
+        currency: currencyCodeOrDefault(dto.currency, workspace.currency),
+      }),
       ...(dto.isFavorite !== undefined && { isFavorite: dto.isFavorite }),
       // Merged, not replaced: `settings` is a shared blob.
       ...(dto.processing !== undefined && {

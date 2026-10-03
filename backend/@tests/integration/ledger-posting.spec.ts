@@ -185,7 +185,7 @@ describe('ledger posting engine (real Postgres)', () => {
     entryRepo = dataSource.getRepository(JournalEntry);
     onRateLookup = defaultRates;
 
-    const workspace = await dataSource.getRepository(Workspace).save({ name: 'Ledger WS' });
+    const workspace = await dataSource.getRepository(Workspace).save({ name: 'Ledger WS', currency: 'USD' });
     workspaceId = workspace.id;
     const user = await dataSource.getRepository(User).save(
       dataSource.getRepository(User).create({

@@ -158,7 +158,7 @@ describe('ledger sync (real Postgres)', () => {
     sync = moduleRef.get(LedgerSyncService);
     txRepo = dataSource.getRepository(Transaction);
 
-    workspaceId = (await dataSource.getRepository(Workspace).save({ name: 'Sync WS' })).id;
+    workspaceId = (await dataSource.getRepository(Workspace).save({ name: 'Sync WS', currency: 'USD' })).id;
     userId = (
       await dataSource.getRepository(User).save(
         dataSource.getRepository(User).create({
@@ -366,7 +366,7 @@ describe('ledger sync (real Postgres)', () => {
     expect({ status, code }).toEqual({ status: 409, code: 'LEDGER_BASE_CURRENCY_LOCKED' });
 
     // A workspace with nothing booked may still change its mind.
-    const fresh = (await dataSource.getRepository(Workspace).save({ name: 'Fresh WS' })).id;
+    const fresh = (await dataSource.getRepository(Workspace).save({ name: 'Fresh WS', currency: 'USD' })).id;
     await sync.enable(fresh, userId, 'EUR');
     await expect(sync.enable(fresh, userId, 'USD')).resolves.toMatchObject({ baseCurrency: 'USD' });
   });
@@ -506,7 +506,7 @@ describe('ledger sync (real Postgres)', () => {
     });
 
     it('lets a workspace with wallets be deleted', async () => {
-      const doomed = (await dataSource.getRepository(Workspace).save({ name: 'Doomed WS' })).id;
+      const doomed = (await dataSource.getRepository(Workspace).save({ name: 'Doomed WS', currency: 'USD' })).id;
       const wallets = dataSource.getRepository(Wallet);
       await wallets.save(
         wallets.create({ userId, workspaceId: doomed, name: 'W', currency: 'EUR', initialBalance: 1 }),

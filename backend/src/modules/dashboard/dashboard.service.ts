@@ -9,6 +9,7 @@ import {
   type Repository,
   type SelectQueryBuilder,
 } from 'typeorm';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { Payable, PayableDirection, PayableStatus } from '../../entities/payable.entity';
 import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
 import { BankName, Statement, StatementStatus } from '../../entities/statement.entity';
@@ -340,10 +341,7 @@ export class DashboardService {
   }
 
   private normalizeCurrency(currency: string | null | undefined): string {
-    const normalized = String(currency || '')
-      .trim()
-      .toUpperCase();
-    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
+    return currencyCodeOrDefault(currency);
   }
 
   private async convertDashboardAmount(

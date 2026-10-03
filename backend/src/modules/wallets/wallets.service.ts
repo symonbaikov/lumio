@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 import { WorkspaceCrudBaseService } from '../../common/services/workspace-crud-base.service';
 import { Wallet } from '../../entities/wallet.entity';
+import { WorkspaceCurrencyService } from '../workspaces/workspace-currency.service';
 import type { CreateWalletDto } from './dto/create-wallet.dto';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class WalletsService extends WorkspaceCrudBaseService<Wallet> {
   constructor(
     @InjectRepository(Wallet)
     repository: Repository<Wallet>,
+    private readonly workspaceCurrency: WorkspaceCurrencyService,
   ) {
     super(repository, 'Wallet');
   }
@@ -20,7 +22,7 @@ export class WalletsService extends WorkspaceCrudBaseService<Wallet> {
       workspaceId,
       userId,
       ...createDto,
-      currency: createDto.currency || 'KZT',
+      currency: await this.workspaceCurrency.resolveFor(workspaceId, createDto.currency),
       initialBalance: createDto.initialBalance || 0,
       isActive: true,
     });

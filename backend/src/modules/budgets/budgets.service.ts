@@ -24,6 +24,7 @@ import { AuditService } from '../audit/audit.service';
 import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WorkspaceCurrencyService } from '../workspaces/workspace-currency.service';
 import {
   clampToWindow,
   computePeriodRange,
@@ -59,6 +60,7 @@ export class BudgetsService {
     private readonly goalRepository: Repository<Goal>,
     private readonly notificationsService: NotificationsService,
     private readonly auditService: AuditService,
+    private readonly workspaceCurrency: WorkspaceCurrencyService,
     @Optional()
     @InjectRepository(Category)
     private readonly categoryRepository?: Repository<Category>,
@@ -101,7 +103,7 @@ export class BudgetsService {
       name: dto.name,
       categoryId: dto.categoryId,
       limitAmount: dto.limitAmount,
-      currency: dto.currency || 'KZT',
+      currency: await this.workspaceCurrency.resolveFor(workspaceId, dto.currency),
       periodType: dto.periodType,
       rolloverMode: dto.rolloverMode ?? BudgetRolloverMode.NONE,
       currentPeriodStart: start,

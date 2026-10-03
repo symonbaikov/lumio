@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import * as fs from 'fs';
 import * as pdfParse from 'pdf-parse';
 import { stripHtmlForAi } from '../../../common/utils/ai-response.util';
+import { appDefaultCurrency } from '../../../common/utils/currency.util';
 import {
   createReceiptAmountHelpers,
   DEFAULT_RECEIPT_SYMBOL_TO_CURRENCY,
@@ -164,7 +165,7 @@ export class GmailReceiptParserService {
 
     return {
       amount: amountWithCurrency?.amount ?? fallbackAmount,
-      currency: amountWithCurrency?.currency || 'KZT',
+      currency: amountWithCurrency?.currency || appDefaultCurrency(),
       date: normalizeDateHeader(context.dateHeader),
       vendor,
       confidence: vendor ? 0.6 : 0.3,
@@ -209,7 +210,7 @@ export class GmailReceiptParserService {
           ) {
             return {
               amount: universal.totalAmount,
-              currency: universal.currency || 'KZT',
+              currency: universal.currency || appDefaultCurrency(),
               date: universal.date ? universal.date.toISOString().split('T')[0] : undefined,
               vendor: universal.vendor,
               tax: universal.tax,
@@ -227,7 +228,8 @@ export class GmailReceiptParserService {
 
       const amountWithCurrency = await this.extractAmountWithCurrency(text);
       const amount = amountWithCurrency?.amount;
-      const currency = amountWithCurrency?.currency || this.extractCurrency(text) || 'KZT';
+      const currency =
+        amountWithCurrency?.currency || this.extractCurrency(text) || appDefaultCurrency();
       const date = this.extractDate(text);
       const vendor = await this.extractVendorWithAi(text, context);
       const tax = this.extractTax(text);
@@ -301,7 +303,11 @@ export class GmailReceiptParserService {
         const fragmentCurrency = this.amountHelpers.extractCurrency(fragment);
         const lineCurrency = this.amountHelpers.extractCurrency(line);
         const currency =
-          parsed.currency || fragmentCurrency || lineCurrency || documentCurrency || 'KZT';
+          parsed.currency ||
+          fragmentCurrency ||
+          lineCurrency ||
+          documentCurrency ||
+          appDefaultCurrency();
         const explicitCurrency = Boolean(parsed.currency || fragmentCurrency);
 
         candidates.push({

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { CryptoWallet, type CryptoWalletBalance } from '../../entities/crypto-wallet.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
 import { Workspace } from '../../entities/workspace.entity';
@@ -359,7 +360,7 @@ export class CryptoSyncService {
       where: { id: workspaceId },
       select: ['id', 'currency'],
     });
-    return workspace?.currency ?? 'USD';
+    return currencyCodeOrDefault(workspace?.currency);
   }
 
   private async fetchEtherscan<T>(

@@ -209,6 +209,10 @@ export const ERR = {
     'Balances were already revalued on {{date}}; revalue on that day or later',
 
   // Payables
+  PAYABLE_PAYMENT_NOT_POSITIVE: 'A payment must be more than zero',
+  PAYABLE_PAYMENT_EXCEEDS_OUTSTANDING:
+    'That is more than the {{outstanding}} still outstanding on this bill',
+  PAYABLE_PAYMENT_NOT_FOUND: 'Payment not found',
   PAYABLE_PAYMENT_AMBIGUOUS: 'Link a transaction or pay from a wallet, not both',
   PAYABLE_WALLET_NOT_FOUND: 'Wallet not found in this workspace',
   PAYABLE_WALLET_CURRENCY_MISMATCH:
@@ -222,6 +226,19 @@ export const ERR = {
   INVOICE_ZERO_TOTAL: 'An invoice with no line items cannot be sent',
   INVOICE_NOT_VOIDABLE: 'A paid invoice cannot be voided',
   INVOICE_CLIENT_NOT_FOUND: 'Client not found in this workspace',
+  INVOICE_PROFILE_INCOMPLETE:
+    'Fill in your business details before sending an invoice (missing: {{fields}})',
+  INVOICE_NOT_SENT_YET: 'Issue the invoice before emailing it',
+  INVOICE_NO_RECIPIENT: 'This client has no email address, and none was given',
+
+  // ── credit notes ─────────────────────────────────────────────────────────
+  CREDIT_NOTE_INVOICE_NOT_CREDITABLE: 'Only an issued invoice can be credited',
+  CREDIT_NOTE_EXCEEDS_INVOICE:
+    'Invoice {{number}} has only {{creditable}} left that can be credited',
+  CREDIT_NOTE_MIXED_CLIENTS: 'One credit note covers the invoices of one client',
+  CREDIT_NOTE_MIXED_CURRENCIES: 'One credit note covers invoices in one currency',
+  CREDIT_NOTE_ZERO_TOTAL: 'A credit note must credit more than zero',
+  CREDIT_NOTE_ALREADY_VOID: 'This credit note is already void',
 } as const;
 
 export type ErrorCode = keyof typeof ERR;

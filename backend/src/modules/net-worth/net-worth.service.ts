@@ -1,6 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import {
   BalanceAccount,
   BalanceAccountType,
@@ -408,10 +409,7 @@ export class NetWorthService {
       where: { id: workspaceId },
       select: ['currency'],
     });
-    const normalized = String(workspace?.currency || '')
-      .trim()
-      .toUpperCase();
-    return /^[A-Z]{3}$/.test(normalized) ? normalized : 'KZT';
+    return currencyCodeOrDefault(workspace?.currency);
   }
 
   /**

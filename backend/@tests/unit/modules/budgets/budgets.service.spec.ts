@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, NotFoundException } from '@nest
 import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { BudgetPeriodType, BudgetRolloverMode } from '@/entities/budget.entity';
 import { BudgetsService } from '@/modules/budgets/budgets.service';
+import { workspaceCurrencyStub } from '../../../helpers/workspace-currency-stub';
 
 const createRepoMock = () => ({
   create: jest.fn((data: unknown) => data),
@@ -45,6 +46,7 @@ describe('BudgetsService', () => {
       goalRepository as any,
       notificationsService as any,
       auditService as any,
+      workspaceCurrencyStub() as never,
     );
   });
 
@@ -377,6 +379,7 @@ describe('BudgetsService', () => {
         goalRepository as any,
         notificationsService as any,
         auditService as any,
+        workspaceCurrencyStub() as never,
         categoryRepository as any,
         walletRepository as any,
       );

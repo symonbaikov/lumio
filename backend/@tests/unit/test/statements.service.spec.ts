@@ -3,6 +3,7 @@ import { calculateFileHash } from '@/common/utils/file-hash.util';
 import { FileType } from '@/entities/statement.entity';
 import { StatementsService } from '@/modules/statements/statements.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { workspaceCurrencyStub } from '../../helpers/workspace-currency-stub';
 
 jest.mock('@/common/utils/file-hash.util', () => ({
   calculateFileHash: jest.fn(),
@@ -78,6 +79,7 @@ describe('StatementsService', () => {
       cacheManager as any,
       auditService as any,
       { resolve: jest.fn(async () => ({})) } as any,
+      workspaceCurrencyStub() as never,
       eventEmitter as any,
     );
     jest.spyOn(service as any, 'ensureCanEditStatements').mockResolvedValue(undefined);

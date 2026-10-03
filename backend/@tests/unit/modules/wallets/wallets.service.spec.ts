@@ -5,6 +5,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { workspaceCurrencyProvider } from '../../../helpers/workspace-currency-stub';
 
 describe('WalletsService', () => {
   let testingModule: TestingModule;
@@ -30,6 +31,7 @@ describe('WalletsService', () => {
           provide: getRepositoryToken(Wallet),
           useValue: createRepoMock<Wallet>(),
         },
+        workspaceCurrencyProvider('EUR'),
       ],
     }).compile();
 
@@ -70,7 +72,7 @@ describe('WalletsService', () => {
       );
     });
 
-    it('should set default currency to KZT', async () => {
+    it("falls back to the workspace's currency", async () => {
       const dtoWithoutCurrency = {
         name: 'Wallet',
       };
@@ -84,7 +86,7 @@ describe('WalletsService', () => {
 
       expect(createSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          currency: 'KZT',
+          currency: 'EUR',
         }),
       );
     });

@@ -75,6 +75,7 @@ import { BalanceModule } from './modules/balance/balance.module';
 import { BankSyncModule } from './modules/bank-sync/bank-sync.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { BudgetsModule } from './modules/budgets/budgets.module';
+import { BusinessProfileModule } from './modules/business-profile/business-profile.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ClassificationModule } from './modules/classification/classification.module';
 import { CryptoModule } from './modules/crypto/crypto.module';
@@ -261,6 +262,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     SearchModule,
     PayablesModule,
     InvoicesModule,
+    BusinessProfileModule,
     ExchangeRatesModule,
     SubscriptionsModule,
     ReviewInboxModule,

@@ -21,6 +21,7 @@ import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
 import { FileStorageService } from '../../common/services/file-storage.service';
+import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { ensureCanEdit } from '../../common/utils/ensure-can-edit.util';
 import { calculateFileHash } from '../../common/utils/file-hash.util';
 import { resolveFileType, validateFile } from '../../common/utils/file-validator.util';
@@ -43,6 +44,7 @@ import type {
 import { StatementParsingQueue } from '../parsing/queue/statement-parsing.queue';
 import { StatementProcessingService } from '../parsing/services/statement-processing.service';
 import { TaxAssignmentService } from '../tax/tax-assignment.service';
+import { WorkspaceCurrencyService } from '../workspaces/workspace-currency.service';
 import type { ConvertDroppedSampleDto } from './dto/convert-dropped-sample.dto';
 import type { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import type { FilterStatementsDto } from './dto/filter-statements.dto';
@@ -177,6 +179,7 @@ export class StatementsService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
     private readonly taxAssignmentService: TaxAssignmentService,
+    private readonly workspaceCurrency: WorkspaceCurrencyService,
     private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -337,7 +340,7 @@ export class StatementsService {
       throw new BadRequestException('Merchant is required');
     }
 
-    const currency = (payload.currency || 'KZT').trim().toUpperCase();
+    const currency = await this.workspaceCurrency.resolveFor(workspaceId, payload.currency);
     if (!currency) {
       throw new BadRequestException('Currency is required');
     }
@@ -659,11 +662,10 @@ export class StatementsService {
       debit: debit ?? null,
       credit: credit ?? null,
       amount,
-      currency:
-        payload.transaction.currency?.trim() ||
-        String(originalTransaction?.currency || '').trim() ||
-        statement.currency ||
-        'KZT',
+      currency: currencyCodeOrDefault(
+        payload.transaction.currency || String(originalTransaction?.currency || ''),
+        statement.currency,
+      ),
       paymentPurpose:
         payload.transaction.paymentPurpose?.trim() ||
         String(originalTransaction?.paymentPurpose || '').trim() ||
@@ -749,6 +751,10 @@ export class StatementsService {
     // без него два одновременных аплоада одного файла (double-submit, retry)
     // оба проходили check-then-act и создавали дубль выписки с транзакциями.
     // Уникальный индекс тут не подходит — allowDuplicates легально обходит проверку.
+    // Parsing replaces it with the currency the file states; until then the
+    // statement carries the workspace's own (the column has no default).
+    const currency = await this.workspaceCurrency.resolve(workspaceId);
+
     const savedStatement = await this.statementRepository.manager.transaction(async manager => {
       const statements = manager.getRepository(Statement);
       await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
@@ -792,6 +798,7 @@ export class StatementsService {
         fileSize: file.size,
         fileHash,
         bankName: BankName.OTHER, // Will be determined during parsing
+        currency,
         status: StatementStatus.UPLOADED,
         parsingDetails: requireManualCategorySelection
           ? {
