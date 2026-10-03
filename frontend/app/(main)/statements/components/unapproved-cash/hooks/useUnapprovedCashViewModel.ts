@@ -8,6 +8,7 @@ import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import {
@@ -194,7 +195,6 @@ export interface UnapprovedCashViewModel {
   selectedIds: string[];
   ignoredIds: string[];
   loading: boolean;
-  refreshing: boolean;
   filteredQueue: UnapprovedStatementQueueItem[];
   queueWithoutIgnored: UnapprovedStatementQueueItem[];
   visibleIds: string[];
@@ -247,6 +247,10 @@ const buildLabels = ({
   filters: {
     reason: tx(['unapprovedCash', 'filters', 'reason'], 'Reason'),
     source: tx(['unapprovedCash', 'filters', 'source'], 'Source'),
+    date: tx(['unapprovedCash', 'filters', 'date'], 'Date'),
+    anyDate: tx(['unapprovedCash', 'filters', 'anyDate'], 'Any time'),
+    more: tx(['unapprovedCash', 'filters', 'more'], 'Filters'),
+    amount: tx(['unapprovedCash', 'filters', 'amount'], 'Amount'),
     amountFrom: tx(['unapprovedCash', 'filters', 'amountFrom'], 'Amount from'),
     amountTo: tx(['unapprovedCash', 'filters', 'amountTo'], 'Amount to'),
     dateFrom: tx(['unapprovedCash', 'filters', 'dateFrom'], 'Date from'),
@@ -298,7 +302,6 @@ const buildLabels = ({
     ignore: tx(['unapprovedCash', 'actions', 'ignore'], 'Ignore'),
     reviewFix: tx(['unapprovedCash', 'actions', 'reviewFix'], 'Review / Fix'),
     approve: tx(['unapprovedCash', 'actions', 'approve'], 'Approve'),
-    refresh: tx(['unapprovedCash', 'actions', 'refresh'], 'Refresh'),
     applying: tx(['unapprovedCash', 'actions', 'applying'], 'Applying...'),
   },
   empty: {
@@ -343,7 +346,7 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const t = useIntlayer('statementsPage');
-  const workspaceCurrency = (currentWorkspace?.currency || 'KZT').toUpperCase();
+  const workspaceCurrency = (currentWorkspace?.currency || FALLBACK_CURRENCY).toUpperCase();
 
   const tx = useCallback(
     (path: string[], fallback: string): string => resolveLabel(getNestedValue(t, path), fallback),
@@ -408,7 +411,7 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [ignoredIds, setIgnoredIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -580,7 +583,6 @@ export const useUnapprovedCashViewModel = (): UnapprovedCashViewModel => {
     selectedIds,
     ignoredIds,
     loading,
-    refreshing,
     filteredQueue,
     queueWithoutIgnored,
     visibleIds,

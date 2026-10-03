@@ -8,6 +8,7 @@ import { useIsMobile } from '@/app/hooks/useIsMobile';
 import { usePullToRefresh } from '@/app/hooks/usePullToRefresh';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { useIntlayer } from '@/app/i18n';
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import { fetchExchangeRate } from '@/app/lib/exchange-rate';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import {
@@ -154,8 +155,6 @@ export function useStatementsView({
   // state
   page: number;
   setPage: (p: number) => void;
-  searchInput: string;
-  setSearchInput: (v: string) => void;
   search: string;
   dateSortDirection: 'asc' | 'desc';
   setDateSortDirection: (d: 'asc' | 'desc') => void;
@@ -249,8 +248,9 @@ export function useStatementsView({
   const t = useIntlayer('statementsPage');
 
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInputState] = useState('');
-  const [search, setSearch] = useState('');
+  // The page has no search box any more; the list is narrowed by the filter
+  // chips and the route alone, and the query key keeps its shape.
+  const search = '';
   const [dateSortDirection, setDateSortDirection] = useState<'desc' | 'asc'>('desc');
   const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
   const [expenseDrawerMode, setExpenseDrawerMode] = useState<StatementExpenseMode>('scan');
@@ -331,14 +331,6 @@ export function useStatementsView({
     loadListErrorLabel: resolveLabel(t.loadListError, 'Failed to load statements'),
     refreshFailedLabel: resolveLabel(t.refreshFailed, 'Failed to refresh statements'),
   });
-
-  // Debounce now lives in the search box (StatementsListHeader); by the time
-  // the value reaches the view it is final, so apply it immediately.
-  const setSearchInput = useCallback((value: string): void => {
-    setSearchInputState(value);
-    setSearch(value.trim());
-    setPage(1);
-  }, []);
 
   // Effect events: the loaders are re-created by their hooks each render, and
   // an eslint-disable inside a hook makes React Compiler skip the whole hook.
@@ -550,7 +542,8 @@ export function useStatementsView({
   const exchangeRateColumnVisible = appliedColumnsWithLabels.some(
     column => column.id === 'exchangeRate' && column.visible,
   );
-  const exchangeRateTargetCurrency = normalizeCurrencyCode(currentWorkspace?.currency) ?? 'KZT';
+  const exchangeRateTargetCurrency =
+    normalizeCurrencyCode(currentWorkspace?.currency) ?? FALLBACK_CURRENCY;
   const exchangeRateSourceCurrencies = useMemo(() => {
     if (!exchangeRateColumnVisible) {
       return [];
@@ -623,8 +616,6 @@ export function useStatementsView({
   return {
     page,
     setPage,
-    searchInput,
-    setSearchInput,
     search,
     dateSortDirection,
     setDateSortDirection,

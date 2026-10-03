@@ -33,6 +33,7 @@ import {
 import { StatementsListHeader } from './StatementsListHeader';
 import { StatementsListTable } from './StatementsListTable';
 import { isGmailStatement, resolveStatementViewAction } from './StatementsListView.utils';
+import { StatementsTableToolbar } from './StatementsTableToolbar';
 import { uploadScanDrawerFiles as runUploadScanDrawerFiles } from './statement-upload';
 
 type Props = { stage: StatementStage };
@@ -204,7 +205,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   useLockBodyScroll(v.expenseDrawerOpen);
 
   useKeyboardShortcuts({
-    'Shift+x': () => v.handleToggleSelectAll(true),
+    'Shift+KeyX': () => v.handleToggleSelectAll(true),
     'Shift+Delete': () => {
       void v.handleDeleteSelected();
     },
@@ -358,18 +359,12 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         isReadyToRefresh={v.isReadyToRefresh}
       />
       <StatementsListHeader
-        searchInput={v.searchInput}
-        searchPlaceholder={resolveLabel(t.searchPlaceholder, 'Search statements')}
         selectedCount={v.selectedCount}
         selectedActionsOpen={v.selectedActionsOpen}
         hasSelectedDuplicates={v.hasSelectedDuplicates}
-        loading={v.isPending}
         draftFilters={filterState.draftFilters}
         activeFilterCount={v.activeFilterCount}
-        typeDropdownOpen={filterState.typeDropdownOpen}
-        statusDropdownOpen={filterState.statusDropdownOpen}
         dateDropdownOpen={filterState.dateDropdownOpen}
-        fromDropdownOpen={filterState.fromDropdownOpen}
         filtersDrawerOpen={filterState.filtersDrawerOpen}
         filtersDrawerScreen={filterState.filtersDrawerScreen}
         columnsDrawerOpen={filterState.columnsDrawerOpen}
@@ -377,7 +372,6 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         visibleFilterScreens={v.visibleFilterScreens}
         routeFilterLabel={v.routeFilterLabel}
         onResetRouteFilter={v.resetRouteFilters}
-        duplicateStatementIds={v.duplicateStatementIds}
         typeOptions={v.typeOptions}
         statusOptions={v.statusOptions}
         datePresets={v.datePresets}
@@ -392,8 +386,6 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         mergeDuplicatesLabel={mergeDuplicatesLabel}
         dismissDuplicateLabel={dismissDuplicateLabel}
         markDuplicateLabel={markDuplicateLabel}
-        selectDuplicatesLabel={selectDuplicatesLabel}
-        onSearchChange={v.setSearchInput}
         onToggleActionsOpen={() => v.setSelectedActionsOpen(prev => !prev)}
         onMerge={v.handleMergeSelectedDuplicates}
         onDismiss={v.handleDismissSelectedDuplicates}
@@ -401,11 +393,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         onExport={v.handleExportSelected}
         onDelete={v.handleDeleteSelected}
         stageMove={bulkStageMove}
-        onSelectDetectedDuplicates={v.handleSelectDetectedDuplicates}
-        onTypeDropdownChange={filterState.setTypeDropdownOpen}
-        onStatusDropdownChange={filterState.setStatusDropdownOpen}
         onDateDropdownChange={filterState.setDateDropdownOpen}
-        onFromDropdownChange={filterState.setFromDropdownOpen}
         onFiltersDrawerClose={() => filterState.setFiltersDrawerOpen(false)}
         onFiltersDrawerOpen={() => {
           filterState.setDraftFilters(filterState.appliedFilters);
@@ -420,26 +408,11 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
           filterState.applyFilterChanges();
           filterState.setFiltersDrawerOpen(false);
         }}
-        onApplyType={() => filterState.applyAndClose(() => filterState.setTypeDropdownOpen(false))}
-        onResetType={() =>
-          filterState.resetAndClose('type', () => filterState.setTypeDropdownOpen(false))
-        }
-        onApplyStatus={() =>
-          filterState.applyAndClose(() => filterState.setStatusDropdownOpen(false))
-        }
-        onResetStatus={() =>
-          filterState.resetAndClose('statuses', () => filterState.setStatusDropdownOpen(false))
-        }
         onApplyDate={() => filterState.applyAndClose(() => filterState.setDateDropdownOpen(false))}
         onResetDate={() =>
           filterState.resetAndClose('date', () => filterState.setDateDropdownOpen(false))
         }
-        onApplyFrom={() => filterState.applyAndClose(() => filterState.setFromDropdownOpen(false))}
-        onResetFrom={() =>
-          filterState.resetAndClose('from', () => filterState.setFromDropdownOpen(false))
-        }
         onColumnsClose={() => filterState.setColumnsDrawerOpen(false)}
-        onColumnsOpen={filterState.handleColumnsOpen}
         onColumnsToggle={filterState.updateColumnsToggle}
         onColumnsReorder={filterState.handleReorderColumns}
         onColumnsSave={filterState.handleSaveColumns}
@@ -455,6 +428,32 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
           entityIds={v.paginatedDisplayStatements.map(statement => statement.id)}
         >
           <StatementsListTable
+            toolbar={
+              <StatementsTableToolbar
+                loading={v.isPending}
+                draftFilters={filterState.draftFilters}
+                fromOptions={v.fromOptions}
+                fromDropdownOpen={filterState.fromDropdownOpen}
+                duplicateStatementIds={v.duplicateStatementIds}
+                labels={{
+                  from: v.filterLabels.from,
+                  columns: v.filterLabels.columns,
+                  apply: v.filterOptionLabels.apply,
+                  reset: v.filterOptionLabels.reset,
+                  selectDuplicates: selectDuplicatesLabel,
+                }}
+                onFromDropdownChange={filterState.setFromDropdownOpen}
+                onUpdateFilters={filterState.updateFilter}
+                onApplyFrom={() =>
+                  filterState.applyAndClose(() => filterState.setFromDropdownOpen(false))
+                }
+                onResetFrom={() =>
+                  filterState.resetAndClose('from', () => filterState.setFromDropdownOpen(false))
+                }
+                onSelectDetectedDuplicates={v.handleSelectDetectedDuplicates}
+                onColumnsOpen={filterState.handleColumnsOpen}
+              />
+            }
             loading={v.isPending}
             displayStatements={v.displayStatements}
             paginatedStatements={v.paginatedDisplayStatements}

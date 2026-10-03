@@ -14,6 +14,9 @@ type InsightData = Record<string, unknown> | null;
  * `?month=` names the month the advice judged, so the page shows the numbers
  * the advice quoted instead of its own default period.
  */
+/** The three leaderboards live as sections of one tab, so they share a route. */
+const CASH_FLOW = '/reports?tab=cash-flow';
+
 const STATIC_ROUTES: Record<string, string> = {
   'operational.unapproved_count': '/statements/approve',
   'operational.uncategorized_count': '/statements/submit?missingCategory=true',
@@ -59,7 +62,7 @@ const EXPERT_TARGETS: Record<string, string> = {
   budgets: '/budgets',
   goals: '/goals',
   dashboard: '/dashboard?tab=overview',
-  merchants: '/statements/top-merchants',
+  merchants: CASH_FLOW,
 };
 
 /** Advice about one budget lands on its card; otherwise on its class. */
@@ -79,10 +82,10 @@ const habitRoute = (data: InsightData): string => {
   const merchant = readString(data, 'merchant');
   if (merchant === null) {
     return readString(data, 'stoicClass') === null
-      ? withQuery('/statements/top-merchants', { month: readMonth(data) })
+      ? withQuery(CASH_FLOW, { month: readMonth(data) })
       : stoicClassRoute(data);
   }
-  return withQuery('/statements/top-merchants', {
+  return withQuery(CASH_FLOW, {
     month: readMonth(data),
     focus: `merchant:${merchant.trim().toLowerCase()}`,
   });
@@ -104,7 +107,7 @@ const DATA_ROUTES: Record<string, (data: InsightData) => string | null> = {
     const name = readString(data, 'categoryName');
     return name === null
       ? null
-      : withQuery('/statements/top-categories', {
+      : withQuery(CASH_FLOW, {
           month: readMonth(data),
           focus: `category:${name.trim().toLowerCase()}`,
         });

@@ -1,7 +1,8 @@
-import { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { useContext, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import type { GmailReceipt, StatementMeta, Transaction } from '../types/statement-types';
+import { AnalyticsDataContext } from './analytics-data-context';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -13,7 +14,7 @@ export type WorkspaceFilterValue = 'current' | 'all' | string;
 
 type WorkspaceLike = { id: string; name?: string | null };
 
-interface UseAnalyticsDataParams {
+export interface UseAnalyticsDataParams {
   user: unknown;
   currentWorkspace: WorkspaceLike | null | undefined;
   workspaces: WorkspaceLike[];
@@ -86,16 +87,25 @@ async function fetchAllPages<T>(
 // Hook
 // ---------------------------------------------------------------------------
 
+/**
+ * Fetches statements (and optionally transactions) and Gmail receipts for the
+ * selected workspaces. Several analytics views on one page would each run this
+ * over the same data, so `useAnalyticsData` below hands them a shared result
+ * when an `AnalyticsDataProvider` is above them; this is the fetching half.
+ */
 // eslint-disable-next-line max-lines-per-function
-export function useAnalyticsData({
-  user,
-  currentWorkspace,
-  workspaces,
-  workspaceFilter,
-  currentWorkspaceLabel,
-  includeTransactions = false,
-  errorToastMessage = 'Failed to load data',
-}: UseAnalyticsDataParams): UseAnalyticsDataResult {
+export function useAnalyticsDataFetch(
+  {
+    user,
+    currentWorkspace,
+    workspaces,
+    workspaceFilter,
+    currentWorkspaceLabel,
+    includeTransactions = false,
+    errorToastMessage = 'Failed to load data',
+  }: UseAnalyticsDataParams,
+  enabled = true,
+): UseAnalyticsDataResult {
   const [statements, setStatements] = useState<StatementMeta[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [gmailReceipts, setGmailReceipts] = useState<GmailReceipt[]>([]);
@@ -238,12 +248,15 @@ export function useAnalyticsData({
   });
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     let isMounted = true;
     void loadAnalytics(() => isMounted);
     return () => {
       isMounted = false;
     };
-  }, [user, workspaceTargetKey]);
+  }, [user, workspaceTargetKey, enabled]);
 
   return {
     statements,
@@ -253,4 +266,16 @@ export function useAnalyticsData({
     workspaceTargets,
     workspaceTargetKey,
   };
+}
+
+/**
+ * The analytics data for these params: shared with the rest of the page when an
+ * `AnalyticsDataProvider` is above this call, fetched on its own otherwise.
+ * Callers pass their own params either way — only the provider-less path uses
+ * them, and the provider is set up to fetch the superset its children need.
+ */
+export function useAnalyticsData(params: UseAnalyticsDataParams): UseAnalyticsDataResult {
+  const shared = useContext(AnalyticsDataContext);
+  const own = useAnalyticsDataFetch(params, shared === null);
+  return shared ?? own;
 }

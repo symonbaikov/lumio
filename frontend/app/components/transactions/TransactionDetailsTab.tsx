@@ -14,6 +14,7 @@ import {
 import { Select } from '@/app/components/ui/select';
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
+import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import { tokens } from '@/lib/theme-tokens';
 import { ConvertedAmountRow } from './ConvertedAmountRow';
@@ -189,10 +190,14 @@ export function TransactionDetailsTab({
                 {showConverted && transaction.convertedAmount !== undefined
                   ? formatAmount(
                       transaction.convertedAmount,
-                      transaction.convertedCurrency ?? 'KZT',
+                      transaction.convertedCurrency ?? FALLBACK_CURRENCY,
                       locale,
                     )
-                  : formatAmount(transaction.debit, transaction.currency ?? 'KZT', locale)}
+                  : formatAmount(
+                      transaction.debit,
+                      transaction.currency ?? FALLBACK_CURRENCY,
+                      locale,
+                    )}
                 {showConverted && transaction.convertedAmount !== undefined && (
                   <div
                     style={{
@@ -202,7 +207,11 @@ export function TransactionDetailsTab({
                       color: 'var(--color-error-soft-border)',
                     }}
                   >
-                    {formatAmount(transaction.debit, transaction.currency ?? 'KZT', locale)}
+                    {formatAmount(
+                      transaction.debit,
+                      transaction.currency ?? FALLBACK_CURRENCY,
+                      locale,
+                    )}
                   </div>
                 )}
               </>
@@ -223,10 +232,14 @@ export function TransactionDetailsTab({
                 {showConverted && transaction.convertedAmount !== undefined
                   ? formatAmount(
                       transaction.convertedAmount,
-                      transaction.convertedCurrency ?? 'KZT',
+                      transaction.convertedCurrency ?? FALLBACK_CURRENCY,
                       locale,
                     )
-                  : formatAmount(transaction.credit, transaction.currency ?? 'KZT', locale)}
+                  : formatAmount(
+                      transaction.credit,
+                      transaction.currency ?? FALLBACK_CURRENCY,
+                      locale,
+                    )}
                 {showConverted && transaction.convertedAmount !== undefined && (
                   <div
                     style={{
@@ -236,7 +249,11 @@ export function TransactionDetailsTab({
                       color: 'var(--color-success-soft-border)',
                     }}
                   >
-                    {formatAmount(transaction.credit, transaction.currency ?? 'KZT', locale)}
+                    {formatAmount(
+                      transaction.credit,
+                      transaction.currency ?? FALLBACK_CURRENCY,
+                      locale,
+                    )}
                   </div>
                 )}
               </>
@@ -647,7 +664,7 @@ export function TransactionDetailsTab({
           open={splitOpen}
           transactionId={transaction.id}
           totalAmount={splitTotal}
-          currency={transaction.currency ?? 'KZT'}
+          currency={transaction.currency ?? FALLBACK_CURRENCY}
           categories={splitCategories}
           saving={splitSaving}
           locale={locale}

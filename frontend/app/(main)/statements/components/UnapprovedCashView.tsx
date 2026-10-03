@@ -5,13 +5,13 @@ import type React from 'react';
 import { UnapprovedCashBulkActions } from '@/app/(main)/statements/components/unapproved-cash/components/UnapprovedCashBulkActions';
 import { UnapprovedCashContent } from '@/app/(main)/statements/components/unapproved-cash/components/UnapprovedCashContent';
 import { UnapprovedCashFilterBar } from '@/app/(main)/statements/components/unapproved-cash/components/UnapprovedCashFilterBar';
-import { UnapprovedCashPageHeader } from '@/app/(main)/statements/components/unapproved-cash/components/UnapprovedCashPageHeader';
 import { UnapprovedCashStatCards } from '@/app/(main)/statements/components/unapproved-cash/components/UnapprovedCashStatCards';
 import {
   type UnapprovedCashViewModel,
   useUnapprovedCashViewModel,
 } from '@/app/(main)/statements/components/unapproved-cash/hooks/useUnapprovedCashViewModel';
 import { tokens } from '@/lib/theme-tokens';
+import { StatementsQueueTabs } from './StatementsQueueTabs';
 
 const CONTAINER_STYLE: React.CSSProperties = {
   display: 'flex',
@@ -33,14 +33,20 @@ function UnapprovedCashControls({ vm }: VmProps): React.JSX.Element {
     <div
       style={{ marginBottom: 16, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}
     >
-      <UnapprovedCashPageHeader
-        title={labels.title}
-        subtitle={labels.subtitle}
-        refreshLabel={labels.actions.refresh}
-        loading={vm.loading}
-        refreshing={vm.refreshing}
-        onRefresh={() => void vm.loadQueueData(true)}
-      />
+      {/* One row, like every other statements page: the tabs, then the filters. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <StatementsQueueTabs />
+        </div>
+        <UnapprovedCashFilterBar
+          filters={vm.filters}
+          reasonOptions={reasonOptions}
+          sourceOptions={sourceOptions}
+          labels={{ filters: labels.filters }}
+          setFilters={vm.setFilters}
+          resetFilters={vm.resetFilters}
+        />
+      </div>
       <UnapprovedCashStatCards
         totalCount={vm.queueWithoutIgnored.length}
         reasonCounts={vm.reasonCounts}
@@ -50,14 +56,6 @@ function UnapprovedCashControls({ vm }: VmProps): React.JSX.Element {
           duplicates: labels.summary.duplicates,
           confirmation: labels.summary.confirmation,
         }}
-      />
-      <UnapprovedCashFilterBar
-        filters={vm.filters}
-        reasonOptions={reasonOptions}
-        sourceOptions={sourceOptions}
-        labels={{ searchPlaceholder: labels.searchPlaceholder, filters: labels.filters }}
-        setFilters={vm.setFilters}
-        resetFilters={vm.resetFilters}
       />
       <UnapprovedCashBulkActions
         selectedCount={vm.selectedCount}

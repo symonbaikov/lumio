@@ -26,7 +26,7 @@ describe('insightHref', () => {
     );
 
     expect(href).toBe(
-      '/statements/top-categories?focus=category%3Amarketing%20and%20advertising',
+      '/reports?tab=cash-flow&focus=category%3Amarketing%20and%20advertising',
     );
   });
 
@@ -40,7 +40,7 @@ describe('insightHref', () => {
           data: { month: '2026-09', categoryName: 'Travel' },
         }),
       ),
-    ).toBe('/statements/top-categories?month=2026-09&focus=category%3Atravel');
+    ).toBe('/reports?tab=cash-flow&month=2026-09&focus=category%3Atravel');
   });
 
   it('ignores a month that is not one', () => {
@@ -48,7 +48,7 @@ describe('insightHref', () => {
       insightHref(
         makeInsight({ type: 'trend.spending_up', data: { month: 'none', categoryName: 'Travel' } }),
       ),
-    ).toBe('/statements/top-categories?focus=category%3Atravel');
+    ).toBe('/reports?tab=cash-flow&focus=category%3Atravel');
   });
 
   it('leaves a rising category unlinked when the name is missing', () => {
@@ -179,7 +179,7 @@ describe('insightHref', () => {
   });
 
   it('sends habits, fortune, commitments and subscriptions to where they are seen', () => {
-    expect(insightHref(makeInsight({ type: 'stoic.habit' }))).toBe('/statements/top-merchants');
+    expect(insightHref(makeInsight({ type: 'stoic.habit' }))).toBe('/reports?tab=cash-flow');
     expect(insightHref(makeInsight({ type: 'stoic.fortune' }))).toBe('/dashboard?tab=overview');
     expect(insightHref(makeInsight({ type: 'stoic.commitments' }))).toBe('/dashboard?tab=overview');
     expect(insightHref(makeInsight({ type: 'stoic.subscriptions' }))).toBe('/subscriptions');
@@ -190,7 +190,7 @@ describe('insightHref', () => {
       insightHref(
         makeInsight({ type: 'stoic.habit', data: { month: '2026-09', merchant: ' Café Einstein ' } }),
       ),
-    ).toBe('/statements/top-merchants?month=2026-09&focus=merchant%3Acaf%C3%A9%20einstein');
+    ).toBe('/reports?tab=cash-flow&month=2026-09&focus=merchant%3Acaf%C3%A9%20einstein');
   });
 
   it('sends the weekend habit, which names no merchant, to its class', () => {
@@ -217,6 +217,6 @@ describe('insightHref', () => {
     ).toBe('/budgets');
     expect(
       insightHref(makeInsight({ type: 'expert.principle', data: { target: 'merchants' } })),
-    ).toBe('/statements/top-merchants');
+    ).toBe('/reports?tab=cash-flow');
   });
 });

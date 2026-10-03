@@ -13,7 +13,9 @@ import { useIntlayer } from '@/app/i18n';
 import { Spinner } from '../ui/spinner';
 import { CryptoPortfolioCard } from './CryptoPortfolioCard';
 import { computeNet, computeSavingsRate } from './dashboard-stats.util';
+import { GoalsProgressCard } from './GoalsProgressCard';
 import { RecentTransactionsCard } from './RecentTransactionsCard';
+import { SpendCalendarCard } from './SpendCalendarCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
 import { CardLink, DashboardCard, KpiCard } from './ui';
 import { useMonthLabel } from './use-month-label';
@@ -154,7 +156,7 @@ export function OverviewTab({
         <DashboardCard
           title={t.topCategoriesTitle}
           subtitle={monthLabel}
-          action={<CardLink href="/statements/top-categories">{t.viewAll}</CardLink>}
+          action={<CardLink href="/reports?tab=cash-flow">{t.viewAll}</CardLink>}
         >
           <TopCategoriesCard categories={data.topCategories ?? []} formatAmount={formatAmount} />
         </DashboardCard>
@@ -164,6 +166,8 @@ export function OverviewTab({
           viewAllHref={viewAllHref}
         />
       </div>
+      <SpendCalendarCard displayMonth={displayMonth} />
+      <GoalsProgressCard month={monthKey(displayMonth)} monthLabel={monthLabel} />
       <div className="lumio-dashboard__grid lumio-dashboard__grid--pair">
         <BudgetSummaryWidget />
         <CashRunwayWidget formatAmount={formatAmount} />

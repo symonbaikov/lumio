@@ -97,6 +97,8 @@ interface TableLabels {
 }
 
 interface Props {
+  /** The list's own toolbar, drawn inside the white block above the rows. */
+  toolbar?: React.ReactNode;
   loading: boolean;
   displayStatements: StatementForTable[];
   paginatedStatements: StatementForTable[];
@@ -284,6 +286,7 @@ function TableDesktopHeader({
 }
 
 export function StatementsListTable({
+  toolbar,
   loading,
   displayStatements,
   paginatedStatements,
@@ -314,20 +317,28 @@ export function StatementsListTable({
   const listText = useIntlayer('statementsListUi');
   if (loading && gmailSyncSkeletonKeys.length === 0) {
     return (
-      <div className="lumio-stmt-list-view__loading">
-        <Spinner style={{ height: 80, width: 80, color: 'var(--primary)' }} />
+      <div className="lumio-stmt-list-view__table">
+        {toolbar}
+        <div className="lumio-stmt-list-view__loading">
+          <Spinner style={{ height: 80, width: 80, color: 'var(--primary)' }} />
+        </div>
       </div>
     );
   }
 
   if (displayStatements.length === 0 && gmailSyncSkeletonKeys.length === 0) {
     return (
-      <div className="lumio-stmt-list-view__empty">
-        <EmptyStateIllustration name="statements" size="lg" />
-        <h3 style={{ fontSize: 18, fontWeight: 500, color: 'var(--foreground)' }}>
-          {labels.emptyTitle}
-        </h3>
-        <p style={{ marginTop: 4, color: 'var(--muted-foreground)' }}>{labels.emptyDescription}</p>
+      <div className="lumio-stmt-list-view__table">
+        {toolbar}
+        <div className="lumio-stmt-list-view__empty">
+          <EmptyStateIllustration name="statements" size="lg" />
+          <h3 style={{ fontSize: 18, fontWeight: 500, color: 'var(--foreground)' }}>
+            {labels.emptyTitle}
+          </h3>
+          <p style={{ marginTop: 4, color: 'var(--muted-foreground)' }}>
+            {labels.emptyDescription}
+          </p>
+        </div>
       </div>
     );
   }
@@ -336,6 +347,7 @@ export function StatementsListTable({
     <>
       <div className="lumio-stmt-list-view__table-scroll">
         <div className="lumio-stmt-list-view__table">
+          {toolbar}
           <TableDesktopHeader
             allVisibleSelected={allVisibleSelected}
             selectedCount={selectedCount}
