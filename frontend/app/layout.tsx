@@ -72,14 +72,13 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>): Promise<React.JSX.Element> {
   const locale = await getLocale();
   const resolvedLocale = normalizeLocale(typeof locale === 'string' ? locale : undefined);
-  const direction = resolvedLocale.startsWith('ar') ? 'rtl' : 'ltr';
   const t = getIntlayer('layout', locale);
   const initialPaletteMode = parsePaletteModeCookie(
     (await cookies()).get(PALETTE_MODE_COOKIE)?.value,
   );
 
   return (
-    <html lang={resolvedLocale} dir={direction} suppressHydrationWarning>
+    <html lang={resolvedLocale} suppressHydrationWarning>
       {process.env.NODE_ENV === 'development' ? <ReactScan /> : null}
       <body className={FONT_CLASS_NAMES} style={BODY_STYLE} suppressHydrationWarning>
         {/* First Tab stop: jumps past the sidebar and top bar; shown only while focused. */}

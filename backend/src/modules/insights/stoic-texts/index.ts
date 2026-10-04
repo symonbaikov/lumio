@@ -1,4 +1,3 @@
-import { ar } from './ar';
 import { be } from './be';
 import { bg } from './bg';
 import { bs } from './bs';
@@ -47,7 +46,6 @@ export const STOIC_TEXTS: Record<string, StoicTextMap> = {
   tr,
   uk,
   zh,
-  ar,
   pl,
   it,
   sk,

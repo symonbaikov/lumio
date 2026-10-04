@@ -17,7 +17,6 @@ const AUTH_GREETINGS = {
   sk: 'Vitajte',
   pt: 'Bem-vindo',
   tr: 'Hoş geldiniz',
-  ar: 'مرحباً',
   it: 'Benvenuto',
   ja: 'ようこそ',
   ko: '환영합니다',
@@ -43,8 +42,6 @@ const AUTH_GREETINGS = {
   hsb: 'Witajće',
 } satisfies Record<AppLocale, string>;
 
-const RTL_LOCALES = new Set<AppLocale>(['ar']);
-
 /**
  * The form's heading, in the interface language and nothing else. It used to
  * cycle through every locale every four seconds; a form is where people
@@ -61,7 +58,6 @@ export function AuthGreeting(): React.JSX.Element {
       color="text.primary"
       align="center"
       lang={current}
-      dir={RTL_LOCALES.has(current) ? 'rtl' : 'ltr'}
       sx={{ mb: 2, lineHeight: 1.2, px: 1, overflowWrap: 'break-word' }}
     >
       {AUTH_GREETINGS[current]}

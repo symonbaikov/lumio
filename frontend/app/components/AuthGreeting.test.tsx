@@ -22,11 +22,7 @@ describe('AuthGreeting', () => {
     vi.useRealTimers();
   });
 
-  it('writes Arabic right to left and falls back to English for unknown locales', () => {
-    current.locale = 'ar';
-    const { unmount } = render(<AuthGreeting />);
-    expect(screen.getByRole('heading').getAttribute('dir')).toBe('rtl');
-    unmount();
+  it('falls back to English for unknown locales', () => {
     current.locale = 'xx';
     render(<AuthGreeting />);
     expect(screen.getByRole('heading').textContent).toBe('Welcome');

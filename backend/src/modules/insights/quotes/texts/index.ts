@@ -1,4 +1,3 @@
-import { ar } from './ar';
 import { be } from './be';
 import { bg } from './bg';
 import { bs } from './bs';
@@ -48,7 +47,6 @@ export const QUOTE_TEXTS: Record<string, QuoteTexts> = {
   tr,
   uk,
   zh,
-  ar,
   pl,
   it,
   sk,

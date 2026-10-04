@@ -14,7 +14,6 @@ const content = {
       tr: 'Saat dilimi bulunamadı',
       uk: 'Часові пояси не знайдено',
       zh: '未找到时区',
-      ar: 'لم يتم العثور على مناطق زمنية',
       pl: 'Nie znaleziono stref czasowych',
       it: 'Nessun fuso orario trovato',
       sk: 'Nenašli sa žiadne časové pásma',

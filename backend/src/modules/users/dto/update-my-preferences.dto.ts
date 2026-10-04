@@ -23,7 +23,6 @@ export enum AppLocale {
   SK = 'sk',
   PT = 'pt',
   TR = 'tr',
-  AR = 'ar',
   IT = 'it',
   JA = 'ja',
   KO = 'ko',
