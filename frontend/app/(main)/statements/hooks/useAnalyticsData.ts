@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import type { GmailReceipt, StatementMeta, Transaction } from '../types/statement-types';
 import { AnalyticsDataContext } from './analytics-data-context';
+import { keepConfirmed } from './confirmed-analytics';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -227,9 +228,11 @@ export function useAnalyticsDataFetch(
       if (!isMounted()) {
         return;
       }
+      // Every number built from these is a statistic: unconfirmed rows stay out.
+      const confirmed = keepConfirmed({ transactions: allTransactions, receipts: allReceipts });
       setStatements(allStatements);
-      setTransactions(allTransactions);
-      setGmailReceipts(allReceipts);
+      setTransactions(confirmed.transactions);
+      setGmailReceipts(confirmed.receipts);
     })()
       .catch(async error => {
         console.error('Failed to load analytics data', error);

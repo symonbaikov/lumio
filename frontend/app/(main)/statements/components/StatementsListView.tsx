@@ -22,7 +22,6 @@ import type {
   ManualExpenseDraft,
   TaxRateOption,
 } from '@/app/lib/statement-expense-drawer';
-import type { StatementStage } from '@/app/lib/statement-workflow';
 import type { MergeDuplicatesPlan } from './hooks/useStatementSelection';
 import { useStatementsView } from './hooks/useStatementsView';
 import {
@@ -35,8 +34,6 @@ import { StatementsListTable } from './StatementsListTable';
 import { isGmailStatement, resolveStatementViewAction } from './StatementsListView.utils';
 import { StatementsTableToolbar } from './StatementsTableToolbar';
 import { uploadScanDrawerFiles as runUploadScanDrawerFiles } from './statement-upload';
-
-type Props = { stage: StatementStage };
 
 // A created row normally replaces its placeholder within one refetch. The
 // fallback covers a row the list never shows (hidden by search or a filter) or
@@ -193,11 +190,11 @@ function MergeDuplicatesSummary({
 
 // ---- Main component ----
 
-export default function StatementsListView({ stage }: Props): React.JSX.Element {
+export default function StatementsListView(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listScrollRef = useRef<HTMLDivElement | null>(null);
-  const v = useStatementsView({ stage, router, searchParams, listScrollRef });
+  const v = useStatementsView({ router, searchParams, listScrollRef });
   const queryClient = useQueryClient();
   const workspaceId = useWorkspaceId();
   const listText = useIntlayer('statementsListUi');
@@ -212,18 +209,6 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
   });
 
   const { t, filterState, listHeaderLabels, paginationLabels, uploadLabels } = v;
-
-  // Pay is left out: moving to Pay creates a payable from each statement's
-  // transactions, which the statement page does one statement at a time.
-  const bulkStageMove =
-    stage === 'submit'
-      ? { label: listText.submit.value, onMove: () => void v.handleMoveSelectedToStage('approve') }
-      : stage === 'approve'
-        ? {
-            label: listText.unapprove.value,
-            onMove: () => void v.handleMoveSelectedToStage('submit'),
-          }
-        : undefined;
 
   // Опции загрузчика растворились: search — часть ключа запроса, ошибку
   // рапортует сам хук данных. Остаётся только сбросить страницу и перезапросить.
@@ -392,7 +377,6 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
         onMarkDuplicate={v.handleMarkSelectedAsDuplicate}
         onExport={v.handleExportSelected}
         onDelete={v.handleDeleteSelected}
-        stageMove={bulkStageMove}
         onDateDropdownChange={filterState.setDateDropdownOpen}
         onFiltersDrawerClose={() => filterState.setFiltersDrawerOpen(false)}
         onFiltersDrawerOpen={() => {
@@ -468,6 +452,7 @@ export default function StatementsListView({ stage }: Props): React.JSX.Element 
             rangeEnd={v.rangeEnd}
             total={v.total}
             duplicateMetaById={v.duplicateMetaById}
+            statementReviewCounts={v.statementReviewCounts}
             columns={v.appliedColumnsWithLabels}
             currentExchangeRateLabels={v.currentExchangeRateLabels}
             workspaceCurrency={v.currentWorkspace?.currency}

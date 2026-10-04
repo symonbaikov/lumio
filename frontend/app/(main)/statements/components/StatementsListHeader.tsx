@@ -120,7 +120,6 @@ interface Props {
   onMarkDuplicate: () => void;
   onExport: () => void;
   onDelete: () => void;
-  stageMove?: { label: string; onMove: () => void };
   onDateDropdownChange: (open: boolean) => void;
   onFiltersDrawerClose: () => void;
   onFiltersDrawerOpen: () => void;
@@ -199,7 +198,6 @@ export function StatementsListHeader({
   onMarkDuplicate,
   onExport,
   onDelete,
-  stageMove,
   onDateDropdownChange,
   onFiltersDrawerClose,
   onFiltersDrawerOpen,
@@ -309,7 +307,6 @@ export function StatementsListHeader({
           onMarkDuplicate={onMarkDuplicate}
           onExport={onExport}
           onDelete={onDelete}
-          stageMove={stageMove}
         />
       ) : null}
 

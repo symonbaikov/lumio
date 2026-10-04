@@ -53,6 +53,8 @@ export interface Transaction {
     debit?: number | null;
     currency?: string;
   } | null;
+  // Confirmed by a person in Review; only confirmed rows count in any figure
+  isVerified?: boolean;
   // Parsing metadata (optional, might not exist yet)
   parsingConfidence?: number;
   rawExtract?: string;

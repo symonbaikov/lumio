@@ -93,13 +93,13 @@ describe('insightHref', () => {
 
   it('sends the operational backlogs to the queue that clears them', () => {
     expect(insightHref(makeInsight({ type: 'operational.unapproved_count' }))).toBe(
-      '/statements/approve',
+      '/review',
     );
     expect(insightHref(makeInsight({ type: 'operational.uncategorized_count' }))).toBe(
       '/statements/submit?missingCategory=true',
     );
     expect(insightHref(makeInsight({ type: 'operational.duplicate_detected' }))).toBe(
-      '/statements/unapproved-cash',
+      '/review',
     );
   });
 

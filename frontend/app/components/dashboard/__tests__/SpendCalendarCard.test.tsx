@@ -249,6 +249,7 @@ describe('SpendCalendarCard', () => {
                 transactionType: 'expense',
                 counterpartyName: 'Anthropic',
                 paymentPurpose: 'Claude subscription',
+                isVerified: true,
               },
               {
                 id: 'tx-2',
@@ -261,6 +262,7 @@ describe('SpendCalendarCard', () => {
                 transactionType: 'income',
                 counterpartyName: 'Client payment',
                 paymentPurpose: 'January retainer',
+                isVerified: true,
               },
             ],
             total: 2,

@@ -224,6 +224,8 @@ type Props = {
   columns?: StatementColumn[];
   currentExchangeRateLabels?: Record<string, string>;
   workspaceCurrency?: string | null;
+  /** Rows of this statement still in Review, or 1 for a receipt not yet approved. */
+  pendingReview?: number;
 };
 
 const EMPTY_CELL = '—';
@@ -368,6 +370,7 @@ export function StatementsListItem({
   columns = DEFAULT_STATEMENT_COLUMNS,
   currentExchangeRateLabels,
   workspaceCurrency,
+  pendingReview = 0,
 }: Props) {
   const { resolvedTheme } = useTheme();
   const listText = useIntlayer('statementsListUi');
@@ -761,6 +764,13 @@ export function StatementsListItem({
         >
           {isProcessing ? listText.processing : merchantLabel}
         </span>
+
+        {pendingReview > 0 && !isProcessing ? (
+          <span className="lumio-stmt-badge lumio-stmt-badge--review" style={{ flexShrink: 0 }}>
+            {listText.toReview}
+            {isReceipt ? null : ` · ${pendingReview}`}
+          </span>
+        ) : null}
 
         {hasError ? (
           <AlertCircle size={16} style={{ color: c.danger, marginLeft: 4 }} />

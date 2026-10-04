@@ -22,7 +22,6 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material';
 import Alert from '@mui/material/Alert';
@@ -32,7 +31,6 @@ import { buildSourceColumnTitles } from '@/app/(main)/custom-tables/labels';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import {
   ArrowLeft,
-  Check,
   CheckCircle2,
   ChevronDown,
   Layers,
@@ -46,11 +44,6 @@ import { Spinner } from '@/app/components/ui/spinner';
 import { useAuth } from '@/app/hooks/useAuth';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import { flattenStatementCategories, getCategoryDisplayName } from '@/app/lib/statement-categories';
-import {
-  getStatementStageActions,
-  isStageActionBlocked,
-  type StatementStageActionId,
-} from '@/app/lib/statement-workflow';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import { tokens } from '@/lib/theme-tokens';
 import { BalanceReviewAlert } from './components/BalanceReviewAlert';
@@ -62,6 +55,7 @@ import {
   isIdEmpty,
   resolveLocale,
 } from './editHelpers';
+import { useConfirmStatement } from './hooks/useConfirmStatement';
 import { useStatementEditForm } from './hooks/useStatementEditForm';
 import { ParsingWarningsPanel } from './ParsingWarningsPanel';
 import StatementCategoryDrawer from './StatementCategoryDrawer';
@@ -195,8 +189,6 @@ export default function EditStatementPage(): React.JSX.Element {
     statementCategoryDrawerOpen,
     setStatementCategoryDrawerOpen,
     statementCategorySaving,
-    stageActionLoadingId,
-    currentStage,
     bulkCategoryId,
     setBulkCategoryId,
     metadataForm,
@@ -223,7 +215,6 @@ export default function EditStatementPage(): React.JSX.Element {
     handleBulkDelete,
     handleOpenBulkCategory,
     handleApplyBulkCategory,
-    handleStageAction,
     handleStatementCategorySelect,
   } = useStatementEditForm({
     statementId,
@@ -249,19 +240,11 @@ export default function EditStatementPage(): React.JSX.Element {
 
   const formatNumber = (num?: number | null): string => formatNumberHelper(num, locale);
 
-  const stageActionLabels: Record<StatementStageActionId, string> = {
-    submitForApproval: labels.submitForApproval?.value || 'Submit',
-    unapprove: labels.unapprove?.value || 'Unapprove',
-    pay: labels.pay?.value || 'Pay',
-    rollbackToApprove: labels.rollbackToApprove?.value || 'Return to approve',
-  };
-
-  const stageActionToasts: Record<StatementStageActionId, string> = {
-    submitForApproval: labels.submitSuccess?.value || 'Statement submitted for approval',
-    unapprove: labels.unapproveSuccess?.value || 'Statement moved back to submit',
-    pay: labels.paySuccess?.value || 'Statement moved to pay',
-    rollbackToApprove: labels.rollbackToApproveSuccess?.value || 'Statement moved back to approve',
-  };
+  const { confirming, confirmAll } = useConfirmStatement(statementId, LoadData, {
+    done: labels.confirmAllDone?.value || 'Confirmed {count} rows',
+    uncategorized: labels.confirmAllUncategorized?.value || '{count} rows still need a category',
+    failed: labels.confirmAllFailed?.value || 'Could not confirm the rows',
+  });
 
   const enabledStatementCategories = filterEnabledCategories(categories);
   const flattenedStatementCategories = flattenStatementCategories(categories, '', locale);
@@ -271,12 +254,11 @@ export default function EditStatementPage(): React.JSX.Element {
     locale,
   );
 
-  const stageActions = getStatementStageActions(currentStage);
-
   if (loading) {
     return <EditStatementSkeleton />;
   }
 
+  const hasUnconfirmedRows = transactions.some(transaction => transaction.isVerified === false);
   const missingCategoryCount = transactions.filter(transaction => {
     const noCategory = isIdEmpty(transaction.categoryId) && isIdEmpty(transaction.category?.id);
     return noCategory || transaction.category?.isEnabled === false;
@@ -510,59 +492,14 @@ export default function EditStatementPage(): React.JSX.Element {
               {exportingToTable ? <Spinner size={18} /> : null}
               {t.labels.exportButton.value}
             </DetailActionButton>
-            {/* eslint-disable-next-line max-lines-per-function, complexity */}
-            {stageActions.map(action => {
-              const isLoading = stageActionLoadingId === action.id;
-              const isPrimary = action.id === 'pay';
-              const isSubmitBlocked = isStageActionBlocked(action.id, missingCategoryCount);
-              const isDisabled = stageActionLoadingId !== null || isSubmitBlocked;
-              const tooltipTitle = isSubmitBlocked
-                ? labels.submitBlockedTooltip?.value ||
-                  'Assign categories to all transactions before submitting'
-                : '';
-
-              return (
-                <Tooltip key={action.id} title={tooltipTitle} placement="top">
-                  <span style={{ display: 'inline-flex' }}>
-                    {isPrimary ? (
-                      <Button
-                        variant="contained"
-                        startIcon={isLoading ? <Spinner size={18} /> : <Check />}
-                        onClick={() =>
-                          handleStageAction(action, stageActionToasts, missingCategoryCount)
-                        }
-                        disabled={isDisabled}
-                        sx={{
-                          textTransform: 'none',
-                          fontWeight: 600,
-                          boxShadow: 'none',
-                          '&:hover': { boxShadow: 'none' },
-                        }}
-                      >
-                        {stageActionLabels[action.id]}
-                      </Button>
-                    ) : (
-                      <DetailActionButton
-                        variant={action.id === 'submitForApproval' ? 'default' : undefined}
-                        onClick={() =>
-                          handleStageAction(action, stageActionToasts, missingCategoryCount)
-                        }
-                        disabled={isDisabled}
-                      >
-                        {isLoading ? (
-                          <Spinner size={18} />
-                        ) : action.id === 'unapprove' || action.id === 'rollbackToApprove' ? (
-                          <ArrowLeft size={18} />
-                        ) : action.id === 'submitForApproval' ? null : (
-                          <Check size={18} />
-                        )}
-                        {stageActionLabels[action.id]}
-                      </DetailActionButton>
-                    )}
-                  </span>
-                </Tooltip>
-              );
-            })}
+            <DetailActionButton
+              variant="default"
+              onClick={() => void confirmAll()}
+              disabled={confirming || !hasUnconfirmedRows}
+            >
+              {confirming ? <Spinner size={18} /> : <CheckCircle2 size={18} />}
+              {labels.confirmAll?.value || 'Confirm all'}
+            </DetailActionButton>
           </Box>
         </Box>
       </Box>

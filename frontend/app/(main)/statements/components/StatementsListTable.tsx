@@ -29,6 +29,7 @@ import {
   isGmailStatement,
   isReceiptProcessing,
   isStatementParsingInProgress,
+  resolvePendingReview,
 } from './StatementsListView.utils';
 
 interface StatementForTable {
@@ -113,6 +114,8 @@ interface Props {
   rangeEnd: number;
   total: number;
   duplicateMetaById: Map<string, DuplicateMeta>;
+  /** Rows each statement still has in Review, by statement id. */
+  statementReviewCounts?: Record<string, number>;
   columns?: StatementColumn[];
   currentExchangeRateLabels?: Record<string, string>;
   workspaceCurrency?: string | null;
@@ -148,6 +151,8 @@ const getRenderedColumns = (
   const visibleColumns = columns.filter(column => column.visible);
   return visibleColumns.length > 0 ? visibleColumns : columns.slice(0, 1);
 };
+
+const NO_REVIEW_COUNTS: Record<string, number> = {};
 
 interface StatementRowData {
   isReceipt: boolean;
@@ -301,6 +306,7 @@ export function StatementsListTable({
   rangeEnd,
   total,
   duplicateMetaById,
+  statementReviewCounts = NO_REVIEW_COUNTS,
   columns,
   currentExchangeRateLabels,
   workspaceCurrency,
@@ -380,6 +386,11 @@ export function StatementsListTable({
                 duplicateGroupTone={duplicateMeta?.groupTone}
                 duplicateReason={duplicateMeta?.reason}
                 duplicateActionLabel={reviewDuplicateLabel}
+                pendingReview={resolvePendingReview(
+                  statement,
+                  rowData.isReceipt,
+                  statementReviewCounts,
+                )}
                 typeLabel={rowData.isReceipt ? listText.typeReceipt.value : statement.fileType}
                 isManualExpense={rowData.isManualExpense}
                 viewDisabled={rowData.isProcessingStatement}

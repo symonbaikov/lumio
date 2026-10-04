@@ -3,6 +3,7 @@
 import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import type React from 'react';
+import { UnconfirmedNotice } from '@/app/components/review/UnconfirmedNotice';
 import type { DashboardData } from '@/app/hooks/useDashboard';
 import type { DashboardTabId } from '../helpers/dashboard-url-state';
 import { DashboardErrorBanner } from './DashboardErrorBanner';
@@ -113,6 +114,7 @@ export function DashboardContent({
         labels={headerLabels}
       />
       <MissingRatesBanner currencies={data.snapshot?.missingRates ?? []} />
+      <UnconfirmedNotice style={{ margin: '0 16px 12px' }} />
       <DashboardTabContent
         activeTab={activeTab}
         data={data}

@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { BarChart3, CalendarDays, DollarSign, List, PieChart, Scale } from '@/app/components/icons';
+import { UnconfirmedNotice } from '@/app/components/review/UnconfirmedNotice';
 import { sharedMuiTabsSx } from '@/app/components/ui/mui-tabs';
 import { useAttentionFocus } from '@/app/hooks/useAttentionFocus';
 import { useIntlayer } from '@/app/i18n';
@@ -157,6 +158,7 @@ export default function ReportsPage(): React.JSX.Element {
           </button>
         </Box>
         <Box sx={{ px: { xs: 2, sm: 4 }, pb: 4 }}>
+          <UnconfirmedNotice style={{ marginBottom: 16 }} />
           <BalanceSheet />
         </Box>
       </Box>
@@ -201,6 +203,7 @@ export default function ReportsPage(): React.JSX.Element {
       </Box>
 
       <Box sx={{ px: { xs: 2, sm: 4 }, py: 3 }}>
+        <UnconfirmedNotice style={{ marginBottom: 16 }} />
         {tab === 'tax' && <TaxReturnView />}
         {tab === 'cash-flow' && (
           <>

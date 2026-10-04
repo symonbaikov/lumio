@@ -30,6 +30,9 @@ vi.mock('@/app/lib/api', () => ({
   },
 }));
 
+// Reads the Review counts through React Query; its own test covers it.
+vi.mock('@/app/components/review/UnconfirmedNotice', () => ({ UnconfirmedNotice: () => null }));
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),

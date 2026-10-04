@@ -213,6 +213,7 @@ describe('TopCategoriesSection', () => {
                 transactionType: 'expense',
                 counterpartyName: 'Anthropic',
                 paymentPurpose: 'Claude subscription',
+                isVerified: true,
                 categoryId: 'cat-1',
                 category: {
                   id: 'cat-1',

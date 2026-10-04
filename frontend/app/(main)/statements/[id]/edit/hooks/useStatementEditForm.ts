@@ -2,15 +2,12 @@
 
 import { useCallback, useEffect } from 'react';
 import { useAutoSave } from '@/app/hooks/useAutoSave';
-import type { StatementStageAction, StatementStageActionId } from '@/app/lib/statement-workflow';
-import { resolveStatementStage } from '@/app/lib/statement-workflow';
 import type { Transaction } from '../editHelpers';
 import {
   convertDroppedSampleAction,
   exportToCustomTable,
   loadStatementData,
   metadataAutoSave,
-  processStageAction,
   updateStatementCategoryAction,
 } from './statement-edit-async';
 import {
@@ -59,7 +56,7 @@ export function useStatementEditForm({
   const s = useStatementFormState();
   // Destructured so effects/callbacks depend on the stable setters and refs,
   // not on the (re-created every render) state object.
-  const { setCurrentStage, setStatement, setParsingDetailsExpanded } = s;
+  const { setStatement, setParsingDetailsExpanded } = s;
   const { balanceEndInputRef, balanceStartInputRef } = s;
 
   const loadData = useCallback(async (): Promise<void> => {
@@ -97,13 +94,6 @@ export function useStatementEditForm({
       void loadData();
     }
   }, [user, statementId, loadData]);
-
-  const loadedStage = s.statement ? resolveStatementStage(s.statement) : null;
-  useEffect(() => {
-    if (loadedStage) {
-      setCurrentStage(loadedStage);
-    }
-  }, [loadedStage, setCurrentStage]);
 
   const handleMetadataAutoSave = useCallback(
     async (formData: Parameters<typeof metadataAutoSave>[0]['formData']): Promise<void> => {
@@ -274,23 +264,6 @@ export function useStatementEditForm({
     });
   };
 
-  const handleStageAction = async (
-    action: StatementStageAction,
-    stageActionToasts: Record<StatementStageActionId, string>,
-    missingCategoryCount: number,
-  ): Promise<void> => {
-    await processStageAction({
-      action,
-      stageActionToasts,
-      missingCategoryCount,
-      statement: s.statement,
-      transactions: s.transactions,
-      router,
-      setStageActionLoadingId: s.setStageActionLoadingId,
-      setCurrentStage: s.setCurrentStage,
-    });
-  };
-
   const handleStatementCategorySelect = async (
     categoryId: string,
     flattenedStatementCategories: { id: string; name: string }[],
@@ -335,8 +308,6 @@ export function useStatementEditForm({
     statementCategoryDrawerOpen: s.statementCategoryDrawerOpen,
     setStatementCategoryDrawerOpen: s.setStatementCategoryDrawerOpen,
     statementCategorySaving: s.statementCategorySaving,
-    stageActionLoadingId: s.stageActionLoadingId,
-    currentStage: s.currentStage,
     bulkCategoryId: s.bulkCategoryId,
     setBulkCategoryId: s.setBulkCategoryId,
     metadataForm: s.metadataForm,
@@ -363,7 +334,6 @@ export function useStatementEditForm({
     handleBulkDelete,
     handleOpenBulkCategory,
     handleApplyBulkCategory,
-    handleStageAction,
     handleStatementCategorySelect,
   };
 }

@@ -9,7 +9,7 @@ import { useIntlayer } from '@/app/i18n';
 import { getNestedValue, resolveLabel } from '@/app/lib/side-panel-utils';
 import { useStatementsQueue } from './statements-queue-context';
 
-type TabId = 'submit' | 'approve' | 'pay' | 'receive' | 'unapproved-cash';
+type TabId = 'submit' | 'pay' | 'receive';
 
 type QueueTab = {
   id: TabId;
@@ -22,9 +22,7 @@ type QueueTab = {
 // The tab for a URL: /statements/<tab>[/...]; nothing elsewhere.
 export function getStatementsActiveTab(pathname: string | null): TabId | undefined {
   const segment = pathname?.match(/^\/statements\/([^/]+)/)?.[1];
-  return (['submit', 'approve', 'pay', 'receive', 'unapproved-cash'] as const).find(
-    tab => tab === segment,
-  );
+  return (['submit', 'pay', 'receive'] as const).find(tab => tab === segment);
 }
 
 // A count still loading is left off the label rather than swapped for a spinner,
@@ -37,15 +35,16 @@ function tabLabel(tab: QueueTab): string {
 }
 
 /**
- * The statements work queue, as tabs on the page itself: Submit, Approve, Pay,
- * Receive and Unapproved cash. Each tab is its own route, so deep links and the
+ * The statements page tabs: Documents (every uploaded statement and receipt;
+ * the route keeps its old /submit name), Pay and Receive. What waits for a
+ * decision lives in Review. Each tab is its own route, so deep links and the
  * back button keep working; switching tabs only swaps the view below.
  */
 export function StatementsQueueTabs(): React.JSX.Element {
   const t = useIntlayer('statementsPage');
   const pathname = usePathname();
   const activeTab = getStatementsActiveTab(pathname);
-  const { counts, countsLoading, payCount, payCountLoading } = useStatementsQueue();
+  const { payCount, payCountLoading } = useStatementsQueue();
 
   const tx = (path: string[], fallback: string): string =>
     resolveLabel(getNestedValue(t, path), fallback);
@@ -53,17 +52,10 @@ export function StatementsQueueTabs(): React.JSX.Element {
   const tabs: QueueTab[] = [
     {
       id: 'submit',
-      label: tx(['sidePanel', 'submit'], 'Submit'),
+      label: tx(['sidePanel', 'documents'], 'Documents'),
       href: '/statements/submit',
-      badge: counts.submit,
-      badgeLoading: countsLoading,
-    },
-    {
-      id: 'approve',
-      label: tx(['sidePanel', 'approve'], 'Approve'),
-      href: '/statements/approve',
-      badge: counts.approve,
-      badgeLoading: countsLoading,
+      badge: null,
+      badgeLoading: false,
     },
     {
       id: 'pay',
@@ -78,13 +70,6 @@ export function StatementsQueueTabs(): React.JSX.Element {
       href: '/statements/receive',
       badge: null,
       badgeLoading: false,
-    },
-    {
-      id: 'unapproved-cash',
-      label: tx(['sidePanel', 'unapprovedCash'], 'Unapproved cash'),
-      href: '/statements/unapproved-cash',
-      badge: counts.unapprovedCash,
-      badgeLoading: countsLoading,
     },
   ];
 
