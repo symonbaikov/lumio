@@ -6,8 +6,7 @@ import MuiButton from '@mui/material/Button';
 import { useTheme } from 'next-themes';
 import { useMemo, useState } from 'react';
 import CustomDatePicker from '@/app/components/CustomDatePicker';
-import { Check, ChevronDown, ChevronLeft, Search, Trash2 } from '@/app/components/icons';
-import { DrawerShell } from '@/app/components/ui/drawer-shell';
+import { ChevronDown, Trash2 } from '@/app/components/icons';
 import { FORM_CONTROL_SX, Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -18,6 +17,7 @@ import {
   type CurrencySearchItem,
 } from '@/app/lib/statement-expense-drawer';
 import { tokens } from '@/lib/theme-tokens';
+import { CurrencyDrawer } from './components/CurrencyDrawer';
 import type { EditableReceiptParsedData, ReceiptCategoryOption } from './receipt-types';
 
 /** Fields are stacked one per row so the form reads as a single column. */
@@ -482,178 +482,21 @@ export function ReceiptParsedDataForm({
         </Box>
       </Box>
 
-      <DrawerShell
+      <CurrencyDrawer
         isOpen={currencyDrawerOpen}
         onClose={() => {
           setCurrencyDrawerOpen(false);
           setCurrencySearch('');
         }}
-        position="right"
-        width="lg"
-        showCloseButton={false}
-        title={
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <IconButton
-              size="small"
-              onClick={() => {
-                setCurrencyDrawerOpen(false);
-                setCurrencySearch('');
-              }}
-              aria-label={tCurrency.closeDrawer.value}
-              sx={{ borderRadius: tokens.radius.md }}
-            >
-              <ChevronLeft style={{ width: 20, height: 20 }} />
-            </IconButton>
-            <Typography style={{ fontSize: 18, fontWeight: 600 }}>{tCurrency.title}</Typography>
-          </Box>
-        }
-      >
-        <Box sx={{ display: 'flex', height: '100%', flexDirection: 'column' }}>
-          <Box
-            sx={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1.5,
-              overflowY: 'auto',
-              pb: 2,
-            }}
-          >
-            <Box sx={{ position: 'relative' }}>
-              <Search
-                style={{
-                  position: 'absolute',
-                  left: 12,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 16,
-                  height: 16,
-                  color: c.ink400,
-                  pointerEvents: 'none',
-                }}
-              />
-              <input
-                type="text"
-                value={currencySearch}
-                onChange={event => setCurrencySearch(event.target.value)}
-                placeholder={tCurrency.searchPlaceholder.value}
-                style={{
-                  width: '100%',
-                  border: `1px solid ${c.ink150}`,
-                  borderRadius: tokens.radius.md,
-                  background: 'var(--card-bg)',
-                  padding: '12px 16px 12px 40px',
-                  fontSize: 14,
-                }}
-              />
-            </Box>
-
-            {selectedCurrencyItem && selectedMatchesSearch ? (
-              <Box
-                component="button"
-                type="button"
-                onClick={() => handleSelectCurrency(selectedCurrencyItem.code)}
-                sx={{
-                  display: 'flex',
-                  width: '100%',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  bgcolor: 'var(--muted)',
-                  px: 2,
-                  py: 2,
-                  textAlign: 'left',
-                  border: 'none',
-                  borderRadius: tokens.radius.md,
-                  cursor: 'pointer',
-                }}
-              >
-                <Typography style={{ fontSize: 16, fontWeight: 600 }}>
-                  {selectedCurrencyItem.label}
-                </Typography>
-                <Check style={{ width: 20, height: 20, color: 'var(--color-primary, #168118)' }} />
-              </Box>
-            ) : null}
-
-            {currencyQuery.length === 0 && recentCurrencyItems.length > 0 ? (
-              <Box>
-                <Typography style={{ paddingLeft: 4, fontSize: 14, color: c.ink400 }}>
-                  {tCurrency.recents}
-                </Typography>
-                <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {recentCurrencyItems.map(item => (
-                    <Box
-                      key={`recent-${item.code}`}
-                      component="button"
-                      type="button"
-                      onClick={() => handleSelectCurrency(item.code)}
-                      sx={{
-                        display: 'flex',
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        px: 1.5,
-                        py: 1.5,
-                        textAlign: 'left',
-                        border: 'none',
-                        borderRadius: tokens.radius.md,
-                        bgcolor: 'transparent',
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: 'action.hover' },
-                      }}
-                    >
-                      <Typography style={{ fontSize: 16, fontWeight: 600 }}>
-                        {item.label}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-              </Box>
-            ) : null}
-
-            <Box>
-              <Typography style={{ paddingLeft: 4, fontSize: 14, color: c.ink400 }}>
-                {tCurrency.all}
-              </Typography>
-              <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {allCurrencyItems.length > 0 ? (
-                  allCurrencyItems.map(item => (
-                    <Box
-                      key={item.code}
-                      component="button"
-                      type="button"
-                      onClick={() => handleSelectCurrency(item.code)}
-                      sx={{
-                        display: 'flex',
-                        width: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        px: 1.5,
-                        py: 1.5,
-                        textAlign: 'left',
-                        border: 'none',
-                        borderRadius: tokens.radius.md,
-                        bgcolor: 'transparent',
-                        cursor: 'pointer',
-                        '&:hover': { bgcolor: 'action.hover' },
-                      }}
-                    >
-                      <Typography style={{ fontSize: 16, fontWeight: 600 }}>
-                        {item.label}
-                      </Typography>
-                    </Box>
-                  ))
-                ) : (
-                  <Typography
-                    sx={{ bgcolor: 'var(--muted)', p: 1.5, fontSize: 14, color: c.ink400 }}
-                  >
-                    {tCurrency.noResults}
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </DrawerShell>
+        currencySearch={currencySearch}
+        setCurrencySearch={setCurrencySearch}
+        selectedCurrencyItem={selectedCurrencyItem}
+        selectedMatchesSearch={selectedMatchesSearch}
+        currencyQuery={currencyQuery}
+        recentCurrencyItems={recentCurrencyItems}
+        allCurrencyItems={allCurrencyItems}
+        handleSelectCurrency={handleSelectCurrency}
+      />
     </>
   );
 }

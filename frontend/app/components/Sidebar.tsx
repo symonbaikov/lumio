@@ -20,6 +20,9 @@ import {
 } from './navigation/helpers/navigation-config';
 import { toggleSidebarCollapsed, useSidebarCollapsed } from './navigation/sidebar-collapsed-store';
 import { openAppPanel } from './panels/app-panels-store';
+import { useReviewInboxTotal } from './review/useReviewInboxTotal';
+
+const REVIEW_PATH = '/review';
 
 // Matches buildNavItems() length so the skeleton doesn't jump when real items land.
 const NAV_ITEM_SKELETON_KEYS = Array.from({ length: 16 }, (_, i) => `nav-skeleton-${i}`);
@@ -46,6 +49,9 @@ function SidebarContent({
   const visibleNavItems = navItems.filter(item =>
     isNavItemVisible(item, { hasPermission, experimentalMode, profile }),
   );
+  // Only asked for when Review is in the menu: without the permission the call would be refused.
+  const reviewWaiting =
+    useReviewInboxTotal(visibleNavItems.some(item => item.path === REVIEW_PATH)) > 0;
 
   return (
     <>
@@ -116,7 +122,18 @@ function SidebarContent({
                   href={item.path}
                   className={`lumio-sidebar__nav-item${active ? ' lumio-sidebar__nav-item--active' : ''}`}
                 >
-                  <span className="lumio-sidebar__nav-icon">{item.icon}</span>
+                  {item.path === REVIEW_PATH ? (
+                    // The icon is dimmed; the dot sits beside it so it keeps its full colour.
+                    <span className="lumio-sidebar__nav-icon-slot">
+                      <span className="lumio-sidebar__nav-icon">{item.icon}</span>
+                      {/* Something waits in Review: a quiet dot, the count is on the page itself. */}
+                      {reviewWaiting ? (
+                        <span className="lumio-sidebar__nav-dot" data-testid="review-waiting-dot" />
+                      ) : null}
+                    </span>
+                  ) : (
+                    <span className="lumio-sidebar__nav-icon">{item.icon}</span>
+                  )}
                   <span className="lumio-sidebar__nav-label">{item.label}</span>
                 </Link>
               );

@@ -307,6 +307,25 @@ $lumio-logo-lockup-ratio: '1716 / 370';
   }
 }
 
+// The Review icon with its waiting dot; a slot of its own because the icon is dimmed.
+.lumio-sidebar__nav-icon-slot {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+// Something waits in Review. Smaller than the bell's dot and without a ring, so it
+// sits on the active item's tint as well as on the plain sidebar.
+.lumio-sidebar__nav-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: $lumio-radius-full;
+  background: var(--destructive);
+}
+
 // Top level, not `&-label` under the item: that compiles to `__nav-item-label`,
 // which no markup carries, so the labels used to wrap while the width animated.
 .lumio-sidebar__nav-label {
