@@ -102,6 +102,8 @@ describe('settling payables (real Postgres)', () => {
         transactionType: TransactionType.EXPENSE,
         amount: 120,
         debit: 120,
+        // Only a confirmed bank row may settle a bill.
+        isVerified: true,
         ...fields,
       }),
     );

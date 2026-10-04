@@ -3,6 +3,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, type Repository } from 'typeorm';
 import * as xlsx from 'xlsx';
+import { onlyCounted } from '../../common/utils/counted-transactions.util';
 import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import {
   ActorType,
@@ -254,13 +255,16 @@ export class BalanceService {
   }
 
   private async getRetainedEarnings(workspaceId: string, date: string): Promise<CurrencyAmounts> {
-    const rows = await this.transactionRepository
-      .createQueryBuilder('transaction')
-      .leftJoin('transaction.statement', 'statement')
-      .select('transaction.currency', 'currency')
-      .addSelect('COALESCE(SUM(transaction.credit), 0)', 'totalCredit')
-      .addSelect('COALESCE(SUM(transaction.debit), 0)', 'totalDebit')
-      .where('transaction.workspaceId = :workspaceId', { workspaceId })
+    const rows = await onlyCounted(
+      this.transactionRepository
+        .createQueryBuilder('transaction')
+        .leftJoin('transaction.statement', 'statement')
+        .select('transaction.currency', 'currency')
+        .addSelect('COALESCE(SUM(transaction.credit), 0)', 'totalCredit')
+        .addSelect('COALESCE(SUM(transaction.debit), 0)', 'totalDebit')
+        .where('transaction.workspaceId = :workspaceId', { workspaceId }),
+      'transaction',
+    )
       .andWhere('transaction.transactionDate <= :date', { date })
       // Rows of a statement in the trash are not part of the books.
       .andWhere('(transaction.statementId IS NULL OR statement.deletedAt IS NULL)')
@@ -329,14 +333,17 @@ export class BalanceService {
     const walletIds = wallets.map(wallet => wallet.id);
     const to = dates[dates.length - 1];
 
-    const rows = await this.transactionRepository
-      .createQueryBuilder('transaction')
-      .leftJoin('transaction.statement', 'statement')
-      .select('transaction.transactionDate', 'date')
-      .addSelect('transaction.currency', 'currency')
-      .addSelect('COALESCE(SUM(transaction.credit), 0)', 'credit')
-      .addSelect('COALESCE(SUM(transaction.debit), 0)', 'debit')
-      .where('transaction.workspaceId = :workspaceId', { workspaceId })
+    const rows = await onlyCounted(
+      this.transactionRepository
+        .createQueryBuilder('transaction')
+        .leftJoin('transaction.statement', 'statement')
+        .select('transaction.transactionDate', 'date')
+        .addSelect('transaction.currency', 'currency')
+        .addSelect('COALESCE(SUM(transaction.credit), 0)', 'credit')
+        .addSelect('COALESCE(SUM(transaction.debit), 0)', 'debit')
+        .where('transaction.workspaceId = :workspaceId', { workspaceId }),
+      'transaction',
+    )
       .andWhere('transaction.walletId IN (:...walletIds)', { walletIds })
       .andWhere('transaction.transactionDate <= :to', { to })
       .andWhere('(transaction.statementId IS NULL OR statement.deletedAt IS NULL)')

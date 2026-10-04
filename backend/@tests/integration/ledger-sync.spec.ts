@@ -108,6 +108,8 @@ describe('ledger sync (real Postgres)', () => {
         transactionType: TransactionType.EXPENSE,
         categoryId: foodId,
         statementId,
+        // Booked rows are confirmed ones; a test about unconfirmed rows overrides it.
+        isVerified: true,
         ...fields,
       }),
     );
@@ -270,6 +272,28 @@ describe('ledger sync (real Postgres)', () => {
     expect((await flags(first)).ledger_dirty).toBe(true);
     await sync.syncWorkspace(workspaceId);
     expect((await flags(first)).ledger_dirty).toBe(false);
+  });
+
+  it('books a row only while it is confirmed, re-queueing it when that changes', async () => {
+    const liveEntries = async () =>
+      (
+        await query<{ count: number }>(
+          `SELECT count(*)::int AS "count" FROM "journal_entries"
+            WHERE "source_transaction_id" = $1 AND "status" = 'posted' AND "reversal_of_id" IS NULL`,
+          [first],
+        )
+      )[0].count;
+    expect(await liveEntries()).toBe(1);
+
+    await dataSource.query(`UPDATE "transactions" SET "is_verified" = false WHERE "id" = $1`, [first]);
+    expect((await flags(first)).ledger_dirty).toBe(true);
+    await sync.syncWorkspace(workspaceId);
+    expect(await liveEntries()).toBe(0);
+
+    await dataSource.query(`UPDATE "transactions" SET "is_verified" = true WHERE "id" = $1`, [first]);
+    expect((await flags(first)).ledger_dirty).toBe(true);
+    await sync.syncWorkspace(workspaceId);
+    expect(await liveEntries()).toBe(1);
   });
 
   it('re-queues the rows of a statement that is trashed, and of a category that moves', async () => {

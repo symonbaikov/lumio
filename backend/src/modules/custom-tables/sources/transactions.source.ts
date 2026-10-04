@@ -1,4 +1,5 @@
 import type { Repository } from 'typeorm';
+import { countedSql } from '../../../common/utils/counted-transactions.util';
 import { CustomTableColumnType } from '../../../entities/custom-table-column.entity';
 import { Transaction, TransactionType } from '../../../entities/transaction.entity';
 import type { SourceAdapter, SourceColumnDef, SourceFilters, SourceRow } from './source.types';
@@ -38,6 +39,7 @@ export class TransactionsSource implements SourceAdapter {
       .leftJoinAndSelect('tx.category', 'category')
       .where('tx.workspaceId = :workspaceId', { workspaceId })
       .andWhere('(tx.statementId IS NULL OR statement.deletedAt IS NULL)')
+      .andWhere(countedSql('tx'))
       .orderBy('tx.transactionDate', 'ASC')
       .addOrderBy('tx.createdAt', 'ASC')
       .take(SOURCE_FETCH_LIMIT);

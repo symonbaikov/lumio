@@ -376,7 +376,7 @@ describe("CustomTablesService.convertToStatement", () => {
 				currency: "KZT",
 				transactionType: TransactionType.EXPENSE,
 				article: "Office supplies",
-				isVerified: true,
+				isVerified: false,
 				fingerprint: expect.any(String),
 			}),
 		]);

@@ -472,6 +472,19 @@ describe('PayablesService', () => {
     });
   });
 
+  describe('findPaymentCandidates', () => {
+    it('offers only confirmed transactions as the payment of a bill', async () => {
+      jest.spyOn(payableRepository, 'findOne').mockResolvedValue(payableEntity);
+      const query = jest.fn(async () => []);
+      (transactionRepository as unknown as { query: jest.Mock }).query = query;
+
+      await service.findPaymentCandidates('payable-1', 'workspace-1');
+
+      const [sql] = query.mock.calls[0] as unknown as [string];
+      expect(sql).toContain('t.is_verified = true');
+    });
+  });
+
   describe('archive', () => {
     it('moves payable to archived status', async () => {
       jest.spyOn(payableRepository, 'findOne').mockResolvedValue({

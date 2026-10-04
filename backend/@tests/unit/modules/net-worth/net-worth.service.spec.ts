@@ -71,6 +71,7 @@ function createService(options: {
   const transactionQueryBuilder: any = {
     select: jest.fn(() => transactionQueryBuilder),
     where: jest.fn(() => transactionQueryBuilder),
+    andWhere: jest.fn(() => transactionQueryBuilder),
     getRawOne: jest.fn(async () => ({ earliest: null })),
   };
 
@@ -98,7 +99,7 @@ function createService(options: {
     exchangeRates,
   );
 
-  return { service, balanceService, exchangeRates };
+  return { service, balanceService, exchangeRates, transactionQueryBuilder };
 }
 
 describe('NetWorthService', () => {
@@ -305,6 +306,14 @@ describe('NetWorthService', () => {
       { key: CapitalRole.INCOME, amount: 600, percent: 60 },
       { key: CapitalRole.DRAIN, amount: 400, percent: 40 },
     ]);
+  });
+
+  it('starts the all-time chart at the first confirmed transaction', async () => {
+    const { service, transactionQueryBuilder } = createService({});
+
+    await service.getNetWorth(WORKSPACE_ID, 'all');
+
+    expect(transactionQueryBuilder.andWhere).toHaveBeenCalledWith('transaction.isVerified = true');
   });
 
   it('returns a flat zero series for a workspace with nothing in it', async () => {

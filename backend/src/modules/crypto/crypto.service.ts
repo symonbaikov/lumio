@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { countedSql } from '../../common/utils/counted-transactions.util';
 import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { CryptoWallet } from '../../entities/crypto-wallet.entity';
@@ -399,7 +400,8 @@ export class CryptoService {
       .addSelect('SUM(t.amount)', 'total')
       .where('t.workspace_id = :workspaceId', { workspaceId })
       .andWhere('t.crypto_wallet_id IS NOT NULL')
-      .andWhere('t.transaction_date >= :since', { since });
+      .andWhere('t.transaction_date >= :since', { since })
+      .andWhere(countedSql('t'));
     if (until) {
       query.andWhere('t.transaction_date < :until', { until });
     }

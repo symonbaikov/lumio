@@ -1,3 +1,4 @@
+import { countedSql } from '@/common/utils/counted-transactions.util';
 import { TransactionType } from "../../../src/entities/transaction.entity";
 import { TransactionsSource } from "../../../src/modules/custom-tables/sources/transactions.source";
 
@@ -87,6 +88,17 @@ describe("TransactionsSource", () => {
 		expect(qb.andWhere).toHaveBeenCalledWith(
 			"(tx.statementId IS NULL OR statement.deletedAt IS NULL)",
 		);
+	});
+
+	it("fills tables from confirmed transactions only", async () => {
+		const qb = createQueryBuilderMock([]);
+		const source = new TransactionsSource({
+			createQueryBuilder: () => qb,
+		} as never);
+
+		await source.fetchRows("workspace-1", {});
+
+		expect(qb.andWhere).toHaveBeenCalledWith(countedSql('tx'));
 	});
 
 	it("applies period, type, category, currency and statement filters", async () => {

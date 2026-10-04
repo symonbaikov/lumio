@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, type Repository } from 'typeorm';
+import { countedSql } from '../../common/utils/counted-transactions.util';
 import { BalanceAccount, BalanceAccountKind } from '../../entities/balance-account.entity';
 import {
   InvestmentAssetClass,
@@ -387,6 +388,7 @@ export class InvestmentsService {
       .where('t.workspace_id = :workspaceId', { workspaceId })
       .andWhere('t.investment_account_id IN (:...accountIds)', { accountIds })
       .andWhere('t.is_duplicate = false')
+      .andWhere(countedSql('t'))
       .groupBy('t.investment_account_id')
       .addGroupBy('t.currency')
       .getRawMany<{ accountId: string; currency: string; total: string }>();

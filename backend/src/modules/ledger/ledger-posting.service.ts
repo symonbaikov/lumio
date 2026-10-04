@@ -133,6 +133,7 @@ function factsOf(tx: Transaction): TransactionFacts {
     taxReverseCharge: tx.taxReverseCharge,
     taxNotionalAmount: tx.taxNotionalAmount,
     isDuplicate: tx.isDuplicate,
+    isVerified: tx.isVerified,
     cryptoWalletId: tx.cryptoWalletId,
     categoryId: tx.categoryId,
     branchId: tx.branchId,

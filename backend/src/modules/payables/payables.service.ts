@@ -8,6 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { type EntityManager, IsNull, Repository } from 'typeorm';
 import { appError } from '../../common/errors/app-error';
+import { countedSql } from '../../common/utils/counted-transactions.util';
 import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { normalizePagination } from '../../common/utils/pagination.util';
 import { EntityType } from '../../entities/audit-event.entity';
@@ -311,6 +312,8 @@ export class PayablesService {
         currency,
         transactionType: isIncome ? TransactionType.INCOME : TransactionType.EXPENSE,
         categoryId: payload.categoryId ?? null,
+        // The user recorded this payment by hand.
+        isVerified: true,
       }),
     );
     return transaction.id;
@@ -734,6 +737,7 @@ export class PayablesService {
           AND t."transaction_type" = $4
           AND t."transaction_date" BETWEEN least($6::date, $7::date) - $8::int AND current_date
           AND NOT t."is_duplicate"
+          AND ${countedSql('t')}
           AND (t."statement_id" IS NULL OR s."deleted_at" IS NULL)
           -- Not already applied to this bill, and not already spent in full on
           -- others: one wire can settle four invoices, but only up to its own

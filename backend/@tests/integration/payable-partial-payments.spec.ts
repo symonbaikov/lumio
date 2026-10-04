@@ -111,6 +111,8 @@ describe('partial payments (real Postgres)', () => {
         transactionType: TransactionType.EXPENSE,
         amount: 400,
         debit: 400,
+        // Only a confirmed bank row may settle a bill.
+        isVerified: true,
         ...fields,
       }),
     );

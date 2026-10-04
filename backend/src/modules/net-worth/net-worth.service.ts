@@ -1,6 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { onlyCounted } from '../../common/utils/counted-transactions.util';
 import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import {
   BalanceAccount,
@@ -432,11 +433,14 @@ export class NetWorthService {
         .select('MIN(snapshot.snapshotDate)', 'earliest')
         .where('snapshot.workspaceId = :workspaceId', { workspaceId })
         .getRawOne<{ earliest: string | null }>(),
-      this.transactionRepository
-        .createQueryBuilder('transaction')
-        .select('MIN(transaction.transactionDate)', 'earliest')
-        .where('transaction.workspaceId = :workspaceId', { workspaceId })
-        .getRawOne<{ earliest: string | null }>(),
+      // The chart starts at the first confirmed row: unconfirmed ones are not on it.
+      onlyCounted(
+        this.transactionRepository
+          .createQueryBuilder('transaction')
+          .select('MIN(transaction.transactionDate)', 'earliest')
+          .where('transaction.workspaceId = :workspaceId', { workspaceId }),
+        'transaction',
+      ).getRawOne<{ earliest: string | null }>(),
     ]);
 
     const candidates = [snapshot?.earliest, transaction?.earliest]

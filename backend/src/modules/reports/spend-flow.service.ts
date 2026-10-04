@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository, SelectQueryBuilder } from 'typeorm';
+import { onlyCounted } from '../../common/utils/counted-transactions.util';
 import { Category } from '../../entities/category.entity';
 import { FileType } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
@@ -68,7 +69,10 @@ export class SpendFlowService {
         type: type === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE,
       })
       .andWhere('t.is_duplicate = false')
-      .andWhere('(t.statement_id IS NULL OR statement.deleted_at IS NULL)');
+      .andWhere('(t.statement_id IS NULL OR statement.deleted_at IS NULL)')
+      // Money moved between the user's own accounts is neither spending nor income.
+      .andWhere('t.transfer_pair_id IS NULL');
+    onlyCounted(qb, 't');
 
     // No date means all time, the way the top-spenders table reads it.
     if (query.dateFrom) {
