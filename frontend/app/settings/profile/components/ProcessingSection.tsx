@@ -69,10 +69,7 @@ function ThresholdField({
   );
 }
 
-type SwitchKey =
-  | 'aiCategorization'
-  | 'aiMerchantNormalization'
-  | 'merchantLearning';
+type SwitchKey = 'aiCategorization' | 'aiMerchantNormalization' | 'merchantLearning';
 
 const SWITCHES: Array<{
   key: SwitchKey;
