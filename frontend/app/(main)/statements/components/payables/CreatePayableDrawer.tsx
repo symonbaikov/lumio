@@ -7,7 +7,7 @@ import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { ChevronLeft } from '@/app/components/icons';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { DrawerShell } from '@/app/components/ui/drawer-shell';
-import { Input } from '@/app/components/ui/input';
+import { FORM_CONTROL_SX, Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useCurrencyPickerState } from '@/app/hooks/useCurrencyPickerState';
 import { FALLBACK_CURRENCY } from '@/app/lib/currency';
@@ -234,19 +234,24 @@ export function CreatePayableDrawer({
 
             <div className="lumio-payable-drawer__2col">
               <div className="lumio-payable-drawer__field-group">
+                <label className="lumio-payable-drawer__field-label" htmlFor="payable-due-date">
+                  {labels.dueDate}
+                </label>
                 <CustomDatePicker
-                  label={labels.dueDate}
+                  id="payable-due-date"
+                  large
                   value={form.dueDate || null}
                   onChange={value => setForm(prev => ({ ...prev, dueDate: value }))}
                 />
               </div>
-              <div className="lumio-payable-drawer__field-group lumio-payable-drawer__field-group--floating-select">
+              <div className="lumio-payable-drawer__field-group">
                 <label className="lumio-payable-drawer__field-label" htmlFor="payable-source">
                   {labels.source}
                 </label>
                 <Select
                   fullWidth
                   id="payable-source"
+                  sx={FORM_CONTROL_SX}
                   value={form.source}
                   onChange={value => setForm(prev => ({ ...prev, source: value as PayableSource }))}
                   options={Object.entries(labels.sourceOptions).map(([value, label]) => ({
@@ -264,6 +269,7 @@ export function CreatePayableDrawer({
               <Select
                 fullWidth
                 id="payable-status"
+                sx={FORM_CONTROL_SX}
                 value={form.status}
                 onChange={value => setForm(prev => ({ ...prev, status: value as PayableStatus }))}
                 options={Object.entries(labels.statusOptions).map(([value, label]) => ({

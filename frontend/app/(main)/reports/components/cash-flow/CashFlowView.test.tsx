@@ -78,13 +78,22 @@ describe('CashFlowView', () => {
     expect(screen.getAllByText(/\+.*100/).length).toBeGreaterThan(0);
   });
 
-  it('filters by category chips with all/none and toggles transfers', () => {
+  it('filters categories from a dropdown list applied on Apply, and toggles transfers', () => {
     render(<CashFlowView />);
+    const openFilters = () => fireEvent.click(screen.getByRole('button', { name: /Filters/ }));
 
-    fireEvent.click(screen.getByText('Rent', { selector: '.MuiChip-label' }));
+    // Untick Rent: nothing changes until Apply.
+    openFilters();
+    fireEvent.click(screen.getByRole('button', { name: 'Rent' }));
+    expect(hookMock.update).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(hookMock.update).toHaveBeenCalledWith({ categories: ['food'] });
 
-    fireEvent.click(screen.getByRole('button', { name: 'None' }));
+    // Untick everything: nothing passes the filter.
+    openFilters();
+    fireEvent.click(screen.getByRole('button', { name: 'Rent' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Food' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
     expect(hookMock.update).toHaveBeenCalledWith({ categories: ['__none__'] });
 
     fireEvent.click(screen.getByLabelText('Include transfers and investments'));
