@@ -2072,7 +2072,8 @@ export class CustomTablesService {
         article: row.article,
         transactionType: TransactionType.EXPENSE,
         categoryId: table.categoryId ?? null,
-        isVerified: true,
+        // Converted in bulk from a table: each row is confirmed in Review.
+        isVerified: false,
         fingerprint: generateTransactionFingerprint({
           workspaceId,
           accountNumber: '',

@@ -1,3 +1,4 @@
+import { countedSql } from '@/common/utils/counted-transactions.util';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
 import { CryptoService } from '../../../../src/modules/crypto/crypto.service';
 
@@ -140,6 +141,14 @@ describe('CryptoService.getSummary for a calendar month', () => {
     expect(qb.andWhere).toHaveBeenCalledWith('t.transaction_date < :until', {
       until: '2026-09-01',
     });
+  });
+
+  it('sums confirmed transfers only', async () => {
+    const { service, transactionRepo } = build({});
+
+    await service.getSummary(WORKSPACE, 30, '2026-08');
+
+    expect(flowQuery(transactionRepo).andWhere).toHaveBeenCalledWith(countedSql('t'));
   });
 
   it('rolls December over into the next year', async () => {

@@ -160,7 +160,8 @@ export class TransactionsTarget implements ImportTarget {
           currency: item.currency,
           transactionType: item.type,
           categoryId,
-          isVerified: true,
+          // Imported from a file: each row is confirmed in Review.
+          isVerified: false,
           fingerprint: item.fingerprint,
         }),
       );

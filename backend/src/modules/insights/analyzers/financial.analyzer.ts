@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { countedSql } from '../../../common/utils/counted-transactions.util';
 import { Budget } from '../../../entities/budget.entity';
 import { InsightCategory, InsightSeverity, InsightType } from '../../../entities/insight.entity';
 import { Transaction, TransactionType } from '../../../entities/transaction.entity';
@@ -128,6 +129,7 @@ export class FinancialAnalyzer implements InsightAnalyzer {
       .andWhere('t.transaction_date <= :end', { end })
       .andWhere('t.is_duplicate = false')
       .andWhere('t.transfer_pair_id IS NULL')
+      .andWhere(countedSql('t'))
       .groupBy('t.category_id')
       .addGroupBy('category.name')
       .addGroupBy("date_trunc('month', t.transaction_date)")
@@ -317,6 +319,7 @@ export class FinancialAnalyzer implements InsightAnalyzer {
       .andWhere('t.transaction_date <= :end', { end })
       .andWhere('t.is_duplicate = false')
       .andWhere('t.transfer_pair_id IS NULL')
+      .andWhere(countedSql('t'))
       .setParameters({ income: TransactionType.INCOME, expense: TransactionType.EXPENSE })
       .getRawOne<{ income: string; spent: string }>();
 

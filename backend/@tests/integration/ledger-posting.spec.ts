@@ -122,6 +122,8 @@ describe('ledger posting engine (real Postgres)', () => {
         paymentPurpose: 'Purpose',
         currency: 'EUR',
         transactionType: TransactionType.EXPENSE,
+        // Booked rows are confirmed ones; a test about unconfirmed rows overrides it.
+        isVerified: true,
         ...fields,
       }),
     );

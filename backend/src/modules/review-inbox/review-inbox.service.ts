@@ -1,11 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, IsNull, LessThanOrEqual, MoreThanOrEqual, Not, type Repository } from 'typeorm';
-import { readProcessingSettings } from '../../common/utils/workspace-processing.util';
-import { Receipt, ReceiptStatus } from '../../entities/receipt.entity';
+import { In, IsNull, Not, type Repository, type SelectQueryBuilder } from 'typeorm';
+import { Receipt, ReceiptSource, ReceiptStatus } from '../../entities/receipt.entity';
+import { Statement } from '../../entities/statement.entity';
 import { Subscription, SubscriptionStatus } from '../../entities/subscription.entity';
-import { Transaction, TransactionCategorySource } from '../../entities/transaction.entity';
-import { Workspace } from '../../entities/workspace.entity';
+import { Transaction } from '../../entities/transaction.entity';
 import { CrossStatementDeduplicationService } from '../transactions/services/cross-statement-deduplication.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import {
@@ -37,6 +36,8 @@ export type ReviewInboxItem =
       categorySource: string | null;
       categoryReason: string | null;
       statementId: string | null;
+      /** The receipt behind the row (a scan, or one attached to it); the page to open. */
+      receiptId: string | null;
     }
   | {
       kind: 'receipt';
@@ -95,28 +96,18 @@ export class ReviewInboxService {
     private readonly receiptRepository: Repository<Receipt>,
     @InjectRepository(Subscription)
     private readonly subscriptionRepository: Repository<Subscription>,
-    @InjectRepository(Workspace)
-    private readonly workspaceRepository: Repository<Workspace>,
+    @InjectRepository(Statement)
+    private readonly statementRepository: Repository<Statement>,
     private readonly transactionsService: TransactionsService,
     private readonly deduplicationService: CrossStatementDeduplicationService,
   ) {}
 
   /**
-   * Which category sources still need a look. "Uncategorised" always does;
-   * the model's picks do unless the workspace chose to trust them.
+   * Every row nobody confirmed yet. Only confirmed rows count anywhere in the
+   * numbers, so a row a rule, the history or the model categorised still waits
+   * here; transfers too. Suspected duplicates have their own list.
    */
-  private async reviewableSources(workspaceId: string): Promise<TransactionCategorySource[]> {
-    const workspace = await this.workspaceRepository.findOne({
-      where: { id: workspaceId },
-      select: ['id', 'settings'],
-    });
-    const { autoApproveAiPicks } = readProcessingSettings(workspace);
-    return autoApproveAiPicks
-      ? [TransactionCategorySource.DEFAULT]
-      : [TransactionCategorySource.DEFAULT, TransactionCategorySource.AI];
-  }
-
-  private transactionsQuery(workspaceId: string, sources: TransactionCategorySource[]) {
+  private transactionsQuery(workspaceId: string) {
     return this.transactionRepository
       .createQueryBuilder('t')
       .leftJoin('t.statement', 's')
@@ -124,9 +115,7 @@ export class ReviewInboxService {
       .where('t.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.isDuplicate = false')
       .andWhere('t.isVerified = false')
-      .andWhere('t.transferPairId IS NULL')
-      .andWhere('(t.statementId IS NULL OR s.deletedAt IS NULL)')
-      .andWhere('(t.categoryId IS NULL OR t.categorySource IN (:...sources))', { sources });
+      .andWhere('(t.statementId IS NULL OR s.deletedAt IS NULL)');
   }
 
   private duplicatesQuery(workspaceId: string) {
@@ -154,14 +143,61 @@ export class ReviewInboxService {
     return result;
   }
 
+  /**
+   * Receipts not yet turned into a transaction. A flagged one is always listed;
+   * the rest once something was parsed from them (an email with no amount is
+   * not a receipt yet), or when it is a scan the user uploaded.
+   */
+  private pendingReceiptsQuery(workspaceId: string): SelectQueryBuilder<Receipt> {
+    return this.receiptRepository
+      .createQueryBuilder('receipt')
+      .where('receipt.workspaceId = :workspaceId', { workspaceId })
+      .andWhere('receipt.isDuplicate = false')
+      .andWhere('receipt.transactionId IS NULL')
+      .andWhere(
+        `(receipt.status = :flagged OR (receipt.status IN (:...ready) AND (
+            NULLIF(TRIM(receipt.parsed_data->>'amount'), '') IS NOT NULL
+            OR (receipt.source = :scan AND receipt.statement_id IS NOT NULL))))`,
+        {
+          flagged: ReceiptStatus.NEEDS_REVIEW,
+          ready: [
+            ReceiptStatus.NEW,
+            ReceiptStatus.PARSED,
+            ReceiptStatus.DRAFT,
+            ReceiptStatus.REVIEWED,
+          ],
+          scan: ReceiptSource.SCAN,
+        },
+      );
+  }
+
+  /**
+   * How many rows of each statement still wait here (undecided rows and
+   * suspected duplicates), so the documents list can say what is left.
+   */
+  async pendingByStatement(workspaceId: string): Promise<Record<string, number>> {
+    const groups = await Promise.all(
+      [this.transactionsQuery(workspaceId), this.duplicatesQuery(workspaceId)].map(query =>
+        query
+          .andWhere('t.statementId IS NOT NULL')
+          .select('t.statementId', 'statementId')
+          .addSelect('COUNT(*)::int', 'count')
+          .groupBy('t.statementId')
+          .getRawMany<{ statementId: string; count: number }>(),
+      ),
+    );
+    const pending: Record<string, number> = {};
+    for (const { statementId, count } of groups.flat()) {
+      pending[statementId] = (pending[statementId] ?? 0) + count;
+    }
+    return pending;
+  }
+
   async counts(workspaceId: string): Promise<ReviewInboxCounts> {
-    const sources = await this.reviewableSources(workspaceId);
     const [transaction, duplicate, receipt, subscription] = await Promise.all([
-      this.transactionsQuery(workspaceId, sources).getCount(),
+      this.transactionsQuery(workspaceId).getCount(),
       this.duplicatesQuery(workspaceId).getCount(),
-      this.receiptRepository.count({
-        where: { workspaceId, status: ReceiptStatus.NEEDS_REVIEW, isDuplicate: false },
-      }),
+      this.pendingReceiptsQuery(workspaceId).getCount(),
       this.subscriptionRepository.count({
         where: { workspaceId, status: SubscriptionStatus.DETECTED },
       }),
@@ -175,6 +211,31 @@ export class ReviewInboxService {
     };
   }
 
+  /** Receipts attached to these rows, or that produced their statement (a scan). */
+  private async receiptIdsFor(
+    workspaceId: string,
+    rows: Transaction[],
+  ): Promise<{ byTransaction: Map<string, string>; byStatement: Map<string, string> }> {
+    const byTransaction = new Map<string, string>();
+    const byStatement = new Map<string, string>();
+    if (rows.length === 0) return { byTransaction, byStatement };
+    const statementIds = [
+      ...new Set(rows.map(row => row.statementId).filter((id): id is string => Boolean(id))),
+    ];
+    const receipts = await this.receiptRepository.find({
+      select: { id: true, transactionId: true, statementId: true },
+      where: [
+        { workspaceId, transactionId: In(rows.map(row => row.id)) },
+        ...(statementIds.length > 0 ? [{ workspaceId, statementId: In(statementIds) }] : []),
+      ],
+    });
+    for (const receipt of receipts) {
+      if (receipt.transactionId) byTransaction.set(receipt.transactionId, receipt.id);
+      if (receipt.statementId) byStatement.set(receipt.statementId, receipt.id);
+    }
+    return { byTransaction, byStatement };
+  }
+
   async list(workspaceId: string, filters: ReviewInboxQueryDto): Promise<ReviewInboxPage> {
     const kind = filters.kind ?? ReviewInboxKind.TRANSACTION;
     const page = filters.page ?? 1;
@@ -186,17 +247,14 @@ export class ReviewInboxService {
     let total = 0;
 
     if (kind === ReviewInboxKind.TRANSACTION) {
-      const sources = await this.reviewableSources(workspaceId);
-      const [rows, count] = await this.applyDateRange(
-        this.transactionsQuery(workspaceId, sources),
-        filters,
-      )
+      const [rows, count] = await this.applyDateRange(this.transactionsQuery(workspaceId), filters)
         .orderBy('t.transactionDate', 'DESC')
         .addOrderBy('t.id', 'ASC')
         .skip(skip)
         .take(limit)
         .getManyAndCount();
       total = count;
+      const receiptIds = await this.receiptIdsFor(workspaceId, rows);
       items = rows.map(row => ({
         kind: 'transaction',
         id: row.id,
@@ -211,6 +269,10 @@ export class ReviewInboxService {
         categorySource: row.categorySource,
         categoryReason: row.categoryReason,
         statementId: row.statementId,
+        receiptId:
+          receiptIds.byTransaction.get(row.id) ??
+          (row.statementId ? receiptIds.byStatement.get(row.statementId) : undefined) ??
+          null,
       }));
     } else if (kind === ReviewInboxKind.DUPLICATE) {
       const [rows, count] = await this.applyDateRange(this.duplicatesQuery(workspaceId), filters)
@@ -232,25 +294,18 @@ export class ReviewInboxService {
         matchType: row.duplicateMatchType,
       }));
     } else if (kind === ReviewInboxKind.RECEIPT) {
-      const dateWhere =
-        filters.from && filters.to
-          ? { createdAt: Between(new Date(filters.from), endOfDay(filters.to)) }
-          : filters.from
-            ? { createdAt: MoreThanOrEqual(new Date(filters.from)) }
-            : filters.to
-              ? { createdAt: LessThanOrEqual(endOfDay(filters.to)) }
-              : {};
-      const [rows, count] = await this.receiptRepository.findAndCount({
-        where: {
-          workspaceId,
-          status: ReceiptStatus.NEEDS_REVIEW,
-          isDuplicate: false,
-          ...dateWhere,
-        },
-        order: { createdAt: 'DESC' },
-        skip,
-        take: limit,
-      });
+      const query = this.pendingReceiptsQuery(workspaceId);
+      if (filters.from) {
+        query.andWhere('receipt.createdAt >= :from', { from: new Date(filters.from) });
+      }
+      if (filters.to) {
+        query.andWhere('receipt.createdAt <= :to', { to: endOfDay(filters.to) });
+      }
+      const [rows, count] = await query
+        .orderBy('receipt.createdAt', 'DESC')
+        .skip(skip)
+        .take(limit)
+        .getManyAndCount();
       total = count;
       items = rows.map(row => ({
         kind: 'receipt',
@@ -302,6 +357,34 @@ export class ReviewInboxService {
       ids.map(id => ({ id, updates })),
     );
     return { approved: updated.length };
+  }
+
+  /**
+   * Confirms every row of one statement that has a category; rows without one
+   * stay in the inbox, since confirming them would book spending nowhere.
+   */
+  async approveStatement(
+    workspaceId: string,
+    userId: string,
+    statementId: string,
+  ): Promise<{ approved: number; uncategorized: number }> {
+    const statement = await this.statementRepository.findOne({
+      where: { id: statementId, workspaceId },
+      select: ['id'],
+    });
+    if (!statement) {
+      throw new NotFoundException('Statement not found');
+    }
+    const rows = await this.transactionRepository.find({
+      where: { workspaceId, statementId, isVerified: false, isDuplicate: false },
+      select: ['id', 'categoryId'],
+    });
+    const ready = rows.filter(row => row.categoryId).map(row => row.id);
+    const { approved } =
+      ready.length > 0
+        ? await this.approveTransactions(workspaceId, userId, ready)
+        : { approved: 0 };
+    return { approved, uncategorized: rows.length - ready.length };
   }
 
   async resolveDuplicate(

@@ -108,6 +108,7 @@ describe('ledger FX revaluation (real Postgres)', () => {
         categoryId: salesId,
         amount,
         credit: amount,
+        isVerified: true,
       }),
     );
 

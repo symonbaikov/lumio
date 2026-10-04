@@ -336,7 +336,8 @@ export class CryptoSyncService {
         currency,
         transactionType: isIncome ? TransactionType.INCOME : TransactionType.EXPENSE,
         documentNumber: transfer.hash,
-        isVerified: true,
+        // Synced, not entered: waits in Review like any imported row.
+        isVerified: false,
       })
       .orIgnore()
       .execute();

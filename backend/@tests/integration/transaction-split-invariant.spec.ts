@@ -314,6 +314,8 @@ describe('split() preserves every money aggregate (real Postgres)', () => {
       debit: amount,
       credit: null,
       currency: 'KZT',
+      // Only confirmed rows count in any aggregate.
+      isVerified: true,
       categoryId,
     });
 
@@ -334,6 +336,7 @@ describe('split() preserves every money aggregate (real Postgres)', () => {
         debit: null,
         credit: 50000,
         currency: 'KZT',
+        isVerified: true,
       }),
     );
 

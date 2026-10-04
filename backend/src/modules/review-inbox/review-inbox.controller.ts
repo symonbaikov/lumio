@@ -41,6 +41,25 @@ export class ReviewInboxController {
     return this.reviewInboxService.counts(workspaceId);
   }
 
+  /** Rows each statement still has in the inbox, keyed by statement id; finished ones are absent. */
+  @Get('statements')
+  @WorkspaceAuth(Permission.TRANSACTION_VIEW)
+  async pendingByStatement(@CurrentUser() _user: User, @WorkspaceId() workspaceId: string) {
+    return this.reviewInboxService.pendingByStatement(workspaceId);
+  }
+
+  /** Confirms every categorised row of one statement; answers how many still lack a category. */
+  @Post('statements/:id/approve')
+  @HttpCode(HttpStatus.OK)
+  @WorkspaceAuth(Permission.TRANSACTION_EDIT)
+  async approveStatement(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: User,
+    @WorkspaceId() workspaceId: string,
+  ) {
+    return this.reviewInboxService.approveStatement(workspaceId, user.id, id);
+  }
+
   @Post('transactions/approve')
   @HttpCode(HttpStatus.OK)
   @WorkspaceAuth(Permission.TRANSACTION_EDIT)

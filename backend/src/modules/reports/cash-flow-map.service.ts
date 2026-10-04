@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type Repository } from 'typeorm';
+import { onlyCounted } from '../../common/utils/counted-transactions.util';
 import { Category } from '../../entities/category.entity';
 import { StatementStatus } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
@@ -157,6 +158,7 @@ export class CashFlowMapService {
       .andWhere('t.isDuplicate = false')
       .andWhere('t.transactionDate >= :from', { from })
       .andWhere('t.transactionDate <= :to', { to });
+    onlyCounted(qb, 't');
     if (!includeTransfers) {
       qb.andWhere('t.transferPairId IS NULL');
     }

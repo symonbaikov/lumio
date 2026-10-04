@@ -1,3 +1,4 @@
+import { countedSql } from '@/common/utils/counted-transactions.util';
 import { InsightSeverity, InsightType } from '@/entities/insight.entity';
 import { FinancialAnalyzer } from '@/modules/insights/analyzers/financial.analyzer';
 
@@ -194,6 +195,25 @@ describe('FinancialAnalyzer', () => {
       messageParams: { rate: 10, diff: 30 },
       severity: InsightSeverity.WARN,
     });
+  });
+
+  it('derives every figure from confirmed transactions only', async () => {
+    const transactions = createTransactionRepository({});
+    const analyzer = new FinancialAnalyzer(
+      transactions,
+      createBudgetRepository([]),
+      createNetWorthService(),
+    );
+
+    await analyzer.analyze(CONTEXT);
+
+    const builder = transactions.createQueryBuilder.mock.results[0].value;
+    const confirmedClauses = builder.andWhere.mock.calls.filter(
+      ([clause]: [string]) => clause === countedSql('t'),
+    );
+    // One per query: the category totals and each monthly total.
+    expect(transactions.createQueryBuilder.mock.calls.length).toBeGreaterThan(1);
+    expect(confirmedClauses).toHaveLength(transactions.createQueryBuilder.mock.calls.length);
   });
 
   it('reports a rising savings rate as information, not a warning', async () => {

@@ -509,6 +509,46 @@ describe('DashboardService', () => {
     expect(walletRepo.createQueryBuilder).not.toHaveBeenCalled();
   });
 
+  it('getSnapshot counts only confirmed rows in income, expense and balance', async () => {
+    const txQb = createQueryBuilderMock([
+      { currency: 'USD', income: '0', expense: '0', unapprovedCash: '0' },
+    ]);
+    const balanceQb = createQueryBuilderMock([{ currency: 'USD', balance: '0' }]);
+    transactionRepo.createQueryBuilder.mockReturnValueOnce(txQb).mockReturnValueOnce(balanceQb);
+    payableRepo.createQueryBuilder.mockReturnValue(createQueryBuilderMock([]));
+    workspaceRepo.findOne.mockResolvedValue({ currency: 'USD' });
+
+    await (service as any).getSnapshot('ws-1', new Date('2026-02-01'), new Date('2026-03-01'));
+
+    const [columns] = txQb.select.mock.calls[0] as [string[]];
+    const column = (alias: string) => columns.find(sql => sql.endsWith(alias)) ?? '';
+    expect(column('AS income')).toContain('t.is_verified = true');
+    expect(column('AS expense')).toContain('t.is_verified = true');
+    // Unapproved cash measures what still waits, so it keeps the unconfirmed rows.
+    expect(column('AS "unapprovedCash"')).not.toContain('is_verified');
+    expect(balanceQb.andWhere).toHaveBeenCalledWith('t.isVerified = true');
+  });
+
+  it('counts uncategorised rows for data health whether or not they are confirmed', async () => {
+    const query = createQueryBuilderMock(0);
+    transactionRepo.createQueryBuilder.mockReturnValueOnce(query);
+
+    await (service as any).getUncategorizedTransactionCount('ws-1', null);
+
+    expect(query.andWhere).not.toHaveBeenCalledWith('t.isVerified = true');
+    expect(query.andWhere).toHaveBeenCalledWith('t.categoryId IS NULL');
+  });
+
+  it('builds every trend and top list from confirmed rows only', () => {
+    const query = createQueryBuilderMock([]);
+    transactionRepo.createQueryBuilder.mockReturnValueOnce(query);
+
+    (service as any).createTrendBaseQuery('ws-1', new Date('2026-02-01'), new Date('2026-03-01'));
+
+    expect(query.andWhere).toHaveBeenCalledWith('t.isDuplicate = false');
+    expect(query.andWhere).toHaveBeenCalledWith('t.isVerified = true');
+  });
+
   it('getSnapshot converts grouped source currencies into the workspace currency', async () => {
     const txQb = createQueryBuilderMock([
       { currency: 'USD', income: '10', expense: '2', unapprovedCash: '1' },
