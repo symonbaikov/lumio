@@ -1,6 +1,5 @@
 import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import { resolveGmailMerchantLabel } from '@/app/lib/gmail-merchant';
-import type { StatementStage } from '@/app/lib/statement-workflow';
 
 export interface GmailReceipt {
   id: string;
@@ -10,7 +9,6 @@ export interface GmailReceipt {
   sender: string;
   receivedAt: string;
   status: string;
-  stage?: StatementStage | null;
   parsedData?: {
     amount?: number | string | null;
     currency?: string;
@@ -44,7 +42,6 @@ export interface GmailMappedStatement {
   subject: string;
   sender: string;
   status: string;
-  stage?: StatementStage | null;
   totalTransactions: number;
   totalDebit: number;
   totalCredit: null;
@@ -129,7 +126,6 @@ export const mapGmailReceiptToStatement = (receipt: GmailReceipt): GmailMappedSt
     subject: receipt.subject,
     sender: receipt.sender,
     status: receipt.status,
-    stage: receipt.stage ?? null,
     totalTransactions: 0,
     totalDebit: amount ?? 0,
     totalCredit: null,

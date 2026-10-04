@@ -18,9 +18,9 @@ type InsightData = Record<string, unknown> | null;
 const CASH_FLOW = '/reports?tab=cash-flow';
 
 const STATIC_ROUTES: Record<string, string> = {
-  'operational.unapproved_count': '/statements/approve',
+  'operational.unapproved_count': '/review',
   'operational.uncategorized_count': '/statements/submit?missingCategory=true',
-  'operational.duplicate_detected': '/statements/unapproved-cash',
+  'operational.duplicate_detected': '/review',
   'pattern.risky_allocation': '/net-worth?focus=card:risk',
   'forecast.monthly': '/dashboard?tab=overview',
   'pattern.detected': '/subscriptions',

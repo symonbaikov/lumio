@@ -175,7 +175,7 @@ export function buildFinanceOpsModel(
       id: 'review-clear',
       label: labels.checklist.reviewQueueClear,
       done: dataHealth.statementsPendingReview === 0 && dataHealth.statementsWithErrors === 0,
-      href: '/statements/approve',
+      href: '/review',
     },
     {
       id: 'categories-clear',
@@ -193,7 +193,7 @@ export function buildFinanceOpsModel(
       id: 'cash-approved',
       label: labels.checklist.cashReconciled,
       done: Math.abs(snapshot.unapprovedCash) === 0,
-      href: '/statements/unapproved-cash',
+      href: '/review',
     },
   ];
 
@@ -214,7 +214,7 @@ export function buildFinanceOpsModel(
     {
       id: 'review-statements',
       label: labels.savedViews.statementReview,
-      href: '/statements/approve',
+      href: '/review',
       count: dataHealth.statementsPendingReview,
     },
     {
@@ -238,7 +238,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.importReviewInbox.summary,
       pendingCount: importPending,
       status: statusFor(importPending, dataHealth.statementsWithErrors > 0),
-      href: importPending > 0 ? '/statements/approve' : '/statements/submit?openExpenseDrawer=scan',
+      href: importPending > 0 ? '/review' : '/statements/submit?openExpenseDrawer=scan',
       primaryAction:
         importPending > 0
           ? labels.features.importReviewInbox.primaryActionOpen
@@ -315,7 +315,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.reconciliationDashboard.summary,
       pendingCount: reconciliationPending,
       status: statusFor(reconciliationPending),
-      href: '/statements/unapproved-cash',
+      href: '/review',
       primaryAction: labels.features.reconciliationDashboard.primaryAction,
       evidence: fillTemplate(labels.features.reconciliationDashboard.evidence, {
         netFlow: formatAmount(snapshot.netFlow30d),

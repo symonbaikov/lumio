@@ -19,123 +19,8 @@ import {
   type CloudImportProvider,
   type ConnectedCloudProviders,
 } from '@/app/lib/statement-upload-actions';
-import {
-  countStatementStages,
-  migrateLocalStatementStages,
-  type StatementStage,
-} from '@/app/lib/statement-workflow';
-import { buildUnapprovedStatementQueue } from './unapproved-cash-utils';
-
-type StatementListItem = {
-  id?: string;
-  bankName?: string | null;
-  totalDebit?: number | string | null;
-  totalCredit?: number | string | null;
-  status?: string | null;
-  stage?: StatementStage | null;
-  errorMessage?: string | null;
-  fileType?: string | null;
-  parsingDetails?: {
-    importPreview?: {
-      source?: string | null;
-    } | null;
-  } | null;
-};
-
-type TransactionListItem = {
-  id: string;
-  statementId?: string | null;
-  counterpartyName?: string | null;
-  transactionType?: string | null;
-  currency?: string | null;
-  isVerified?: boolean | null;
-  isDuplicate?: boolean | null;
-  duplicateOfId?: string | null;
-  categoryId?: string | null;
-  category?: {
-    id?: string | null;
-  } | null;
-  transactionDate?: string | Date | null;
-  amount?: number | string | null;
-  debit?: number | string | null;
-  credit?: number | string | null;
-};
-
-async function fetchAllPaginated<T>(endpoint: string, pageSize = 500): Promise<T[]> {
-  const allItems: T[] = [];
-  let page = 1;
-  let total = Number.POSITIVE_INFINITY;
-
-  while (allItems.length < total) {
-    // eslint-disable-next-line no-await-in-loop -- sequential by design (pagination)
-    const response = await apiClient.get(endpoint, {
-      params: { page, limit: pageSize },
-    });
-    const raw = response.data?.data || response.data || [];
-    const batch: T[] = Array.isArray(raw) ? raw : [];
-    allItems.push(...batch);
-    total = Number(response.data?.total ?? allItems.length);
-    if (batch.length < pageSize) {
-      break;
-    }
-    page += 1;
-  }
-
-  return allItems;
-}
-
-function buildStatementMetaMap(allStatements: StatementListItem[]) {
-  return new Map(
-    allStatements
-      .filter(statement => Boolean(statement.id))
-      .map(statement => [
-        statement.id as string,
-        {
-          id: statement.id as string,
-          fileName: null,
-          bankName: statement.bankName ?? null,
-          status: statement.status,
-          errorMessage: statement.errorMessage,
-          fileType: statement.fileType,
-          currency: null,
-          totalDebit: statement.totalDebit ?? null,
-          totalCredit: statement.totalCredit ?? null,
-          statementDateFrom: null,
-          statementDateTo: null,
-          createdAt: null,
-          sourceHint: statement.parsingDetails?.importPreview?.source ?? null,
-        },
-      ]),
-  );
-}
-
-export type StatementsQueueCounts = {
-  submit: number;
-  approve: number;
-  unapprovedCash: number;
-};
-
-const EMPTY_COUNTS: StatementsQueueCounts = { submit: 0, approve: 0, unapprovedCash: 0 };
-
-async function loadQueueCounts(): Promise<StatementsQueueCounts> {
-  await migrateLocalStatementStages();
-  const allStatements = await fetchAllPaginated<StatementListItem>('/statements');
-
-  const stageCounts = countStatementStages(allStatements);
-  const transactions = await fetchAllPaginated<TransactionListItem>('/transactions');
-  const statementMetaById = buildStatementMetaMap(allStatements);
-
-  const unapprovedCashCount = buildUnapprovedStatementQueue({
-    statements: Array.from(statementMetaById.values()),
-    transactions,
-  }).length;
-
-  return { ...stageCounts, unapprovedCash: unapprovedCashCount };
-}
 
 export type StatementsQueueValue = {
-  counts: StatementsQueueCounts;
-  countsLoading: boolean;
   payCount: number;
   payCountLoading: boolean;
   providers: ConnectedCloudProviders;
@@ -148,8 +33,6 @@ export type StatementsQueueValue = {
 // Rendered outside the statements layout (tests, storybook-style mounts) the
 // tabs and the upload button still render; they just have nothing to count.
 const FALLBACK_VALUE: StatementsQueueValue = {
-  counts: EMPTY_COUNTS,
-  countsLoading: false,
   payCount: 0,
   payCountLoading: false,
   providers: { googleDriveConnected: false, dropboxConnected: false, gmailConnected: false },
@@ -163,42 +46,6 @@ const StatementsQueueContext = createContext<StatementsQueueValue>(FALLBACK_VALU
 
 export function useStatementsQueue(): StatementsQueueValue {
   return useContext(StatementsQueueContext);
-}
-
-function useQueueCounts(user: unknown): { counts: StatementsQueueCounts; loading: boolean } {
-  const [counts, setCounts] = useState(EMPTY_COUNTS);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    // Only the first load shows spinners; refreshes swap the numbers in place
-    // so the tab strip doesn't flicker.
-    loadQueueCounts()
-      .then(next => {
-        if (isMounted) {
-          setCounts(next);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setCounts(EMPTY_COUNTS);
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
-
-  return { counts, loading };
 }
 
 function usePayCount(
@@ -386,7 +233,7 @@ function useUploadActions(gmailConnected: boolean): UploadActions {
 }
 
 /**
- * Counts, connected cloud providers and the upload actions the statements tab
+ * The Pay count, connected cloud providers and the upload actions the statements tab
  * strip and its upload button need. Mounted once by the statements layout, so
  * switching tabs neither remounts it nor reloads the counts.
  */
@@ -397,14 +244,13 @@ export function StatementsQueueProvider({
 }): React.JSX.Element {
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
-  const { counts, loading: countsLoading } = useQueueCounts(user);
   const { payCount, loading: payCountLoading } = usePayCount(user, currentWorkspace?.id);
   const providers = useCloudProviders(user);
   const actions = useUploadActions(providers.gmailConnected);
 
   const value = useMemo<StatementsQueueValue>(
-    () => ({ counts, countsLoading, payCount, payCountLoading, providers, ...actions }),
-    [counts, countsLoading, payCount, payCountLoading, providers, actions],
+    () => ({ payCount, payCountLoading, providers, ...actions }),
+    [payCount, payCountLoading, providers, actions],
   );
 
   return (

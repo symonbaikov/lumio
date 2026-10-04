@@ -28,6 +28,8 @@ export const queryKeys = {
     ['review-inbox', o.workspaceId, o.params] as const,
   reviewInboxCounts: (workspaceId: string | null) =>
     ['review-inbox', workspaceId, 'counts'] as const,
+  reviewInboxByStatement: (workspaceId: string | null) =>
+    ['review-inbox', workspaceId, 'statements'] as const,
   wallets: (workspaceId: string | null) => ['wallets', workspaceId] as const,
   payablePaymentCandidates: (o: { workspaceId: string | null; payableId: string }) =>
     ['payables', o.workspaceId, o.payableId, 'payment-candidates'] as const,

@@ -11,6 +11,9 @@ const effectivePeriod = vi.hoisted(() => ({ current: null as string | null }));
 
 const searchParams = vi.hoisted(() => ({ current: new URLSearchParams() }));
 
+// Reads the Review counts through React Query; its own test covers it.
+vi.mock('@/app/components/review/UnconfirmedNotice', () => ({ UnconfirmedNotice: () => null }));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace }),
   usePathname: () => '/dashboard',
