@@ -1286,7 +1286,12 @@ export class DashboardService {
         where: {
           workspaceId,
           direction: PayableDirection.PAYABLE,
-          status: In([PayableStatus.TO_PAY, PayableStatus.SCHEDULED, PayableStatus.OVERDUE]),
+          status: In([
+            PayableStatus.TO_PAY,
+            PayableStatus.SCHEDULED,
+            PayableStatus.OVERDUE,
+            PayableStatus.PARTIALLY_PAID,
+          ]),
           deletedAt: IsNull(),
         },
       }),
@@ -1326,13 +1331,14 @@ export class DashboardService {
     let unscheduledCommitted = 0;
 
     for (const payable of payables) {
+      // A partly paid bill is still owed, but only what is left of it.
       const amount = await this.convertDashboardAmount(
-        payable.amount,
+        Number(payable.amount) - Number(payable.paidAmount ?? 0),
         payable.currency,
         currency,
         payable.workspaceId,
       );
-      if (amount === 0) {
+      if (amount <= 0) {
         continue;
       }
       const dueDate = this.parseDateOnly(payable.dueDate);
