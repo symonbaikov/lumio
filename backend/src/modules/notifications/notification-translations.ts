@@ -1008,95 +1008,6 @@ const zh: TranslationMap = {
   },
 };
 
-const ar: TranslationMap = {
-  'subscription.price_changed': {
-    title: 'تغيّر سعر الاشتراك',
-    message:
-      '{{vendor}}: {{previous}} ← {{current}} {{currency}} ({{delta}} لكل خصم، {{yearly}} سنويًا)',
-  },
-  'review.waiting': {
-    title: 'عناصر بانتظار المراجعة',
-    message: '{{count}} عنصرًا بانتظارك في صندوق المراجعة',
-  },
-  'note.mentioned': {
-    title: 'تمت الإشارة إليك في ملاحظة',
-    message: 'أشار إليك {{actorName}}: {{excerpt}}',
-  },
-  'statement.uploaded': {
-    title: 'تم رفع كشف الحساب',
-    message: '{{actorName}} رفع كشف الحساب "{{statementName}}"',
-  },
-  'import.committed': {
-    title: 'اكتمل الاستيراد',
-    message: '{{actorName}} استورد {{transactionCount}} معاملة',
-  },
-  'category.created': {
-    title: 'تم إنشاء الفئة',
-    message: '{{actorName}} أنشأ الفئة "{{categoryName}}"',
-  },
-  'category.updated': {
-    title: 'تم تحديث الفئة',
-    message: '{{actorName}} حدّث الفئة "{{categoryName}}"',
-  },
-  'category.deleted': {
-    title: 'تم حذف الفئة',
-    message: '{{actorName}} حذف الفئة "{{categoryName}}"',
-  },
-  'member.invited': { title: 'تمت دعوة عضو جديد', message: '{{actorName}} دعا {{invitedEmail}}' },
-  'member.joined': { title: 'انضم عضو', message: '{{memberName}} انضم إلى مساحة العمل' },
-  'data.deleted': { title: 'تم حذف البيانات', message: '{{actorName}} حذف {{count}} سجلات' },
-  'workspace.updated': {
-    title: 'تم تحديث إعدادات مساحة العمل',
-    message: '{{actorName}} حدّث إعدادات مساحة العمل',
-  },
-  'parsing.error': { title: 'خطأ في تحليل كشف الحساب', message: 'تعذرت معالجة كشف الحساب' },
-  'parsing.error.named': {
-    title: 'خطأ في تحليل كشف الحساب',
-    message: 'تعذرت معالجة كشف الحساب "{{statementName}}"',
-  },
-  'import.failed': { title: 'فشل الاستيراد', message: 'فشل الاستيراد' },
-  'import.failed.named': {
-    title: 'فشل الاستيراد',
-    message: 'فشل استيراد كشف الحساب "{{statementName}}"',
-  },
-  'transactions.uncategorized': {
-    title: 'معاملات بدون تصنيف',
-    message: '{{count}} معاملة تحتاج إلى تصنيف',
-  },
-  'receipt.uncategorized': { title: 'إيصال بدون تصنيف', message: 'تم العثور على إيصال بدون تصنيف' },
-  'receipt.uncategorized.named': {
-    title: 'إيصال بدون تصنيف',
-    message: 'الإيصال "{{receiptName}}" ليس له تصنيف',
-  },
-  'payable.marked_paid': {
-    title: 'تم تحديد الدفعة كمدفوعة',
-    message: 'تم تحديد {{vendor}} كمدفوع',
-  },
-  'payable.overdue': { title: 'دفعة متأخرة', message: '{{vendor}} متأخر' },
-  'payable.due_soon': { title: 'دفعة مستحقة قريباً', message: '{{vendor}} مستحق قريباً' },
-  'budget.exceeded': {
-    title: 'تجاوز الميزانية',
-    message: 'الميزانية "{{budgetName}}" تجاوزت الحد ({{percentUsed}}%)',
-  },
-  'budget.warning': {
-    title: 'تحذير الميزانية',
-    message: 'الميزانية "{{budgetName}}" وصلت إلى {{percentUsed}}% من الحد',
-  },
-  'subscription.detected': {
-    title: 'تم اكتشاف اشتراكات',
-    message: 'تم العثور على مدفوعات متكررة: {{vendors}}',
-  },
-  'subscription.upcoming': { title: 'رسوم اشتراك قادمة', message: 'قادمة: {{details}}' },
-  'tax.threshold.warning': {
-    title: 'حد التسجيل الضريبي',
-    message: 'بلغ حجم الأعمال {{percentUsed}}% من حد التسجيل البالغ {{threshold}} {{currency}}',
-  },
-  'tax.threshold.reached': {
-    title: 'تم بلوغ حد التسجيل',
-    message: 'بلغ حجم الأعمال حد التسجيل {{threshold}} {{currency}}',
-  },
-};
-
 const pl: TranslationMap = {
   'subscription.price_changed': {
     title: 'Zmiana ceny subskrypcji',
@@ -3880,7 +3791,6 @@ export const NOTIFICATION_TRANSLATIONS: Record<string, TranslationMap> = {
   tr,
   uk,
   zh,
-  ar,
   pl,
   it,
   sk,

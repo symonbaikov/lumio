@@ -436,46 +436,6 @@ const zh: TranslationMap = {
   },
 };
 
-const ar: TranslationMap = {
-  'operational.unapproved': {
-    title: 'معاملات تنتظر حكمك',
-    message: 'بانتظار الموافقة: {{count}}. احسمها اليوم بدلًا من أن تحملها معك.',
-  },
-  'operational.uncategorized': {
-    title: 'إنفاق بلا اسم',
-    message: 'معاملات بلا فئة: {{count}}. ما لا اسم له لا يمكن وزنه.',
-  },
-  'operational.duplicates': {
-    title: 'تم العثور على تكرارات محتملة',
-    message: 'تكرارات محتملة: {{count}}. انظر إلى الأشياء كما هي — واحسب كلًّا منها مرة واحدة.',
-  },
-  'trend.category_rising': {
-    title: 'الفئة في ارتفاع',
-    message:
-      'الإنفاق على "{{category}}" أعلى بنسبة {{percent}}% من متوسط 3 أشهر. اسأل نفسك: هل هي تخدمك أم أنت تخدمها؟',
-  },
-  'pattern.unbudgeted_top_category': {
-    title: 'أكبر نفقاتك بلا حدّ',
-    message:
-      '"{{category}}" هي أكبر نفقاتك هذا الشهر ولا شيء يقيّدها. الحدّ الذي يُختار بهدوء يدوم أكثر من الرغبة.',
-  },
-  'trend.savings_rate_up': {
-    title: 'ارتفع معدل الادخار',
-    message:
-      'احتفظت بـ {{rate}}% من الدخل — بزيادة {{diff}} نقطة عن الشهر الماضي. الاعتدال يؤتي ثماره.',
-  },
-  'trend.savings_rate_down': {
-    title: 'انخفض معدل الادخار',
-    message:
-      'احتفظت بـ {{rate}}% من الدخل — بنقص {{diff}} نقطة عن الشهر الماضي. انظر إلى ما نما، لا إلى ما ينقصك.',
-  },
-  'pattern.risky_allocation': {
-    title: 'الكثير يتوقف على الحظ',
-    message:
-      '{{percent}}% من الأصول في مخاطر متوسطة أو عالية — فوق حدّ {{threshold}}%. أبقِ معظم ما تملك بعيدًا عن متناول المصادفة.',
-  },
-};
-
 const pl: TranslationMap = {
   'operational.unapproved': {
     title: 'Transakcje czekają na Twoją decyzję',
@@ -1520,7 +1480,6 @@ export const INSIGHT_TRANSLATIONS: Record<string, TranslationMap> = {
   tr,
   uk,
   zh,
-  ar,
   pl,
   it,
   sk,

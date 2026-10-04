@@ -14,7 +14,6 @@ const content = {
       tr: 'Listeye dön',
       uk: 'Назад до списку',
       zh: '返回列表',
-      ar: 'العودة إلى القائمة',
       pl: 'Wróć do listy',
       it: "Torna all'elenco",
       sk: 'Späť na zoznam',

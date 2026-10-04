@@ -170,21 +170,6 @@ const zh: InvitationMap = {
   footer: '该链接 7 天内有效。如果您并未预期收到此邮件，请忽略它。',
 };
 
-const ar: InvitationMap = {
-  subject: 'دعوة إلى مساحة العمل {{workspace}}',
-  preview: 'دعوة إلى مساحة العمل {{workspace}}',
-  heading: 'دعوة إلى مساحة عمل',
-  invitedBy: 'يدعوك {{inviter}} للانضمام إلى',
-  invitedAnon: 'أنت مدعو للانضمام إلى',
-  role: 'الدور: {{role}}',
-  roleOwner: 'المالك',
-  roleAdmin: 'مسؤول',
-  roleMember: 'عضو',
-  cta: 'قبول الدعوة',
-  linkHint: 'إذا لم يعمل الزر، استخدم هذا الرابط:',
-  footer: 'الرابط صالح لمدة 7 أيام. إذا لم تكن تتوقع هذه الرسالة، تجاهلها ببساطة.',
-};
-
 const pl: InvitationMap = {
   subject: 'Zaproszenie do przestrzeni roboczej {{workspace}}',
   preview: 'Zaproszenie do przestrzeni roboczej {{workspace}}',
@@ -575,7 +560,6 @@ const INVITATION_TRANSLATIONS: Record<string, InvitationMap> = {
   tr,
   uk,
   zh,
-  ar,
   pl,
   it,
   sk,

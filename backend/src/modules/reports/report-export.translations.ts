@@ -192,23 +192,6 @@ const zh: ReportLabelMap = {
   sheetTrends: '趋势',
 };
 
-const ar: ReportLabelMap = {
-  group: 'المجموعة',
-  date: 'التاريخ',
-  counterparty: 'الطرف المقابل',
-  amount: 'المبلغ',
-  category: 'الفئة',
-  branch: 'الفرع',
-  wallet: 'المحفظة',
-  type: 'النوع',
-  count: 'العدد',
-  income: 'الإيرادات',
-  expense: 'المصروفات',
-  difference: 'الفرق',
-  sheetReport: 'التقرير',
-  sheetTrends: 'الاتجاهات',
-};
-
 const pl: ReportLabelMap = {
   group: 'Grupa',
   date: 'Data',
@@ -645,7 +628,6 @@ const REPORT_LABELS: Record<string, ReportLabelMap> = {
   tr,
   uk,
   zh,
-  ar,
   pl,
   it,
   sk,

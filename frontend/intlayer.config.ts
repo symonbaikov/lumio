@@ -13,7 +13,6 @@ const config: IntlayerConfig = {
       'tr',
       'uk',
       'zh',
-      'ar',
       'pl',
       'it',
       'sk',

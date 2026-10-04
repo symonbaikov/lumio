@@ -14,7 +14,6 @@ const content = {
       tr: 'Kullanıcı',
       uk: 'Користувач',
       zh: '用户',
-      ar: 'مستخدم',
       pl: 'Użytkownik',
       it: 'Utente',
       sk: 'Používateľ',

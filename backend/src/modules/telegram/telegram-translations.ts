@@ -680,66 +680,6 @@ const zh: TranslationMap = {
   insight_digest_header: '🔔 Lumio 新提醒',
 };
 
-const ar: TranslationMap = {
-  receipt_photo_received: '📷 تم استلام الصورة، جارٍ قراءة الإيصال…',
-  receipt_photo_done:
-    '🧾 {{vendor}} — {{amount}} {{currency}}. الإيصال بانتظارك في صندوق المراجعة (الحالة: {{status}}).',
-  receipt_photo_unreadable:
-    '🧾 تم حفظ الإيصال لكن تعذّر قراءة المبلغ. إنه بانتظارك في صندوق المراجعة.',
-  receipt_photo_failed: 'تعذّر معالجة الصورة. حاول مجددًا أو ارفعها عبر تطبيق الويب.',
-  expense_text_done:
-    '✅ تم تسجيل {{merchant}} — {{amount}} {{currency}}. اختر الفئة في صندوق المراجعة.',
-  expense_text_unparsed: 'لم أجد مبلغًا. جرّب مثلًا «قهوة 4.50» أو «تاكسي 15 EUR».',
-  expense_text_failed: 'تعذّر تسجيل المصروف. حاول مجددًا.',
-  delete_button: '🗑 حذف',
-  deleted: 'تم الحذف.',
-  delete_failed: 'تعذّر الحذف.',
-  inbound_help:
-    'يمكنك أيضًا:\n• إرسال صورة إيصال — أقرأ المبلغ وأضعه في صندوق المراجعة\n• كتابة مصروف: «قهوة 4.50»، «تاكسي 15 EUR»\n• إرسال كشف PDF — يذهب إلى الاستيراد',
-  connected: '✅ تم ربط Telegram. سنرسل التقارير إلى هذه المحادثة.',
-  start_greeting:
-    '👋 مرحبًا! معرّف Telegram الخاص بك: {{telegramId}}. أضفه في إعدادات الملف الشخصي لتلقي التقارير.',
-  unknown_command: 'أمر غير معروف. استخدم /help لعرض قائمة الأوامر.',
-  telegram_id_unknown: 'تعذّر تحديد معرّف Telegram الخاص بك. حاول مرة أخرى لاحقًا.',
-  user_not_connected:
-    'لا يوجد حساب مرتبط بمعرّف Telegram {{telegramId}}. أضف هذا المعرّف في إعدادات الحساب.',
-  report_failed: 'تعذّر إرسال التقرير. حاول مرة أخرى لاحقًا.',
-  document_telegram_id_unknown: '⚠️ تعذّر تحديد معرّف Telegram الخاص بك. أرسل /start وحاول مرة أخرى.',
-  document_user_not_connected:
-    'لا يوجد حساب مرتبط بمعرّف Telegram {{telegramId}}. أضف المعرّف ومعرّف المحادثة في الإعدادات، أو أرسل /start لرؤية معرّفك.',
-  document_pdf_only: 'يتم دعم ملفات كشف الحساب بصيغة PDF فقط.',
-  document_received: '📥 تم استلام الملف، بدأت المعالجة...',
-  document_processed:
-    '✅ تم قبول الملف وإدراجه في قائمة المعالجة. الحالة: {{status}}. تحقق من النتيجة في تطبيق Lumio على الويب.',
-  document_failed: 'تعذّرت معالجة الملف. حاول مرة أخرى لاحقًا أو ارفعه عبر تطبيق الويب.',
-  help: 'الأوامر المتاحة:\n/start — إظهار معرّف Telegram الخاص بك ورسالة ترحيب\n/help — هذه المساعدة\n/report — التقرير اليومي لليوم\n/report YYYY-MM-DD — تقرير لتاريخ محدد\n/report monthly — تقرير الشهر الحالي\n/goals — تقدّم أهداف الادخار\n/networth — صافي ثروتك الحالي',
-  daily_header: '📅 التقرير اليومي — {{date}}',
-  income_line: '➕ الدخل: {{amount}} ({{count}})',
-  expense_line: '➖ المصروفات: {{amount}} ({{count}})',
-  daily_total: '📊 إجمالي اليوم: {{amount}}',
-  top_income_header: 'أفضل الأطراف المقابلة حسب الدخل:',
-  top_expense_header: 'أعلى فئات المصروفات:',
-  list_item: '{{index}}. {{name}} — {{amount}} ({{count}})',
-  monthly_header: '🗓️ تقرير {{period}}',
-  monthly_income: '➕ الدخل: {{amount}}',
-  monthly_expense: '➖ المصروفات: {{amount}}',
-  monthly_diff: '📊 الفرق: {{amount}} ({{count}} معاملة)',
-  top_categories_header: 'أعلى فئات المصروفات:',
-  category_item: '{{index}}. {{name}} — {{amount}} ({{percent}}%)',
-  top_counterparties_header: 'أفضل الأطراف المقابلة:',
-  counterparty_item: '{{index}}. {{name}} — {{amount}} ({{percent}}%)',
-  goals_header: '🎯 أهداف الادخار',
-  goals_empty: 'لا توجد أهداف بعد. أنشئ هدفًا في تطبيق Lumio على الويب.',
-  goal_item: '{{name}}: {{current}} / {{target}} {{currency}} ({{percent}}%)',
-  networth_header: '📈 صافي الثروة: {{value}} {{currency}}',
-  networth_change_up: '▲ +{{amount}} {{currency}} (+{{percent}}%) خلال الفترة',
-  networth_change_down: '▼ {{amount}} {{currency}} ({{percent}}%) خلال الفترة',
-  networth_change_no_percent: 'التغيّر خلال الفترة: {{amount}} {{currency}}',
-  networth_risky_warning:
-    '⚠️ {{percent}}% من الأصول في مخاطرة متوسطة/عالية — أعلى من حد {{threshold}}%',
-  insight_digest_header: '🔔 تنبيه Lumio جديد',
-};
-
 const pl: TranslationMap = {
   receipt_photo_received: '📷 Zdjęcie odebrane, odczytuję paragon…',
   receipt_photo_done:
@@ -2305,7 +2245,6 @@ export const TELEGRAM_TRANSLATIONS: Record<string, TranslationMap> = {
   tr,
   uk,
   zh,
-  ar,
   pl,
   it,
   sk,

@@ -11,7 +11,6 @@ export type AppLocale =
   | 'sk'
   | 'pt'
   | 'tr'
-  | 'ar'
   | 'it'
   | 'ja'
   | 'ko'
@@ -51,7 +50,6 @@ export const SUPPORTED_LOCALES = [
   'sk',
   'pt',
   'tr',
-  'ar',
   'it',
   'ja',
   'ko',
@@ -103,7 +101,7 @@ const DISPLAY_PRIORITY: readonly AppLocale[] = [
 
 /**
  * Every language named in itself and in its own script — "Deutsch", "日本語",
- * "العربية" — never translated into the interface language, so a person can
+ * "हिन्दी" — never translated into the interface language, so a person can
  * find their language whatever the screen is currently set to.
  */
 export const LOCALE_ENDONYMS: Record<AppLocale, string> = {
@@ -122,7 +120,6 @@ export const LOCALE_ENDONYMS: Record<AppLocale, string> = {
   pl: 'Polski',
   sk: 'Slovenčina',
   tr: 'Türkçe',
-  ar: 'العربية',
   ja: '日本語',
   ko: '한국어',
   hi: 'हिन्दी',
