@@ -13,7 +13,7 @@ import { ChevronLeft, Trash2 } from '@/app/components/icons';
 import { CurrencyDrawer } from '@/app/components/receipts/components/CurrencyDrawer';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
+import { FORM_CONTROL_SX, Input } from '@/app/components/ui/input';
 import { Select } from '@/app/components/ui/select';
 import { useWorkspace } from '@/app/contexts/WorkspaceContext';
 import { useCurrencyPickerState } from '@/app/hooks/useCurrencyPickerState';
@@ -574,6 +574,7 @@ export function InvoiceDetailView({ invoiceId }: InvoiceDetailViewProps): React.
             <Select
               fullWidth
               id="invoice-recurrence"
+              sx={FORM_CONTROL_SX}
               value={recurrenceInterval || 'none'}
               disabled={!isEditable}
               onChange={next =>

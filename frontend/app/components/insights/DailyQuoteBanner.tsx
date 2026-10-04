@@ -68,7 +68,7 @@ export function DailyQuoteBanner(): React.JSX.Element | null {
   };
 
   return (
-    <Box sx={{ px: 3, pt: 2 }}>
+    <Box sx={{ px: 3, pt: 2, pb: 2 }}>
       <Box
         component="figure"
         aria-label={t.quoteLabel.value}

@@ -248,7 +248,12 @@ export function ReceiptParsedDataForm({
                 width: '100%',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                border: '1px solid rgba(0, 0, 0, 0.23)',
+                border: '1px solid',
+                // MUI's own outlined-input border, so it matches the fields beside it in both themes.
+                borderColor: theme =>
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(255, 255, 255, 0.23)'
+                    : 'rgba(0, 0, 0, 0.23)',
                 borderRadius: tokens.radius.md,
                 bgcolor: 'transparent',
                 px: 1.75,
