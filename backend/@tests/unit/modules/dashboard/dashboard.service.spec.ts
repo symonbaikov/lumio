@@ -1,4 +1,5 @@
 import { Between, In, IsNull } from 'typeorm';
+import { PayableStatus } from '../../../../src/entities/payable.entity';
 import { ReceiptStatus } from '../../../../src/entities/receipt.entity';
 import { BankName, StatementStatus } from '../../../../src/entities/statement.entity';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
@@ -1129,6 +1130,28 @@ describe('DashboardService', () => {
       expect(result.days[3].balance).toBe(200);
       expect(result.lowestBalance).toBe(200);
       expect(result.shortfallDate).toBeNull();
+    });
+
+    it('counts what is left of a partly paid bill', async () => {
+      primeBalance('1000');
+      payableRepo.find.mockResolvedValue([
+        { id: 'p-part', vendor: 'Part Co', amount: '500', paidAmount: '200', currency: 'KZT', dueDate: formatDateOnly(commitmentDay(2)) },
+        { id: 'p-settled', vendor: 'Settled Co', amount: '100', paidAmount: '100', currency: 'KZT', dueDate: formatDateOnly(commitmentDay(2)) },
+      ]);
+      subscriptionRepo.find.mockResolvedValue([]);
+
+      const result = await service.getCommitments('ws-1', 10);
+
+      expect(payableRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: expect.objectContaining({
+              _value: expect.arrayContaining([PayableStatus.PARTIALLY_PAID]),
+            }),
+          }),
+        }),
+      );
+      expect(result.items).toEqual([expect.objectContaining({ sourceId: 'p-part', amount: 300 })]);
     });
 
     it('projects monthly subscriptions with month-end clamping and flags the shortfall', async () => {
