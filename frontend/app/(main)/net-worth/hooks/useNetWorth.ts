@@ -69,6 +69,19 @@ export interface NetWorthData {
   allTimeHigh?: { value: number; date: string } | null;
   /** Investment holdings by asset class, plus cash and the other sheet lines. */
   byAssetClass?: NetWorthClassificationItem[];
+  /** The same figures in troy ounces of a metal; only when asked for. */
+  denominated?: NetWorthDenominated | null;
+}
+
+/** Net worth measured in metal: what the money figures buy in ounces. */
+export interface NetWorthDenominated {
+  metal: 'XAU' | 'XAG' | 'XPT' | 'XPD';
+  unit: 'ozt';
+  current: number;
+  previous: number;
+  change: number;
+  changePercent: number | null;
+  series: NetWorthPoint[];
 }
 
 export type ClassificationPatch = {
@@ -83,6 +96,9 @@ interface NetWorthState {
   error: boolean;
   range: NetWorthRange;
   setRange: (range: NetWorthRange) => void;
+  /** Null shows money; a metal shows the same net worth in its ounces. */
+  denominate: 'XAU' | null;
+  setDenominate: (metal: 'XAU' | null) => void;
   refetch: () => void;
   classify: (accountId: string, patch: ClassificationPatch) => void;
 }
@@ -102,13 +118,18 @@ export function useNetWorth(initialRange: NetWorthRange = '90d'): NetWorthState 
   const workspaceId = useWorkspaceId();
   const queryClient = useQueryClient();
   const [range, setRange] = useState<NetWorthRange>(initialRange);
+  const [denominate, setDenominate] = useState<'XAU' | null>(null);
 
-  const queryKey = queryKeys.netWorth({ workspaceId, range });
+  const queryKey = queryKeys.netWorth({ workspaceId, range, denominate });
 
   const query = useQuery({
     queryKey,
     queryFn: ({ signal }) =>
-      apiQuery<NetWorthData>({ url: '/reports/net-worth', params: { range }, signal }),
+      apiQuery<NetWorthData>({
+        url: '/reports/net-worth',
+        params: denominate ? { range, denominate } : { range },
+        signal,
+      }),
     // Смена периода не должна гасить карточки: данные прошлого запроса живут
     // на экране до прихода новых, но только внутри того же воркспейса.
     placeholderData: (previous, previousQuery) =>
@@ -149,6 +170,8 @@ export function useNetWorth(initialRange: NetWorthRange = '90d'): NetWorthState 
     error: query.isError || classifyMutation.isError,
     range,
     setRange,
+    denominate,
+    setDenominate,
     refetch,
     classify,
   };

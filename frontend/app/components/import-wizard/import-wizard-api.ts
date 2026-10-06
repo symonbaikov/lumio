@@ -1,6 +1,12 @@
 import { api } from '@/app/lib/api';
 
-export type ImportTarget = 'transactions' | 'payables' | 'subscriptions' | 'invoices' | 'budgets';
+export type ImportTarget =
+  | 'transactions'
+  | 'payables'
+  | 'subscriptions'
+  | 'invoices'
+  | 'budgets'
+  | 'metals';
 
 export const IMPORT_TARGETS: ImportTarget[] = [
   'transactions',
@@ -8,6 +14,7 @@ export const IMPORT_TARGETS: ImportTarget[] = [
   'subscriptions',
   'invoices',
   'budgets',
+  'metals',
 ];
 
 /** Mirror of the backend target fields: which roles a column can play and which are required. */
@@ -54,6 +61,18 @@ export const TARGET_FIELDS: Record<ImportTarget, Array<{ key: string; required: 
     { key: 'periodType', required: false },
     { key: 'name', required: false },
     { key: 'currency', required: false },
+  ],
+  metals: [
+    { key: 'metal', required: true },
+    { key: 'unitWeight', required: true },
+    { key: 'quantity', required: false },
+    { key: 'weightUnit', required: false },
+    { key: 'purity', required: false },
+    { key: 'cost', required: false },
+    { key: 'currency', required: false },
+    { key: 'acquiredOn', required: false },
+    { key: 'counterparty', required: false },
+    { key: 'name', required: false },
   ],
 };
 

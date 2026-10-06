@@ -14,7 +14,15 @@ type JsonObject = Record<string, unknown>;
 
 /** One entity created by an import; `kind` names the table it lives in. */
 export interface ImportCreatedRef {
-  kind: 'statement' | 'payable' | 'subscription' | 'budget' | 'invoice' | 'client' | 'category';
+  kind:
+    | 'statement'
+    | 'payable'
+    | 'subscription'
+    | 'budget'
+    | 'invoice'
+    | 'client'
+    | 'category'
+    | 'metal_lot';
   id: string;
 }
 

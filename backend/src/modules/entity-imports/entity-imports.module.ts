@@ -5,6 +5,7 @@ import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { ApplicationSettingsModule } from '../application-settings/application-settings.module';
 import { AuditModule } from '../audit/audit.module';
 import { ClassificationModule } from '../classification/classification.module';
+import { InvestmentsModule } from '../investments/investments.module';
 import { EntityImportService } from './entity-import.service';
 import { EntityImportsController } from './entity-imports.controller';
 import { ImportSuggestService } from './import-suggest.service';
@@ -15,6 +16,8 @@ import { ImportSuggestService } from './import-suggest.service';
     AuditModule,
     ClassificationModule,
     ApplicationSettingsModule,
+    // For the metals target: the account its lots sit on, and their prices.
+    InvestmentsModule,
   ],
   controllers: [EntityImportsController],
   providers: [EntityImportService, ImportSuggestService],

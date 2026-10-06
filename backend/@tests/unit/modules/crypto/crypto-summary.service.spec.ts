@@ -1,6 +1,7 @@
 import { countedSql } from '@/common/utils/counted-transactions.util';
 import { TransactionType } from '../../../../src/entities/transaction.entity';
 import { CryptoService } from '../../../../src/modules/crypto/crypto.service';
+import { CryptoHoldingsService } from '../../../../src/modules/crypto/crypto-holdings.service';
 
 const WORKSPACE = 'ws-1';
 
@@ -61,14 +62,25 @@ function build(options: {
   };
   const exchangeRatesService = { getRate: jest.fn(async () => 0.5) };
 
-  const service = new CryptoService(
+  // The portfolio side of the summary is the holdings service's answer; it is the
+  // real one here, so the two stay in step.
+  const holdingsService = new CryptoHoldingsService(
     walletRepo as never,
     transactionRepo as never,
     workspaceRepo as never,
+    priceService as never,
+    exchangeRatesService as never,
+  );
+
+  const service = new CryptoService(
+    walletRepo as never,
+    transactionRepo as never,
     {} as never,
     priceService as never,
     exchangeRatesService as never,
     { createEvent: jest.fn(), createBatchEvents: jest.fn() } as never,
+    holdingsService,
+    { writePortfolioSnapshot: jest.fn() } as never,
   );
   return { service, transactionRepo };
 }
@@ -83,7 +95,11 @@ describe('CryptoService.getSummary', () => {
 
     const summary = await service.getSummary(WORKSPACE);
 
-    expect(summary.holdings).toEqual([{ asset: 'ETH', amount: '2', price: 1500, value: 3000 }]);
+    expect(summary.holdings).toEqual([
+      // Nothing bought it on record, so the cost side stays empty instead of zero.
+      expect.objectContaining({ asset: 'ETH', amount: '2', price: 1500, value: 3000 }),
+    ]);
+    expect(summary.holdings[0]).toMatchObject({ avgCost: null, cost: null, realized: 0 });
   });
 
   it('reports the price move since yesterday, weighted by value', async () => {
@@ -232,11 +248,12 @@ describe('CryptoService.connect', () => {
     const service = new CryptoService(
       walletRepo as never,
       transactionRepo as never,
-      {} as never,
       syncService as never,
       {} as never,
       {} as never,
       { createEvent: jest.fn(), createBatchEvents: jest.fn() } as never,
+      {} as never,
+      { writePortfolioSnapshot: jest.fn() } as never,
     );
     return { service, saved };
   }

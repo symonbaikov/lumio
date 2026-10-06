@@ -8,7 +8,8 @@ export type ImportTargetKind =
   | 'payables'
   | 'subscriptions'
   | 'invoices'
-  | 'budgets';
+  | 'budgets'
+  | 'metals';
 
 export const IMPORT_TARGET_KINDS: ImportTargetKind[] = [
   'transactions',
@@ -16,6 +17,7 @@ export const IMPORT_TARGET_KINDS: ImportTargetKind[] = [
   'subscriptions',
   'invoices',
   'budgets',
+  'metals',
 ];
 
 export type TargetFieldType =
@@ -275,6 +277,73 @@ export const TARGET_FIELDS: Record<ImportTargetKind, TargetField[]> = {
     },
     { key: 'currency', type: 'text', required: false, aliases: CURRENCY },
   ],
+  // A stacker's spreadsheet: one row per lot, weight and fineness apart.
+  metals: [
+    {
+      key: 'metal',
+      type: 'enum',
+      required: true,
+      options: ['XAU', 'XAG', 'XPT', 'XPD'],
+      aliases: ['metal', 'металл', 'метал', 'type', 'тип', 'kind', 'metall', 'maden'],
+    },
+    {
+      key: 'unitWeight',
+      type: 'number',
+      required: true,
+      aliases: [
+        'weight',
+        'вес',
+        'масса',
+        'oz',
+        'ozt',
+        'unitweight',
+        'weightperpiece',
+        'gewicht',
+        'peso',
+        'grams',
+        'граммы',
+      ],
+    },
+    {
+      key: 'quantity',
+      type: 'number',
+      required: false,
+      aliases: ['quantity', 'qty', 'количество', 'кол', 'pieces', 'pcs', 'count', 'штук', 'шт'],
+    },
+    {
+      key: 'weightUnit',
+      type: 'enum',
+      required: false,
+      options: ['g', 'ozt', 'kg'],
+      aliases: ['unit', 'единица', 'weightunit', 'measure', 'einheit'],
+    },
+    {
+      key: 'purity',
+      type: 'number',
+      required: false,
+      aliases: ['purity', 'проба', 'fineness', 'fine', 'чистота', 'feinheit', 'pureza', 'karat'],
+    },
+    {
+      key: 'cost',
+      type: 'number',
+      required: false,
+      aliases: ['paid', 'уплачено', 'оплачено', 'costbasis', ...AMOUNT],
+    },
+    { key: 'currency', type: 'text', required: false, aliases: CURRENCY },
+    { key: 'acquiredOn', type: 'date', required: false, aliases: [...DATE, 'bought', 'куплено'] },
+    {
+      key: 'counterparty',
+      type: 'text',
+      required: false,
+      aliases: ['dealer', 'дилер', 'продавец', 'seller', 'shop', 'магазин', 'vendor', 'händler'],
+    },
+    {
+      key: 'name',
+      type: 'text',
+      required: false,
+      aliases: ['name', 'название', 'description', 'описание', 'item', 'coin', 'монета', 'bar'],
+    },
+  ],
 };
 
 /** Words that make a header profile point at one target rather than another. */
@@ -328,9 +397,40 @@ export const TARGET_HINTS: Record<ImportTargetKind, string[]> = {
     'заказчик',
   ],
   budgets: ['budget', 'бюджет', 'limit', 'лимит', 'planned', 'план', 'actual', 'факт'],
+  metals: [
+    'gold',
+    'золото',
+    'silver',
+    'серебро',
+    'platinum',
+    'платина',
+    'palladium',
+    'палладий',
+    'ozt',
+    'troy',
+    'bullion',
+    'слиток',
+    'монета',
+    'purity',
+    'проба',
+    'fineness',
+    'spot',
+    'stack',
+  ],
 };
 
 export const ENUM_ALIASES: Record<string, Record<string, string[]>> = {
+  metal: {
+    XAU: ['xau', 'gold', 'золото', 'au', 'gelbgold', 'oro', 'altın', 'złoto'],
+    XAG: ['xag', 'silver', 'серебро', 'ag', 'silber', 'plata', 'gümüş', 'srebro'],
+    XPT: ['xpt', 'platinum', 'платина', 'pt', 'platin', 'platino'],
+    XPD: ['xpd', 'palladium', 'палладий', 'pd', 'pallad', 'paladio'],
+  },
+  weightUnit: {
+    g: ['g', 'gr', 'gram', 'grams', 'г', 'гр', 'грамм', 'граммы', 'gramm'],
+    ozt: ['ozt', 'oz', 'ounce', 'ounces', 'troy', 'troyounce', 'унция', 'унции', 'унц'],
+    kg: ['kg', 'kilo', 'kilogram', 'кг', 'килограмм'],
+  },
   frequency: {
     weekly: ['weekly', 'week', 'еженедельно', 'неделя', 'нед', 'wöchentlich', 'semanal'],
     monthly: ['monthly', 'month', 'ежемесячно', 'месяц', 'мес', 'monatlich', 'mensual', 'mo'],

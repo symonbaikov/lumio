@@ -5,6 +5,7 @@ import { onlyCounted } from '../../common/utils/counted-transactions.util';
 import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import {
   BalanceAccount,
+  BalanceAccountKind,
   BalanceAccountType,
   BalanceSnapshot,
   CapitalRole,
@@ -12,6 +13,7 @@ import {
   Transaction,
   Workspace,
 } from '../../entities';
+import type { InvestmentMetal } from '../../entities/investment-holding.entity';
 import { BalanceService, CASH_ACCOUNT_CODE } from '../balance/balance.service';
 import { CurrencyConverter, normalizeCurrencyCode } from '../exchange-rates/currency-converter';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
@@ -49,6 +51,22 @@ export interface NetWorthAssetLine {
   isClassifiable: boolean;
 }
 
+/**
+ * The same net worth measured in troy ounces of a metal. People who hold metal
+ * ask what their capital is worth in ounces, because that is the unit their
+ * savings are in; it is the money figures divided by the spot price of the day
+ * each point belongs to, never by today's.
+ */
+export interface NetWorthDenominated {
+  metal: InvestmentMetal;
+  unit: 'ozt';
+  current: number;
+  previous: number;
+  change: number;
+  changePercent: number | null;
+  series: NetWorthPoint[];
+}
+
 export interface NetWorthResponse {
   range: NetWorthRange;
   currency: string;
@@ -67,6 +85,8 @@ export interface NetWorthResponse {
   assetLines: NetWorthAssetLine[];
   /** Currencies left out of the figures because no rate to `currency` was found. */
   missingRates: string[];
+  /** Present only when the caller asked to see the figures in metal. */
+  denominated?: NetWorthDenominated | null;
   /** The highest sampled net worth over the whole history, and when. */
   allTimeHigh: { value: number; date: string } | null;
   /** Investment holdings by asset class; cash and the other sheet lines keep their own buckets. */
@@ -127,6 +147,7 @@ export class NetWorthService {
     workspaceId: string,
     range: NetWorthRange = '90d',
     locale?: string,
+    denominate?: InvestmentMetal,
   ): Promise<NetWorthResponse> {
     await this.balanceService.seedDefaultAccounts(workspaceId);
 
@@ -262,6 +283,9 @@ export class NetWorthService {
       ),
       assetLines,
       missingRates: converter.missing,
+      denominated: denominate
+        ? await this.denominate(workspaceId, denominate, currency, series)
+        : null,
       allTimeHigh,
       byAssetClass,
     };
@@ -335,9 +359,45 @@ export class NetWorthService {
   }
 
   /**
-   * Assets by class: investment holdings by their own class, the cash line as
-   * cash, everything else on the sheet as "other". The investment accounts'
-   * own snapshot lines are left out so their holdings are not counted twice.
+   * The series in troy ounces of a metal, each point at the spot price of its
+   * own day. A day without a quote has no honest answer, so it is left out
+   * rather than filled with today's price; with no quotes at all there is no
+   * denominated view.
+   */
+  private async denominate(
+    workspaceId: string,
+    metal: InvestmentMetal,
+    currency: string,
+    series: NetWorthPoint[],
+  ): Promise<NetWorthDenominated | null> {
+    const points: NetWorthPoint[] = [];
+    for (const point of series) {
+      const quote = await this.exchangeRatesService.getRateQuote(metal, currency, point.date, {
+        workspaceId,
+      });
+      if (!quote || !(quote.rate > 0)) continue;
+      points.push({ date: point.date, value: round4(point.value / quote.rate) });
+    }
+    if (points.length === 0) return null;
+    const current = points[points.length - 1]?.value ?? 0;
+    const previous = points[0]?.value ?? 0;
+    const change = round4(current - previous);
+    return {
+      metal,
+      unit: 'ozt',
+      current,
+      previous,
+      change,
+      changePercent: previous > 0 ? round2((change / previous) * 100) : null,
+      series: points,
+    };
+  }
+
+  /**
+   * Assets by class: investment holdings by their own class, the crypto account
+   * as crypto, the cash line as cash, everything else on the sheet as "other".
+   * The investment accounts' own snapshot lines are left out so their holdings
+   * are not counted twice.
    */
   private async buildAssetClasses(
     workspaceId: string,
@@ -354,6 +414,12 @@ export class NetWorthService {
     for (const [assetClass, amount] of holdings) add(assetClass, amount);
     for (const leaf of leaves) {
       if (leaf.accountType !== BalanceAccountType.ASSET) continue;
+      // The crypto line is one account holding many coins; its class is known
+      // without asking the investments table, which no longer keeps crypto.
+      if (leaf.accountKind === BalanceAccountKind.CRYPTO) {
+        add('crypto', valueAt(leaf.id, leaf.code, to));
+        continue;
+      }
       if (leaf.accountKind) continue;
       const amount = valueAt(leaf.id, leaf.code, to);
       if (amount === 0) continue;
@@ -574,6 +640,11 @@ function shiftDays(date: string, days: number): string {
 function toNumber(value: unknown): number {
   const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** Ounces are small numbers: two decimals would round a silver stack to noise. */
+function round4(value: number): number {
+  return Math.round(value * 10000) / 10000;
 }
 
 function round2(value: number): number {

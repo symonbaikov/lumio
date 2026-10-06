@@ -53,6 +53,13 @@ export enum TransactionCategorySource {
 }
 
 /** What a pair of linked legs represents. */
+/**
+ * A synced row is the value that moved, the fee that moved it, or a move between
+ * two places the user already owns — which changes where coins are and nothing
+ * about what they cost, so it is neither income, spending, nor a lot event.
+ */
+export type CryptoLeg = 'value' | 'fee' | 'move';
+
 export enum TransferPairKind {
   /** Money moved between the user's own accounts. */
   TRANSFER = 'transfer',
@@ -82,10 +89,12 @@ export enum TransferPairSource {
 // Makes a crypto sync idempotent: re-reading the chain re-offers rows we already
 // have, and the insert simply loses the race with itself. One on-chain transaction
 // can legitimately produce several rows (a native transfer plus a token transfer,
-// or an in and an out leg), which is why asset and direction are part of the key.
+// or an in and an out leg), which is why asset, direction and leg are part of the
+// key. `crypto_leg` is never null on a synced row, so the index cannot be defeated
+// by Postgres treating NULLs as distinct.
 @Index(
   'IDX_transactions_crypto_tx',
-  ['workspaceId', 'cryptoWalletId', 'cryptoTxHash', 'cryptoAsset', 'transactionType'],
+  ['workspaceId', 'cryptoWalletId', 'cryptoTxHash', 'cryptoAsset', 'transactionType', 'cryptoLeg'],
   { unique: true, where: '"crypto_tx_hash" IS NOT NULL' },
 )
 export class Transaction {
@@ -210,6 +219,25 @@ export class Transaction {
 
   @Column({ name: 'crypto_tx_hash', type: 'varchar', length: 66, nullable: true })
   cryptoTxHash: string | null;
+
+  /**
+   * Which part of an on-chain transaction this row is: the value that moved, or
+   * the fee the chain charged when it could not be folded onto a transfer (a
+   * failed call, or a swap, whose two legs cancel out while its fee does not).
+   */
+  @Column({ name: 'crypto_leg', type: 'varchar', length: 8, nullable: true })
+  cryptoLeg: CryptoLeg | null;
+
+  /** Fee folded onto this transfer, in `cryptoFeeAsset`; included in `amount`. */
+  @Column({ name: 'crypto_fee_amount', type: 'decimal', precision: 38, scale: 18, nullable: true })
+  cryptoFeeAmount: string | null;
+
+  @Column({ name: 'crypto_fee_asset', type: 'varchar', length: 20, nullable: true })
+  cryptoFeeAsset: string | null;
+
+  /** The folded fee's value in `currency`; the rest of `amount` is the transfer itself. */
+  @Column({ name: 'crypto_fee_fiat', type: 'decimal', precision: 15, scale: 2, nullable: true })
+  cryptoFeeFiat: number | null;
 
   @Column({ nullable: true })
   article: string | null;
