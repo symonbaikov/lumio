@@ -68,6 +68,7 @@
     "@nestjs/websockets": "^11.1.13",
     "@react-email/components": "^1.0.4",
     "@react-email/render": "^2.0.2",
+    "@scure/bip32": "^1.7.0",
     "adm-zip": "^0.6.1",
     "archiver": "^7.0.1",
     "bcrypt": "^6.0.0",

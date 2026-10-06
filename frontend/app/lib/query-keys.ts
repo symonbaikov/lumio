@@ -102,16 +102,20 @@ export const queryKeys = {
   forecast: (o: { workspaceId: string | null; days: number; scenario: string }) =>
     ['forecast', o.workspaceId, o.days, o.scenario] as const,
   investments: (workspaceId: string | null) => ['investments', workspaceId] as const,
+  metals: (workspaceId: string | null) => ['metals', workspaceId] as const,
   reconciliation: (workspaceId: string | null) => ['reconciliation', workspaceId] as const,
   cashFlowMap: (o: { workspaceId: string | null; params: string }) =>
     ['reports', o.workspaceId, 'cash-flow-map', o.params] as const,
-  netWorth: (o: { workspaceId: string | null; range: string }) =>
-    ['net-worth', o.workspaceId, o.range] as const,
+  netWorth: (o: { workspaceId: string | null; range: string; denominate?: string | null }) =>
+    ['net-worth', o.workspaceId, o.range, o.denominate ?? null] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,
   cryptoSummary: (workspaceId: string | null) => ['crypto', 'summary', workspaceId] as const,
   cryptoTransactions: (workspaceId: string | null) =>
     ['crypto', 'transactions', workspaceId] as const,
   cryptoNetworks: (workspaceId: string | null) => ['crypto', 'networks', workspaceId] as const,
+  cryptoHistory: (workspaceId: string | null) => ['crypto', 'history', workspaceId] as const,
+  cryptoGains: (workspaceId: string | null, year: number | null) =>
+    ['crypto', 'gains', workspaceId, year] as const,
   notifications: (workspaceId: string | null) => ['notifications', workspaceId] as const,
   searchRecent: (workspaceId: string | null) => ['search', workspaceId, 'recent'] as const,
   search: (o: { workspaceId: string | null; q: string }) =>

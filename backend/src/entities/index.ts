@@ -54,6 +54,7 @@ export * from './journal-entry.entity';
 export * from './journal-line.entity';
 export * from './ledger-account.entity';
 export * from './ledger-counter.entity';
+export * from './metal-sale.entity';
 export * from './note.entity';
 export * from './notification.entity';
 export * from './notification-preference.entity';

@@ -29,5 +29,13 @@ export function resolveStaticAssetMounts(
       prefix: '/uploads/goal-covers',
       ensure: true,
     },
+    // Photos of metal lots. Same trade as the covers above — the file is
+    // served without a session, and a fresh uuid for a name is what keeps the
+    // link unguessable. It only ever appears in an authenticated response.
+    {
+      root: path.join(uploadsDir, 'metal-photos'),
+      prefix: '/uploads/metal-photos',
+      ensure: true,
+    },
   ];
 }

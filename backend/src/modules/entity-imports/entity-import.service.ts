@@ -18,6 +18,7 @@ import {
   type ImportCreatedRef,
   type ImportUpdatedRef,
 } from '../../entities/import-batch.entity';
+import { InvestmentHolding } from '../../entities/investment-holding.entity';
 import { Invoice } from '../../entities/invoice.entity';
 import { Payable } from '../../entities/payable.entity';
 import { Statement } from '../../entities/statement.entity';
@@ -26,11 +27,13 @@ import { Transaction } from '../../entities/transaction.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 import { ClassificationService } from '../classification/services/classification.service';
+import { MetalsService } from '../investments/metals.service';
 import type { RunEntityImportDto } from './dto/run-entity-import.dto';
 import { nameKey } from './helpers/import-values';
 import { type ImportTargetKind, TARGET_FIELDS } from './target-aliases';
 import { BudgetsTarget } from './targets/budgets.target';
 import { InvoicesTarget } from './targets/invoices.target';
+import { MetalsTarget } from './targets/metals.target';
 import { PayablesTarget } from './targets/payables.target';
 import { SubscriptionsTarget } from './targets/subscriptions.target';
 import type { ImportContext, ImportTarget, RowResult } from './targets/target.types';
@@ -55,6 +58,7 @@ export class EntityImportService {
     subscriptions: new SubscriptionsTarget(),
     invoices: new InvoicesTarget(),
     budgets: new BudgetsTarget(),
+    metals: new MetalsTarget(),
   };
 
   constructor(
@@ -64,6 +68,7 @@ export class EntityImportService {
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
     private readonly auditService: AuditService,
     @Optional() private readonly classificationService?: ClassificationService,
+    @Optional() private readonly metalsService?: MetalsService,
   ) {}
 
   private async ensurePermission(userId: string, workspaceId: string, target: ImportTargetKind) {
@@ -180,6 +185,14 @@ export class EntityImportService {
       return { ctx, results };
     };
 
+    // Metal lots need an account to sit on. It is created before the
+    // transaction rather than inside it: the metals service writes through its
+    // own repositories, and an empty account left behind by a rolled-back
+    // import is harmless — the next run reuses it.
+    if (!dryRun && dto.target === 'metals' && this.metalsService) {
+      await this.metalsService.ensureMetalsAccount(workspaceId, userId);
+    }
+
     const { ctx, results } = dryRun
       ? await execute(this.dataSource.manager)
       : await this.dataSource.transaction(manager => execute(manager));
@@ -214,6 +227,10 @@ export class EntityImportService {
       if (dto.target === 'transactions' && ctx.categorize) {
         await this.categorize(userId, workspaceId, ctx.created);
       }
+      // Imported lots land without a price; one pass quotes them all.
+      if (dto.target === 'metals' && this.metalsService) {
+        await this.metalsService.refreshPrices(userId, workspaceId);
+      }
     }
     const createdIds = ctx.created
       .filter(ref =>
@@ -234,7 +251,9 @@ export class EntityImportService {
           ? 'invoice'
           : target === 'budgets'
             ? 'budget'
-            : 'statement';
+            : target === 'metals'
+              ? 'metal_lot'
+              : 'statement';
   }
 
   /** Rows without a category get one from rules, learned patterns and the model. */
@@ -307,6 +326,7 @@ export class EntityImportService {
         ['subscription', Subscription],
         ['budget', Budget],
         ['client', Client],
+        ['metal_lot', InvestmentHolding],
       ] as const) {
         const ids = byKind(kind);
         if (ids.length) {

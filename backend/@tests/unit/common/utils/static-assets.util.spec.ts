@@ -15,6 +15,11 @@ describe('static asset mounts', () => {
         prefix: '/uploads/goal-covers',
         ensure: true,
       },
+      {
+        root: '/srv/lumio/uploads/metal-photos',
+        prefix: '/uploads/metal-photos',
+        ensure: true,
+      },
     ]);
     // Stated as a property too, so a future mount cannot quietly widen this to
     // the whole uploads tree while still matching a list someone updated.
@@ -24,6 +29,6 @@ describe('static asset mounts', () => {
   it('only creates the subtree that is mounted before anything writes to it', () => {
     const ensured = mounts().filter(mount => mount.ensure);
 
-    expect(ensured.map(mount => mount.prefix)).toEqual(['/uploads/goal-covers']);
+    expect(ensured.map(mount => mount.prefix)).toEqual(['/uploads/goal-covers', '/uploads/metal-photos']);
   });
 });
