@@ -323,6 +323,16 @@ describe('NetWorthService', () => {
     expect(transactionQueryBuilder.andWhere).toHaveBeenCalledWith('transaction.isVerified = true');
   });
 
+  it('starts the year-to-date chart on the first of January', async () => {
+    const { service } = createService({});
+
+    const result = await service.getNetWorth(WORKSPACE_ID, 'ytd');
+
+    const today = new Date().toISOString().split('T')[0];
+    expect(result.series[0].date).toBe(`${today.slice(0, 4)}-01-01`);
+    expect(result.series[result.series.length - 1].date).toBe(today);
+  });
+
   it('returns a flat zero series for a workspace with nothing in it', async () => {
     const { service } = createService({});
 

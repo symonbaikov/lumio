@@ -17,6 +17,8 @@ export const queryKeys = {
     ['dashboard', 'health-history', o.workspaceId, o.year] as const,
   dashboardCashFlow: (o: { workspaceId: string | null; range: string; month: string | null }) =>
     ['dashboard', 'cash-flow', o.workspaceId, o.range, o.month] as const,
+  dashboardCommitments: (workspaceId: string | null, days: number) =>
+    ['dashboard', 'commitments', workspaceId, days] as const,
   statements: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['statements', o.workspaceId, o.params] as const,
   gmailReceipts: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
@@ -115,6 +117,9 @@ export const queryKeys = {
     ['net-worth', o.workspaceId, o.range, o.denominate ?? null] as const,
   cryptoWallets: (workspaceId: string | null) => ['crypto', 'wallets', workspaceId] as const,
   cryptoSummary: (workspaceId: string | null) => ['crypto', 'summary', workspaceId] as const,
+  // Under cryptoSummary, so whatever refreshes the crypto page refreshes the dashboard card too.
+  cryptoMonthSummary: (workspaceId: string | null, month: string) =>
+    ['crypto', 'summary', workspaceId, month] as const,
   cryptoTransactions: (workspaceId: string | null) =>
     ['crypto', 'transactions', workspaceId] as const,
   cryptoNetworks: (workspaceId: string | null) => ['crypto', 'networks', workspaceId] as const,

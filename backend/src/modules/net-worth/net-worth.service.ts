@@ -93,8 +93,8 @@ export interface NetWorthResponse {
   byAssetClass: NetWorthClassificationItem[];
 }
 
-/** Days back from today for each range. `all` is resolved from the data. */
-const RANGE_DAYS: Record<Exclude<NetWorthRange, 'all'>, number> = {
+/** Days back from today for each range. `all` and `ytd` come from elsewhere. */
+const RANGE_DAYS: Record<Exclude<NetWorthRange, 'all' | 'ytd'>, number> = {
   '30d': 30,
   '90d': 90,
   '180d': 180,
@@ -489,6 +489,9 @@ export class NetWorthService {
     range: NetWorthRange,
     to: string,
   ): Promise<string> {
+    if (range === 'ytd') {
+      return `${to.slice(0, 4)}-01-01`;
+    }
     if (range !== 'all') {
       return shiftDays(to, -RANGE_DAYS[range]);
     }

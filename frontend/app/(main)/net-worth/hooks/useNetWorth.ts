@@ -7,7 +7,7 @@ import apiClient from '@/app/lib/api';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
 
-export type NetWorthRange = '30d' | '90d' | '180d' | '1y' | '3y' | '5y' | 'all';
+export type NetWorthRange = '30d' | '90d' | '180d' | 'ytd' | '1y' | '3y' | '5y' | 'all';
 
 export const NET_WORTH_RANGES: NetWorthRange[] = ['30d', '90d', '180d', '1y', '3y', '5y', 'all'];
 
