@@ -14,6 +14,8 @@ import { Spinner } from '../ui/spinner';
 import { CryptoPortfolioCard } from './CryptoPortfolioCard';
 import { computeNet, computeSavingsRate } from './dashboard-stats.util';
 import { GoalsProgressCard } from './GoalsProgressCard';
+import { NetWorthCard } from './NetWorthCard';
+import { OverviewLayout } from './OverviewLayout';
 import { RecentTransactionsCard } from './RecentTransactionsCard';
 import { SpendCalendarCard } from './SpendCalendarCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
@@ -148,39 +150,46 @@ export function OverviewTab({
   }
 
   return (
-    <div className="lumio-dashboard__tab">
-      <KpiRow
-        data={data}
-        formatAmount={formatAmount}
-        monthLabel={monthLabel}
-        isLoading={isLoading}
-      />
-      <CryptoPortfolioCard
-        formatAmount={formatAmount}
-        month={monthKey(displayMonth)}
-        monthLabel={monthLabel}
-      />
-      <div className="lumio-dashboard__grid lumio-dashboard__grid--split">
-        <DashboardCard
-          title={t.topCategoriesTitle}
-          subtitle={monthLabel}
-          action={<CardLink href="/reports?tab=cash-flow">{t.viewAll}</CardLink>}
-        >
-          <TopCategoriesCard categories={data.topCategories ?? []} formatAmount={formatAmount} />
-        </DashboardCard>
-        <RecentTransactionsCard
-          transactions={data.recentTransactions ?? []}
-          formatAmount={formatAmount}
-          viewAllHref={viewAllHref}
-        />
-      </div>
-      <SpendCalendarCard displayMonth={displayMonth} />
-      <GoalsProgressCard month={monthKey(displayMonth)} monthLabel={monthLabel} />
-      <div className="lumio-dashboard__grid lumio-dashboard__grid--pair">
-        <BudgetSummaryWidget />
-        <CashRunwayWidget formatAmount={formatAmount} />
-      </div>
-      <WorkspaceActivityCard />
-    </div>
+    <OverviewLayout
+      sections={{
+        kpis: (
+          <KpiRow
+            data={data}
+            formatAmount={formatAmount}
+            monthLabel={monthLabel}
+            isLoading={isLoading}
+          />
+        ),
+        crypto: (
+          <CryptoPortfolioCard
+            formatAmount={formatAmount}
+            month={monthKey(displayMonth)}
+            monthLabel={monthLabel}
+          />
+        ),
+        'top-categories': (
+          <DashboardCard
+            title={t.topCategoriesTitle}
+            subtitle={monthLabel}
+            action={<CardLink href="/reports?tab=cash-flow">{t.viewAll}</CardLink>}
+          >
+            <TopCategoriesCard categories={data.topCategories ?? []} formatAmount={formatAmount} />
+          </DashboardCard>
+        ),
+        'recent-transactions': (
+          <RecentTransactionsCard
+            transactions={data.recentTransactions ?? []}
+            formatAmount={formatAmount}
+            viewAllHref={viewAllHref}
+          />
+        ),
+        'spend-calendar': <SpendCalendarCard displayMonth={displayMonth} />,
+        goals: <GoalsProgressCard month={monthKey(displayMonth)} monthLabel={monthLabel} />,
+        'net-worth': <NetWorthCard />,
+        budgets: <BudgetSummaryWidget />,
+        'cash-runway': <CashRunwayWidget formatAmount={formatAmount} />,
+        activity: <WorkspaceActivityCard />,
+      }}
+    />
   );
 }
