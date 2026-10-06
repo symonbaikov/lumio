@@ -15,6 +15,8 @@ import { FromFilterDropdown } from '@/app/(main)/statements/components/filters/F
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { DashboardCard } from '@/app/components/dashboard/ui';
 import { ChevronDown } from '@/app/components/icons';
+import { useWorkspaceMembers } from '@/app/components/transactions/hooks/useWorkspaceMembers';
+import { OwnerFilterDropdown } from '@/app/components/transactions/OwnerFilterDropdown';
 import { EmptyState } from '@/app/components/ui/EmptyState';
 import { LazyECharts } from '@/app/components/ui/lazy-echarts';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -59,6 +61,7 @@ export function CashFlowView(): React.JSX.Element {
   const { locale } = useLocale();
   const { resolvedTheme } = useTheme();
   const { data, isPending, isFetching, error, filters, update, exportUrl } = useCashFlowMap();
+  const members = useWorkspaceMembers();
   const [preset, setPreset] = useState<string>(PERIOD_PRESETS[0].labelKey);
   const [exporting, setExporting] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -193,6 +196,11 @@ export function CashFlowView(): React.JSX.Element {
             resetLabel={text('cfReset', 'Reset')}
           />
         )}
+        <OwnerFilterDropdown
+          members={members}
+          value={filters.owner}
+          onChange={owner => update({ owner })}
+        />
         <Button size="small" variant="outlined" disabled={!data || exporting} onClick={exportCsv}>
           {text('cfExportCsv', 'Export CSV')}
         </Button>

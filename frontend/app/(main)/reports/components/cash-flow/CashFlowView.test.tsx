@@ -9,6 +9,10 @@ vi.mock('@/app/components/ui/lazy-echarts', () => ({
   LazyECharts: () => <div data-testid="sankey" />,
 }));
 vi.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'light' }) }));
+// The owner control reads the household; a workspace of one renders none of it.
+vi.mock('@/app/components/transactions/hooks/useWorkspaceMembers', () => ({
+  useWorkspaceMembers: () => [],
+}));
 vi.mock('@/app/components/CustomDatePicker', () => ({
   default: ({ label }: { label: string }) => <input aria-label={label} readOnly />,
 }));

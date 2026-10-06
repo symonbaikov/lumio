@@ -10,6 +10,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Category } from '@/entities/category.entity';
+import { Wallet } from '@/entities/wallet.entity';
 import { BankName, FileType, Statement, StatementStatus } from '@/entities/statement.entity';
 import { TaxRate } from '@/entities/tax-rate.entity';
 import { Transaction } from '@/entities/transaction.entity';
@@ -98,6 +99,10 @@ describe('StatementsService — business logic', () => {
         {
           provide: getRepositoryToken(TaxRate),
           useValue: { find: jest.fn(), findOne: jest.fn() },
+        },
+        {
+          provide: getRepositoryToken(Wallet),
+          useValue: { findOne: jest.fn(async () => null) },
         },
         {
           provide: getRepositoryToken(WorkspaceMember),

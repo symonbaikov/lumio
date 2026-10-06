@@ -45,4 +45,12 @@ export class SpendFlowQueryDto {
   @Min(1)
   @Max(10)
   merchantsPerCategory?: number;
+
+  /**
+   * Whose rows to count: `me`, `shared` for the ones nobody claimed, or a
+   * membership id. Left out, the whole workspace is counted.
+   */
+  @IsOptional()
+  @IsString()
+  owner?: string;
 }

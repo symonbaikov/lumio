@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type Repository } from 'typeorm';
 import { onlyCounted } from '../../common/utils/counted-transactions.util';
+import {
+  applyOwnerFilter,
+  type OwnerFilter,
+  parseOwnerFilter,
+} from '../../common/utils/transaction-owner.util';
 import { Category } from '../../entities/category.entity';
 import { StatementStatus } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
@@ -65,6 +70,7 @@ export class CashFlowMapService {
     workspaceId: string,
     query: CashFlowMapQueryDto,
     locale?: string,
+    selfMemberId: string | null = null,
   ): Promise<CashFlowMapResponse> {
     const to = query.dateTo ?? today();
     const from = query.dateFrom ?? shiftDays(to, -29);
@@ -86,7 +92,16 @@ export class CashFlowMapService {
     }));
     const allowed = this.allowedCategoryIds(nodes, query.categories);
 
-    const rows = await this.loadRows(workspaceId, from, to, currency, includeTransfers, allowed);
+    const owner = parseOwnerFilter(query.owner, selfMemberId);
+    const rows = await this.loadRows(
+      workspaceId,
+      from,
+      to,
+      currency,
+      includeTransfers,
+      allowed,
+      owner,
+    );
     const previousRows = previous
       ? await this.loadRows(
           workspaceId,
@@ -95,6 +110,7 @@ export class CashFlowMapService {
           currency,
           includeTransfers,
           allowed,
+          owner,
         )
       : null;
 
@@ -137,6 +153,7 @@ export class CashFlowMapService {
     currency: string,
     includeTransfers: boolean,
     allowed: Set<string> | null,
+    owner: OwnerFilter,
   ): Promise<CashFlowRow[]> {
     const qb = this.transactionRepository
       .createQueryBuilder('t')
@@ -159,6 +176,7 @@ export class CashFlowMapService {
       .andWhere('t.transactionDate >= :from', { from })
       .andWhere('t.transactionDate <= :to', { to });
     onlyCounted(qb, 't');
+    applyOwnerFilter(qb, 't', owner);
     if (!includeTransfers) {
       qb.andWhere('t.transferPairId IS NULL');
     }

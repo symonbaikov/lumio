@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, Logger } from '@ne
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import type { Repository } from 'typeorm';
+import { workspaceMemberCanEdit } from '../../../common/authz/workspace-permissions';
 import { appError } from '../../../common/errors/app-error';
 import type { CaptureLocation } from '../../../common/utils/capture-location.util';
 import { appDefaultCurrency } from '../../../common/utils/currency.util';
@@ -9,7 +10,7 @@ import { calculateFileHash } from '../../../common/utils/file-hash.util';
 import { getFileTypeFromMime } from '../../../common/utils/file-validator.util';
 import { normalizeFilename } from '../../../common/utils/filename.util';
 import { toMinor } from '../../../common/utils/money.util';
-import { Category, WorkspaceMember, WorkspaceRole } from '../../../entities';
+import { Category, WorkspaceMember } from '../../../entities';
 import { ActorType, AuditAction, EntityType, Severity } from '../../../entities/audit-event.entity';
 import { ReceiptStatus } from '../../../entities/receipt.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../../entities/statement.entity';
@@ -84,11 +85,7 @@ export class ReceiptStatementService {
       return;
     }
 
-    if ([WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(membership.role)) {
-      return;
-    }
-
-    if (membership.permissions?.canEditStatements === false) {
+    if (!workspaceMemberCanEdit(membership.role, 'canEditStatements', membership.permissions)) {
       throw new ForbiddenException(appError('STATEMENTS_EDIT_FORBIDDEN'));
     }
   }

@@ -18,6 +18,7 @@ import { countedWhere, onlyCounted } from '../../common/utils/counted-transactio
 import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { formatMoney } from '../../common/utils/format-money.util';
 import { neutralizeSpreadsheetFormulaCell } from '../../common/utils/spreadsheet-formula.util';
+import { applyOwnerFilter, parseOwnerFilter } from '../../common/utils/transaction-owner.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
 import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.entity';
 import { Branch } from '../../entities/branch.entity';
@@ -2257,6 +2258,7 @@ export class ReportsService {
   async getTopCategoriesReport(
     workspaceId: string,
     query: TopCategoriesQueryDto,
+    selfMemberId: string | null = null,
   ): Promise<TopCategoriesReport> {
     const safeLimit = Number.isFinite(query.limit)
       ? Math.min(Math.max(query.limit || 20, 1), 100)
@@ -2286,6 +2288,8 @@ export class ReportsService {
     if (query.bankName) {
       qb.andWhere('statement.bankName = :bankName', { bankName: query.bankName });
     }
+
+    applyOwnerFilter(qb, 'transaction', parseOwnerFilter(query.owner, selfMemberId));
 
     if (query.counterparties) {
       const counterparties = query.counterparties
@@ -2506,6 +2510,7 @@ export class ReportsService {
   async getSpendOverTimeReport(
     workspaceId: string,
     query: SpendOverTimeQueryDto,
+    selfMemberId: string | null = null,
   ): Promise<{
     groupBy: string;
     dateFrom: string;
@@ -2555,6 +2560,8 @@ export class ReportsService {
     if (query.bankName) {
       qb.andWhere('statement.bankName = :bankName', { bankName: query.bankName });
     }
+
+    applyOwnerFilter(qb, 'transaction', parseOwnerFilter(query.owner, selfMemberId));
 
     if (query.counterparties) {
       const counterparties = query.counterparties
