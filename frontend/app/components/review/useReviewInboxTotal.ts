@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
+import { useDefaultReviewer } from './useReviewer';
 
 type ReviewInboxCounts = { total: number };
 
@@ -13,9 +14,15 @@ type ReviewInboxCounts = { total: number };
  */
 export function useReviewInboxTotal(enabled = true): number {
   const workspaceId = useWorkspaceId();
+  const reviewer = useDefaultReviewer();
   const { data } = useQuery({
-    queryKey: queryKeys.reviewInboxCounts(workspaceId),
-    queryFn: ({ signal }) => apiQuery<ReviewInboxCounts>({ url: '/review-inbox/counts', signal }),
+    queryKey: queryKeys.reviewInboxCounts(workspaceId, reviewer),
+    queryFn: ({ signal }) =>
+      apiQuery<ReviewInboxCounts>({
+        url: '/review-inbox/counts',
+        params: { reviewer },
+        signal,
+      }),
     enabled: enabled && Boolean(workspaceId),
   });
   return data?.total ?? 0;

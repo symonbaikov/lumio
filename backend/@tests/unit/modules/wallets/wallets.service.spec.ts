@@ -1,5 +1,6 @@
 import { createRepoMock } from '../../../helpers/create-repo-mock';
 import { Wallet } from '@/entities/wallet.entity';
+import { WorkspaceMember } from '@/entities/workspace-member.entity';
 import { WalletsService } from '@/modules/wallets/wallets.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -30,6 +31,10 @@ describe('WalletsService', () => {
         {
           provide: getRepositoryToken(Wallet),
           useValue: createRepoMock<Wallet>(),
+        },
+        {
+          provide: getRepositoryToken(WorkspaceMember),
+          useValue: { ...createRepoMock<WorkspaceMember>(), exists: jest.fn(async () => true) },
         },
         workspaceCurrencyProvider('EUR'),
       ],

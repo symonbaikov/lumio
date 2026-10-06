@@ -19,6 +19,7 @@ import { SpendCalendarCard } from './SpendCalendarCard';
 import { TopCategoriesCard } from './TopCategoriesCard';
 import { CardLink, DashboardCard, KpiCard } from './ui';
 import { useMonthLabel } from './use-month-label';
+import { WorkspaceActivityCard } from './WorkspaceActivityCard';
 
 interface OverviewTabProps {
   data: DashboardData;
@@ -134,9 +135,16 @@ export function OverviewTab({
   const viewAllHref = useMemo(() => monthRangeHref(displayMonth), [displayMonth]);
 
   // A workspace that never imported anything gets the onboarding CTA; a month
-  // without transactions still shows zeroed KPIs and empty cards.
+  // without transactions still shows zeroed KPIs and empty cards. The activity
+  // feed stays either way: someone who just joined a household should see that
+  // their partner has been working, not an invitation to start from scratch.
   if (!data.dataHealth?.lastUploadDate) {
-    return <OverviewEmptyState />;
+    return (
+      <div className="lumio-dashboard__tab">
+        <OverviewEmptyState />
+        <WorkspaceActivityCard />
+      </div>
+    );
   }
 
   return (
@@ -172,6 +180,7 @@ export function OverviewTab({
         <BudgetSummaryWidget />
         <CashRunwayWidget formatAmount={formatAmount} />
       </div>
+      <WorkspaceActivityCard />
     </div>
   );
 }

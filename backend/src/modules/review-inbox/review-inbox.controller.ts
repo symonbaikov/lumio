@@ -9,9 +9,10 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { WorkspaceId, WorkspaceMemberId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
+import { parseReviewerFilter } from '../../common/utils/transaction-owner.util';
 import type { User } from '../../entities/user.entity';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import {
@@ -31,14 +32,20 @@ export class ReviewInboxController {
     @CurrentUser() _user: User,
     @WorkspaceId() workspaceId: string,
     @Query() query: ReviewInboxQueryDto,
+    @WorkspaceMemberId() selfMemberId: string | null,
   ) {
-    return this.reviewInboxService.list(workspaceId, query);
+    return this.reviewInboxService.list(workspaceId, query, selfMemberId);
   }
 
   @Get('counts')
   @WorkspaceAuth(Permission.TRANSACTION_VIEW)
-  async counts(@CurrentUser() _user: User, @WorkspaceId() workspaceId: string) {
-    return this.reviewInboxService.counts(workspaceId);
+  async counts(
+    @CurrentUser() _user: User,
+    @WorkspaceId() workspaceId: string,
+    @Query('reviewer') reviewer: string | undefined,
+    @WorkspaceMemberId() selfMemberId: string | null,
+  ) {
+    return this.reviewInboxService.counts(workspaceId, parseReviewerFilter(reviewer, selfMemberId));
   }
 
   /** Rows each statement still has in the inbox, keyed by statement id; finished ones are absent. */

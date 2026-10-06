@@ -206,6 +206,8 @@ export class WorkspacesService {
       },
       members: members.map(member => ({
         id: member.userId,
+        /** The membership row, which is what owns transactions and wallets. */
+        memberId: member.id,
         email: member.user?.email,
         name: member.user?.name,
         avatarUrl: member.user?.avatarUrl,
@@ -235,6 +237,8 @@ export class WorkspacesService {
 
     return members.map(member => ({
       id: member.userId,
+      /** The membership row, which is what owns transactions and wallets. */
+      memberId: member.id,
       email: member.user?.email,
       name: member.user?.name,
       avatarUrl: member.user?.avatarUrl,
@@ -278,6 +282,55 @@ export class WorkspacesService {
     }
 
     return membership;
+  }
+
+  /**
+   * Replaces the toggles on one member. Only the `member` role carries them:
+   * owners and admins are unrestricted, viewers never write, so for both the
+   * column stays NULL rather than holding values nothing reads.
+   */
+  async updateMemberPermissions(
+    workspaceId: string,
+    requestingUserId: string,
+    targetUserId: string,
+    permissions: WorkspaceMemberPermissions,
+  ) {
+    await this.requireAdminMembership(workspaceId, requestingUserId);
+
+    if (!targetUserId || targetUserId.trim().length === 0) {
+      throw new BadRequestException(appError('USER_INVALID'));
+    }
+
+    const member = await this.workspaceMemberRepository.findOne({
+      where: { workspaceId, userId: targetUserId },
+      relations: ['user'],
+    });
+
+    if (!member) {
+      throw new NotFoundException(appError('MEMBER_NOT_FOUND'));
+    }
+
+    if (member.role !== WorkspaceRole.MEMBER) {
+      throw new BadRequestException(appError('MEMBER_PERMISSIONS_ROLE_INVALID'));
+    }
+
+    const before = member.permissions;
+    member.permissions = permissions;
+    await this.workspaceMemberRepository.save(member);
+
+    await this.recordMemberAudit({
+      workspaceId,
+      actorType: ActorType.USER,
+      actorId: requestingUserId,
+      entityType: EntityType.WORKSPACE_MEMBER,
+      entityId: member.id,
+      action: AuditAction.UPDATE,
+      diff: { before: { permissions: before }, after: { permissions: member.permissions } },
+      meta: { userId: member.userId, email: member.user?.email ?? null },
+      severity: Severity.WARN,
+    });
+
+    return { message: 'Member permissions updated', permissions: member.permissions };
   }
 
   async updateMemberRole(

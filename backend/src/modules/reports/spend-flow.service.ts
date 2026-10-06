@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository, SelectQueryBuilder } from 'typeorm';
 import { onlyCounted } from '../../common/utils/counted-transactions.util';
+import { applyOwnerFilter, parseOwnerFilter } from '../../common/utils/transaction-owner.util';
 import { Category } from '../../entities/category.entity';
 import { FileType } from '../../entities/statement.entity';
 import { Transaction, TransactionType } from '../../entities/transaction.entity';
@@ -47,7 +48,11 @@ export class SpendFlowService {
     private readonly exchangeRatesService: ExchangeRatesService,
   ) {}
 
-  async getSpendFlow(workspaceId: string, query: SpendFlowQueryDto): Promise<SpendFlowResponse> {
+  async getSpendFlow(
+    workspaceId: string,
+    query: SpendFlowQueryDto,
+    selfMemberId: string | null = null,
+  ): Promise<SpendFlowResponse> {
     const type = query.type ?? 'expense';
 
     // Same merchant key as goal flow and subscription detection.
@@ -73,6 +78,7 @@ export class SpendFlowService {
       // Money moved between the user's own accounts is neither spending nor income.
       .andWhere('t.transfer_pair_id IS NULL');
     onlyCounted(qb, 't');
+    applyOwnerFilter(qb, 't', parseOwnerFilter(query.owner, selfMemberId));
 
     // No date means all time, the way the top-spenders table reads it.
     if (query.dateFrom) {

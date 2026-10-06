@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { FileStorageService } from '@/common/services/file-storage.service';
 import { Category } from '@/entities/category.entity';
+import { Wallet } from '@/entities/wallet.entity';
 import { ReceiptStatus } from '@/entities/receipt.entity';
 import { BankName, FileType, Statement, StatementStatus } from '@/entities/statement.entity';
 import { TaxRate } from '@/entities/tax-rate.entity';
@@ -158,6 +159,10 @@ describe('StatementsService', () => {
             find: jest.fn(),
             findOne: jest.fn(),
           },
+        },
+        {
+          provide: getRepositoryToken(Wallet),
+          useValue: { findOne: jest.fn(async () => null) },
         },
         {
           provide: getRepositoryToken(WorkspaceMember),

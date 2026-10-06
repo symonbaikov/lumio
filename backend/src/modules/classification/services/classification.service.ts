@@ -3,6 +3,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
+import { OWNER_SHARED } from '../../../common/utils/transaction-owner.util';
 import {
   DEFAULT_PROCESSING_SETTINGS,
   readProcessingSettings,
@@ -107,6 +108,10 @@ export class ClassificationService {
       }
     }
 
+    // A rule naming the owner is an explicit instruction; the wallet is only a
+    // default, so it must not overwrite one.
+    let ruleSetOwner = false;
+
     // Get classification rules for user
     const rules = (await this.getClassificationRules(userId, workspaceId)) ?? [];
 
@@ -125,6 +130,10 @@ export class ClassificationService {
         }
         if (rule.result.walletId) {
           classification.walletId = rule.result.walletId;
+        }
+        if (rule.result.ownerMemberId !== undefined) {
+          classification.ownerMemberId = rule.result.ownerMemberId;
+          ruleSetOwner = true;
         }
         if (rule.result.article) {
           classification.article = rule.result.article;
@@ -159,6 +168,17 @@ export class ClassificationService {
     // Auto-determine branch if not set
     if (!classification.branchId) {
       classification.branchId = await this.autoDetermineBranch(transaction, userId, workspaceId);
+    }
+
+    // A new row belongs to whoever owns the account it landed in; NULL means the
+    // household shares it. The owner is inherited once, at classification time:
+    // moving a row to another wallet later does not reassign it behind the
+    // user's back.
+    //
+    // One primary-key lookup per transaction, and the whole classification is
+    // cached below, so it does not add a query per row of a re-imported file.
+    if (classification.walletId && !ruleSetOwner) {
+      classification.ownerMemberId = await this.walletOwnerMemberId(classification.walletId);
     }
 
     // Cache result for 5 minutes
@@ -206,6 +226,10 @@ export class ClassificationService {
         return transaction.counterpartyBin || null;
       case 'document_number':
         return transaction.documentNumber || null;
+      // `shared` rather than null: the condition evaluator treats null as "no
+      // value" and refuses to match, so a rule about shared rows needs a word.
+      case 'owner':
+        return transaction.ownerMemberId ?? OWNER_SHARED;
       default:
         return null;
     }
@@ -419,6 +443,15 @@ export class ClassificationService {
   // lookup above; by user alone they came from any workspace of theirs.
   private ownerScope(userId: string, workspaceId: string | null) {
     return workspaceId ? { workspaceId } : { userId };
+  }
+
+  /** Who owns the wallet, or null when it is shared. */
+  private async walletOwnerMemberId(walletId: string): Promise<string | null> {
+    const wallet = await this.walletRepository.findOne({
+      where: { id: walletId },
+      select: ['ownerMemberId'],
+    });
+    return wallet?.ownerMemberId ?? null;
   }
 
   private async autoDetermineWallet(

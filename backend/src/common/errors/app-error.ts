@@ -138,6 +138,9 @@ export const ERR = {
   MEMBER_ALREADY_IN_WORKSPACE: 'User is already in the workspace',
   MEMBER_CANNOT_REMOVE_OWNER: 'The workspace owner cannot be removed',
   MEMBER_CANNOT_CHANGE_OWN_ROLE: 'You cannot change your own role',
+  MEMBER_PERMISSIONS_ROLE_INVALID: 'Only members have individual permissions',
+  TRANSACTION_PRIVATE_NOT_OWNER:
+    'Only the person a transaction belongs to can make it private; assign it to yourself first',
   INVITATION_NOT_FOUND: 'Invitation not found',
   INVITATION_NOT_FOUND_OR_USED: 'Invitation not found or already used',
   INVITATION_INVALID: 'Invalid invitation',

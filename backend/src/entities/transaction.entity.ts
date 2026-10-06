@@ -20,6 +20,7 @@ import { TaxRate } from './tax-rate.entity';
 import { TaxRule } from './tax-rule.entity';
 import { Wallet } from './wallet.entity';
 import { Workspace } from './workspace.entity';
+import { WorkspaceMember } from './workspace-member.entity';
 
 /** Why a given rate ended up on a transaction. */
 export enum TaxSource {
@@ -196,6 +197,42 @@ export class Transaction {
 
   @Column({ name: 'wallet_id', type: 'uuid', nullable: true })
   walletId: string | null;
+
+  /**
+   * Which member of the household this row belongs to; NULL means it is shared.
+   *
+   * It points at the membership, not the user, so ownership is scoped to this
+   * workspace, and SET NULL means a member leaving turns their rows into shared
+   * ones instead of deleting them. A new row inherits it from its wallet.
+   */
+  @ManyToOne(() => WorkspaceMember, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'owner_member_id' })
+  ownerMember: WorkspaceMember | null;
+
+  @Column({ name: 'owner_member_id', type: 'uuid', nullable: true })
+  ownerMemberId: string | null;
+
+  /**
+   * Hides what the row was, never that it happened: the date and the amount
+   * stay visible to the whole household, the merchant and the purpose do not.
+   *
+   * Only the row's owner can set it, and only on a row that is theirs — a row
+   * the household shares has nobody to keep a secret from.
+   */
+  @Column({ name: 'is_private', type: 'boolean', default: false })
+  isPrivate: boolean;
+
+  /**
+   * The category the row had before it went private; `categoryId` is the
+   * workspace's `Private` category while it is. Restored when privacy is
+   * turned off.
+   */
+  @ManyToOne(() => Category, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'private_category_id' })
+  privateCategory: Category | null;
+
+  @Column({ name: 'private_category_id', type: 'uuid', nullable: true })
+  privateCategoryId: string | null;
 
   @ManyToOne(() => CryptoWallet, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'crypto_wallet_id' })

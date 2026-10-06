@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, IsNull, Not, type Repository, type SelectQueryBuilder } from 'typeorm';
+import {
+  applyOwnerFilter,
+  type OwnerFilter,
+  parseReviewerFilter,
+} from '../../common/utils/transaction-owner.util';
+import { redactPrivateRows } from '../../common/utils/transaction-privacy.util';
 import { Receipt, ReceiptSource, ReceiptStatus } from '../../entities/receipt.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Subscription, SubscriptionStatus } from '../../entities/subscription.entity';
@@ -12,6 +18,9 @@ import {
   ReviewInboxKind,
   type ReviewInboxQueryDto,
 } from './dto/review-inbox.dto';
+
+/** No reviewer asked for: the whole workspace's backlog. */
+const ALL_OWNERS: OwnerFilter = { kind: 'all' };
 
 export interface ReviewInboxCounts {
   transaction: number;
@@ -107,8 +116,8 @@ export class ReviewInboxService {
    * numbers, so a row a rule, the history or the model categorised still waits
    * here; transfers too. Suspected duplicates have their own list.
    */
-  private transactionsQuery(workspaceId: string) {
-    return this.transactionRepository
+  private transactionsQuery(workspaceId: string, reviewer: OwnerFilter = ALL_OWNERS) {
+    const query = this.transactionRepository
       .createQueryBuilder('t')
       .leftJoin('t.statement', 's')
       .leftJoinAndSelect('t.category', 'category')
@@ -116,10 +125,11 @@ export class ReviewInboxService {
       .andWhere('t.isDuplicate = false')
       .andWhere('t.isVerified = false')
       .andWhere('(t.statementId IS NULL OR s.deletedAt IS NULL)');
+    return applyOwnerFilter(query, 't', reviewer);
   }
 
-  private duplicatesQuery(workspaceId: string) {
-    return this.transactionRepository
+  private duplicatesQuery(workspaceId: string, reviewer: OwnerFilter = ALL_OWNERS) {
+    const query = this.transactionRepository
       .createQueryBuilder('t')
       .leftJoin('t.statement', 's')
       .where('t.workspaceId = :workspaceId', { workspaceId })
@@ -127,6 +137,7 @@ export class ReviewInboxService {
       .andWhere('t.isVerified = false')
       .andWhere("(t.duplicateMatchType IS NULL OR t.duplicateMatchType != 'manual')")
       .andWhere('(t.statementId IS NULL OR s.deletedAt IS NULL)');
+    return applyOwnerFilter(query, 't', reviewer);
   }
 
   private applyDateRange<T extends { andWhere: (sql: string, params?: object) => T }>(
@@ -193,10 +204,19 @@ export class ReviewInboxService {
     return pending;
   }
 
-  async counts(workspaceId: string): Promise<ReviewInboxCounts> {
+  /**
+   * What is still waiting. The reviewer filter has to reach the counts too, or
+   * the badge would promise work that the queue then refuses to show — the way
+   * Monarch's "review some transactions" banner does when the rows are someone
+   * else's.
+   */
+  async counts(
+    workspaceId: string,
+    reviewer: OwnerFilter = ALL_OWNERS,
+  ): Promise<ReviewInboxCounts> {
     const [transaction, duplicate, receipt, subscription] = await Promise.all([
-      this.transactionsQuery(workspaceId).getCount(),
-      this.duplicatesQuery(workspaceId).getCount(),
+      this.transactionsQuery(workspaceId, reviewer).getCount(),
+      this.duplicatesQuery(workspaceId, reviewer).getCount(),
       this.pendingReceiptsQuery(workspaceId).getCount(),
       this.subscriptionRepository.count({
         where: { workspaceId, status: SubscriptionStatus.DETECTED },
@@ -236,18 +256,26 @@ export class ReviewInboxService {
     return { byTransaction, byStatement };
   }
 
-  async list(workspaceId: string, filters: ReviewInboxQueryDto): Promise<ReviewInboxPage> {
+  async list(
+    workspaceId: string,
+    filters: ReviewInboxQueryDto,
+    selfMemberId: string | null = null,
+  ): Promise<ReviewInboxPage> {
     const kind = filters.kind ?? ReviewInboxKind.TRANSACTION;
     const page = filters.page ?? 1;
     const limit = filters.limit ?? DEFAULT_LIMIT;
     const skip = (page - 1) * limit;
-    const counts = await this.counts(workspaceId);
+    const reviewer = parseReviewerFilter(filters.reviewer, selfMemberId);
+    const counts = await this.counts(workspaceId, reviewer);
 
     let items: ReviewInboxItem[] = [];
     let total = 0;
 
     if (kind === ReviewInboxKind.TRANSACTION) {
-      const [rows, count] = await this.applyDateRange(this.transactionsQuery(workspaceId), filters)
+      const [rows, count] = await this.applyDateRange(
+        this.transactionsQuery(workspaceId, reviewer),
+        filters,
+      )
         .orderBy('t.transactionDate', 'DESC')
         .addOrderBy('t.id', 'ASC')
         .skip(skip)
@@ -255,7 +283,7 @@ export class ReviewInboxService {
         .getManyAndCount();
       total = count;
       const receiptIds = await this.receiptIdsFor(workspaceId, rows);
-      items = rows.map(row => ({
+      items = redactPrivateRows(rows, selfMemberId).map(row => ({
         kind: 'transaction',
         id: row.id,
         date: toDateString(row.transactionDate),
@@ -275,14 +303,17 @@ export class ReviewInboxService {
           null,
       }));
     } else if (kind === ReviewInboxKind.DUPLICATE) {
-      const [rows, count] = await this.applyDateRange(this.duplicatesQuery(workspaceId), filters)
+      const [rows, count] = await this.applyDateRange(
+        this.duplicatesQuery(workspaceId, reviewer),
+        filters,
+      )
         .orderBy('t.transactionDate', 'DESC')
         .addOrderBy('t.id', 'ASC')
         .skip(skip)
         .take(limit)
         .getManyAndCount();
       total = count;
-      items = rows.map(row => ({
+      items = redactPrivateRows(rows, selfMemberId).map(row => ({
         kind: 'duplicate',
         id: row.id,
         date: toDateString(row.transactionDate),

@@ -1,6 +1,7 @@
 import { AuditAction, EntityType } from '@/entities/audit-event.entity';
 import { Statement } from '@/entities/statement.entity';
 import { Transaction, TransactionType } from '@/entities/transaction.entity';
+import { Category } from '@/entities/category.entity';
 import { User, UserRole } from '@/entities/user.entity';
 import { WorkspaceMember, WorkspaceRole } from '@/entities/workspace-member.entity';
 import { AuditService } from '@/modules/audit/audit.service';
@@ -81,6 +82,14 @@ describe('TransactionsService', () => {
           provide: getRepositoryToken(WorkspaceMember),
           useValue: {
             findOne: jest.fn(),
+          },
+        },
+        {
+          provide: getRepositoryToken(Category),
+          useValue: {
+            findOne: jest.fn(async () => null),
+            create: jest.fn(value => value),
+            save: jest.fn(async value => value),
           },
         },
         {

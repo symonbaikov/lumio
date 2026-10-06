@@ -53,6 +53,7 @@ type Props = { state: UseReviewInboxResult };
 // eslint-disable-next-line max-lines-per-function, complexity
 export function ReviewInboxView({ state }: Props) {
   const t = useIntlayer('reviewInbox');
+  const tOwner = useIntlayer('transactionOwner');
   const drawer = useIntlayer('transactionsDrawer');
   const { locale } = useLocale();
   const isMobile = useIsMobile();
@@ -73,6 +74,9 @@ export function ReviewInboxView({ state }: Props) {
   const {
     kind,
     setKind,
+    reviewer,
+    setReviewer,
+    canFilterByReviewer,
     items,
     page,
     categories,
@@ -445,6 +449,18 @@ export function ReviewInboxView({ state }: Props) {
               ))}
             </Tabs>
           </div>
+          {canFilterByReviewer && (
+            <Select
+              value={reviewer}
+              onChange={value => setReviewer(value === 'me' ? 'me' : 'anyone')}
+              aria-label={tOwner.filterLabel.value}
+              options={[
+                { value: 'me', label: tOwner.me.value },
+                { value: 'anyone', label: tOwner.everyone.value },
+              ]}
+              sx={{ minWidth: 130, backgroundColor: 'var(--card-bg)' }}
+            />
+          )}
           {kind !== 'subscription' && (
             <DateFilterDropdown
               open={dateOpen}

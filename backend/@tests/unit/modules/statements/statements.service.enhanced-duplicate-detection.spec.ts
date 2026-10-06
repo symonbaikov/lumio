@@ -9,6 +9,7 @@ import { User } from '../../../../src/entities/user.entity';
 import { WorkspaceMember } from '../../../../src/entities/workspace-member.entity';
 import { Category } from '../../../../src/entities/category.entity';
 import { TaxRate } from '../../../../src/entities/tax-rate.entity';
+import { Wallet } from '../../../../src/entities/wallet.entity';
 import { AuditService } from '../../../../src/modules/audit/audit.service';
 import { StatementParsingQueue } from '../../../../src/modules/parsing/queue/statement-parsing.queue';
 import { StatementProcessingService } from '../../../../src/modules/parsing/services/statement-processing.service';
@@ -102,6 +103,10 @@ describe('StatementsService - Enhanced Duplicate Detection', () => {
         {
           provide: getRepositoryToken(TaxRate),
           useValue: mockRepositories.taxRate,
+        },
+        {
+          provide: getRepositoryToken(Wallet),
+          useValue: { findOne: jest.fn(async () => null) },
         },
         {
           provide: getRepositoryToken(WorkspaceMember),

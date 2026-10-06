@@ -72,6 +72,7 @@ describe('StatementsService', () => {
       categoryRepository as any,
       taxRateRepository as any,
       workspaceMemberRepository as any,
+      { findOne: jest.fn(async () => null) } as any,
       fileStorageService as any,
       statementProcessingService as any,
       { enqueue: jest.fn() } as any,

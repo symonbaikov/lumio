@@ -95,6 +95,17 @@ const PERMISSION_KEYS: Array<keyof InvitePermissions> = [
   'canShareFiles',
 ];
 
+/** A toggle the member does not carry is a right they do not have. */
+const readMemberPermissions = (member: {
+  permissions?: Partial<InvitePermissions> | null;
+}): InvitePermissions => ({
+  canEditStatements: member.permissions?.canEditStatements === true,
+  canEditCustomTables: member.permissions?.canEditCustomTables === true,
+  canEditCategories: member.permissions?.canEditCategories === true,
+  canEditDataEntry: member.permissions?.canEditDataEntry === true,
+  canShareFiles: member.permissions?.canShareFiles === true,
+});
+
 const isWorkspaceRole = (role: string): role is WorkspaceRole =>
   (ALL_ROLES as string[]).includes(role);
 
@@ -218,6 +229,12 @@ export default function WorkspaceMembersView() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const [updatingRoleMemberId, setUpdatingRoleMemberId] = useState<string | null>(null);
+  const [updatingPermissionsMemberId, setUpdatingPermissionsMemberId] = useState<string | null>(
+    null,
+  );
+  const [permissionsMenuAnchorMap, setPermissionsMenuAnchorMap] = useState<
+    Record<string, HTMLElement | null>
+  >({});
   const [resendingInvitationId, setResendingInvitationId] = useState<string | null>(null);
   const [revokingInvitationId, setRevokingInvitationId] = useState<string | null>(null);
   const [searchEmail, setSearchEmail] = useState('');
@@ -374,6 +391,50 @@ export default function WorkspaceMembersView() {
       })
       .finally(async () => {
         setUpdatingRoleMemberId(null);
+      });
+  };
+
+  /**
+   * The toggles are replaced wholesale: the API reads a missing key as "no", so
+   * sending a partial object would silently revoke the rest.
+   */
+  const handleTogglePermission = async (
+    member: WorkspaceOverview['members'][number],
+    key: keyof InvitePermissions,
+    checked: boolean,
+  ) => {
+    if (!overview?.workspace.id) {
+      return;
+    }
+
+    const next = { ...readMemberPermissions(member), [key]: checked };
+
+    setUpdatingPermissionsMemberId(member.id);
+
+    await (async () => {
+      await apiClient.patch(
+        `/workspaces/${overview.workspace.id}/members/${member.id}/permissions`,
+        { permissions: next },
+      );
+      toast.success(t.toasts.permissionsUpdated.value);
+      // Patch the one row instead of reloading: the menu stays open for the
+      // next toggle, and reloading would detach the element it is anchored to.
+      setOverview(prev =>
+        prev
+          ? {
+              ...prev,
+              members: prev.members.map(item =>
+                item.id === member.id ? { ...item, permissions: next } : item,
+              ),
+            }
+          : prev,
+      );
+    })()
+      .catch(async err => {
+        toast.error(getApiMessage(err, t.errors.updatePermissionsFailed.value));
+      })
+      .finally(async () => {
+        setUpdatingPermissionsMemberId(null);
       });
   };
 
@@ -825,6 +886,12 @@ export default function WorkspaceMembersView() {
               const roleTargets = getAllowedRoleTargets(member);
               const canManageRole = roleTargets.length > 0;
               const roleUpdating = updatingRoleMemberId === member.id;
+              const memberPermissions = readMemberPermissions(member);
+              const grantedCount = PERMISSION_KEYS.filter(key => memberPermissions[key]).length;
+              // Only the member role carries toggles: owners and admins are
+              // unrestricted, viewers never write.
+              const canManagePermissions = isOwnerOrAdmin && member.role === 'member';
+              const permissionsUpdating = updatingPermissionsMemberId === member.id;
 
               return (
                 <Box key={member.id} sx={MEMBER_ROW_SX}>
@@ -941,6 +1008,55 @@ export default function WorkspaceMembersView() {
                         )}
                       </span>
                     </Tooltip>
+
+                    {canManagePermissions && (
+                      <>
+                        <Button
+                          variant="text"
+                          size="small"
+                          disabled={permissionsUpdating}
+                          onClick={e =>
+                            setPermissionsMenuAnchorMap(prev => ({
+                              ...prev,
+                              [member.id]: e.currentTarget,
+                            }))
+                          }
+                          endIcon={<ChevronDown size={12} />}
+                          sx={TOOLBAR_BUTTON_SX}
+                        >
+                          {permissionsUpdating
+                            ? t.updating
+                            : `${t.invite.permissionsTitle.value} · ${grantedCount}/${PERMISSION_KEYS.length}`}
+                        </Button>
+                        <Menu
+                          anchorEl={permissionsMenuAnchorMap[member.id]}
+                          open={Boolean(permissionsMenuAnchorMap[member.id])}
+                          onClose={() =>
+                            setPermissionsMenuAnchorMap(prev => ({ ...prev, [member.id]: null }))
+                          }
+                        >
+                          {PERMISSION_KEYS.map(key => (
+                            <MenuItem
+                              key={key}
+                              disabled={permissionsUpdating}
+                              onClick={() =>
+                                void handleTogglePermission(member, key, !memberPermissions[key])
+                              }
+                              sx={{ gap: 1 }}
+                            >
+                              <Checkbox
+                                checked={memberPermissions[key]}
+                                disabled={permissionsUpdating}
+                                onCheckedChange={checked =>
+                                  void handleTogglePermission(member, key, Boolean(checked))
+                                }
+                              />
+                              {t.permissions[key]}
+                            </MenuItem>
+                          ))}
+                        </Menu>
+                      </>
+                    )}
 
                     <IconButton
                       size="small"

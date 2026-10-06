@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import * as fs from 'fs';
-import { WorkspaceId } from '../../common/decorators/workspace.decorator';
+import { WorkspaceId, WorkspaceMemberId } from '../../common/decorators/workspace.decorator';
 import { WorkspaceAuth } from '../../common/decorators/workspace-auth.decorator';
 import { Permission } from '../../common/enums/permissions.enum';
 import { buildContentDisposition } from '../../common/utils/http-file.util';
@@ -82,8 +82,14 @@ export class ReportsController {
     @WorkspaceId() workspaceId: string,
     @Query() query: CashFlowMapQueryDto,
     @Res({ passthrough: true }) res: Response,
+    @WorkspaceMemberId() selfMemberId?: string | null,
   ) {
-    const map = await this.cashFlowMapService.getMap(workspaceId, query, user.locale);
+    const map = await this.cashFlowMapService.getMap(
+      workspaceId,
+      query,
+      user.locale,
+      selfMemberId ?? null,
+    );
     if (query.format === 'csv') {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
@@ -101,14 +107,19 @@ export class ReportsController {
     @CurrentUser() _user: User,
     @WorkspaceId() workspaceId: string,
     @Query() query: TopCategoriesQueryDto,
+    @WorkspaceMemberId() selfMemberId: string | null,
   ) {
-    return this.reportsService.getTopCategoriesReport(workspaceId, query);
+    return this.reportsService.getTopCategoriesReport(workspaceId, query, selfMemberId);
   }
 
   @Get('spend-flow')
   @WorkspaceAuth(Permission.REPORT_VIEW)
-  async getSpendFlow(@WorkspaceId() workspaceId: string, @Query() query: SpendFlowQueryDto) {
-    return this.spendFlowService.getSpendFlow(workspaceId, query);
+  async getSpendFlow(
+    @WorkspaceId() workspaceId: string,
+    @Query() query: SpendFlowQueryDto,
+    @WorkspaceMemberId() selfMemberId: string | null,
+  ) {
+    return this.spendFlowService.getSpendFlow(workspaceId, query, selfMemberId);
   }
 
   @Get('spend-over-time')
@@ -117,8 +128,9 @@ export class ReportsController {
     @CurrentUser() _user: User,
     @WorkspaceId() workspaceId: string,
     @Query() query: SpendOverTimeQueryDto,
+    @WorkspaceMemberId() selfMemberId: string | null,
   ) {
-    return this.reportsService.getSpendOverTimeReport(workspaceId, query);
+    return this.reportsService.getSpendOverTimeReport(workspaceId, query, selfMemberId);
   }
 
   @Post('custom-tables/summary')

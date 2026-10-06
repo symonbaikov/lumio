@@ -26,8 +26,8 @@ export const queryKeys = {
   categories: (workspaceId: string | null) => ['categories', workspaceId] as const,
   reviewInbox: (o: { workspaceId: string | null; params: Record<string, unknown> }) =>
     ['review-inbox', o.workspaceId, o.params] as const,
-  reviewInboxCounts: (workspaceId: string | null) =>
-    ['review-inbox', workspaceId, 'counts'] as const,
+  reviewInboxCounts: (workspaceId: string | null, reviewer?: string) =>
+    ['review-inbox', workspaceId, 'counts', reviewer ?? 'anyone'] as const,
   reviewInboxByStatement: (workspaceId: string | null) =>
     ['review-inbox', workspaceId, 'statements'] as const,
   wallets: (workspaceId: string | null) => ['wallets', workspaceId] as const,

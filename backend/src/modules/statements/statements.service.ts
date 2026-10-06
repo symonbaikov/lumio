@@ -29,7 +29,7 @@ import { normalizeFilename, sanitizeArchiveEntryName } from '../../common/utils/
 import { toMinor } from '../../common/utils/money.util';
 import { runExecutable } from '../../common/utils/thumbnail-command.util';
 import { resolveUploadsDir } from '../../common/utils/uploads.util';
-import { Category, WorkspaceMember, WorkspaceRole } from '../../entities';
+import { Category, Wallet, WorkspaceMember, WorkspaceRole } from '../../entities';
 import { ActorType, AuditAction, EntityType, Severity } from '../../entities/audit-event.entity';
 import { CategoryType } from '../../entities/category.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../entities/statement.entity';
@@ -172,6 +172,8 @@ export class StatementsService {
     private readonly taxRateRepository: Repository<TaxRate>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
+    @InjectRepository(Wallet)
+    private readonly walletRepository: Repository<Wallet>,
     private readonly fileStorageService: FileStorageService,
     private statementProcessingService: StatementProcessingService,
     private readonly statementParsingQueue: StatementParsingQueue,
@@ -284,6 +286,15 @@ export class StatementsService {
       return `"${value.replaceAll('"', '""')}"`;
     }
     return value;
+  }
+
+  /** Who owns the wallet, or null when it is shared. */
+  private async walletOwnerMemberId(walletId: string): Promise<string | null> {
+    const wallet = await this.walletRepository.findOne({
+      where: { id: walletId },
+      select: ['ownerMemberId'],
+    });
+    return wallet?.ownerMemberId ?? null;
   }
 
   private normalizePositiveAmount(value: number | string | null | undefined): number | null {
@@ -635,6 +646,9 @@ export class StatementsService {
       | Record<string, string | number | null | undefined>
       | undefined;
 
+    const walletId =
+      payload.transaction.walletId || (originalTransaction?.walletId as string) || null;
+
     const transaction = this.transactionRepository.create({
       workspaceId,
       statementId: statement.id,
@@ -673,7 +687,9 @@ export class StatementsService {
       categoryId:
         payload.transaction.categoryId || (originalTransaction?.categoryId as string) || null,
       branchId: payload.transaction.branchId || (originalTransaction?.branchId as string) || null,
-      walletId: payload.transaction.walletId || (originalTransaction?.walletId as string) || null,
+      walletId,
+      // Same rule as the import path: the row starts on whoever owns the wallet.
+      ownerMemberId: walletId ? await this.walletOwnerMemberId(walletId) : null,
       article: payload.transaction.article || (originalTransaction?.article as string) || null,
       comments: payload.transaction.comments || (originalTransaction?.comments as string) || null,
       transactionType,
