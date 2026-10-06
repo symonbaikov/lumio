@@ -347,7 +347,6 @@ export class CustomTablesService {
           transactionType: transaction.transactionType,
         })),
         workspaceId,
-        userId,
       );
       for (const [index, transaction] of pending.entries()) {
         // Same order as a statement import: rules, keywords and what the user

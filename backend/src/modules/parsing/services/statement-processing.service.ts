@@ -1055,7 +1055,6 @@ export class StatementProcessingService {
             };
           }),
           statement.workspaceId,
-          userId,
         );
 
         log(

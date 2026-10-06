@@ -338,25 +338,15 @@ describe('TransactionsService', () => {
       );
     });
 
-    it('triggers learning when categoryId changes', async () => {
-      jest.spyOn(transactionRepository, 'save').mockResolvedValue({
-        ...mockTransaction,
-        workspaceId: 'ws-1',
-        paymentPurpose: 'Оплата аренды',
-        counterpartyName: 'ТОО Арендодатель',
-        categoryId: 'cat-2',
-      } as Transaction);
+    it('marks a changed category as the user\'s own pick, with nothing else to record', async () => {
+      // The row's own category is what the payee history reads next time, so a
+      // correction teaches by itself — there is no second store to write to.
+      jest.spyOn(transactionRepository, 'save').mockImplementation(async entity => entity as never);
 
-      await service.update('1', 'ws-1', '1', { categoryId: 'cat-2' });
+      const saved = await service.update('1', 'ws-1', '1', { categoryId: 'cat-2' });
 
-      expect(classificationService.learnFromCorrection).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: '1',
-          categoryId: 'cat-2',
-        }),
-        'cat-2',
-        '1',
-      );
+      expect(saved.categorySource).toBe('manual');
+      expect(saved.categoryReason).toBeNull();
     });
 
     it('drops the loaded category object so the new id is what gets saved', async () => {

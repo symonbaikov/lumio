@@ -1,4 +1,6 @@
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -10,6 +12,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { payeeKeyOf } from '../common/utils/payee-key.util';
 import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import { CryptoWallet } from './crypto-wallet.entity';
@@ -284,6 +287,27 @@ export class Transaction {
 
   @Column({ name: 'vendor_normalized', nullable: true })
   vendorNormalized: string | null;
+
+  /**
+   * The payee this row belongs to, normalised so the same shop keys the same
+   * every time (`descriptor-normalizer.ts`). Internal: the raw descriptor is
+   * what the user sees and what their rules match. Null when the descriptor
+   * held no name to key on.
+   */
+  @Index()
+  @Column({ name: 'payee_key', type: 'text', nullable: true })
+  payeeKey: string | null;
+
+  /**
+   * Derived on write so that every path that books a transaction — import,
+   * scan, receipt, payable, manual entry, custom table, Telegram — keys the
+   * payee the same way without having to remember to.
+   */
+  @BeforeInsert()
+  @BeforeUpdate()
+  derivePayeeKey(): void {
+    this.payeeKey = payeeKeyOf(this);
+  }
 
   @Column({ name: 'category_hint', nullable: true })
   categoryHint: string | null;
