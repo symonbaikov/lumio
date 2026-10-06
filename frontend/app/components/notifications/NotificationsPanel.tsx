@@ -122,6 +122,7 @@ export function NotificationsPanel() {
 
   const getLocalizedNotificationCopy = (notification: {
     type: string;
+    entityType: string | null;
     title: string;
     message: string;
     meta: Record<string, unknown> | null;
@@ -138,7 +139,12 @@ export function NotificationsPanel() {
       };
     }
 
-    if (notification.type === 'transaction.uncategorized') {
+    // The weekly review digest counts receipts, duplicates and subscriptions
+    // too, so the server-rendered "N items are waiting" text is kept as is.
+    if (
+      notification.type === 'transaction.uncategorized' &&
+      notification.entityType !== 'review-inbox'
+    ) {
       const metaCount =
         typeof notification.meta?.count === 'number' ? notification.meta.count : null;
       const count = metaCount ?? extractCount(notification.message) ?? 0;

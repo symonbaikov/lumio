@@ -100,8 +100,20 @@ vi.mock('@/app/hooks/useNotifications', () => ({
         createdAt: new Date().toISOString(),
         isRead: false,
       },
+      {
+        id: 'notification-3',
+        type: 'transaction.uncategorized',
+        entityType: 'review-inbox',
+        entityId: 'workspace-1',
+        meta: { counts: { total: 11 } },
+        severity: 'info',
+        title: 'Items waiting for review',
+        message: '11 items are waiting in the review inbox',
+        createdAt: new Date().toISOString(),
+        isRead: false,
+      },
     ],
-    unreadCount: 2,
+    unreadCount: 3,
     isPending: false,
     refetch: notificationMocks.refetch,
     markAsRead: notificationMocks.markAsRead,
@@ -191,6 +203,31 @@ describe('NotificationsPanel', () => {
     });
 
     expect(routerMocks.push).toHaveBeenCalledWith('/statements/statement-1/edit');
+  });
+
+  it('opens the review queue for the weekly digest and keeps its own text', async () => {
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<NotificationsPanel />);
+    });
+
+    await act(async () => {
+      openAppPanel('notifications');
+    });
+
+    const digest = Array.from(document.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('11 items are waiting in the review inbox'),
+    );
+
+    expect(digest).toBeTruthy();
+    expect(digest?.textContent).toContain('Items waiting for review');
+
+    await act(async () => {
+      digest?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(routerMocks.push).toHaveBeenCalledWith('/review');
   });
 
   it('renders localized copy on theme-aware surfaces, not hardcoded white', async () => {
