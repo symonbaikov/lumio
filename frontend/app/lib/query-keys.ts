@@ -80,6 +80,11 @@ export const queryKeys = {
     ['storage-files', o.workspaceId, o.listMode] as const,
   taxReturn: (o: { workspaceId: string | null; periodStart: string; periodEnd: string }) =>
     ['tax-return', o.workspaceId, o.periodStart, o.periodEnd] as const,
+  // The jurisdiction catalogue is global reference data (JWT-only on the server), the one
+  // place a key rightly has no workspace segment.
+  taxJurisdictions: () => ['tax-jurisdictions'] as const,
+  taxJurisdictionRates: (o: { code: string | null; date: string }) =>
+    ['tax-jurisdictions', o.code, 'rates', o.date] as const,
   // Prefix ['income-tax', workspaceId] invalidates every part of the declaration at once.
   incomeTaxDisclaimer: (workspaceId: string | null) =>
     ['income-tax', workspaceId, 'disclaimer'] as const,
