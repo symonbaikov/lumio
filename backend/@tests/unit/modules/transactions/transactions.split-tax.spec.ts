@@ -93,7 +93,6 @@ describe('TransactionsService.split — tax', () => {
       { findOne: jest.fn(async () => null), create: jest.fn(x => x), save: jest.fn(async x => x) } as any,
       { set: jest.fn() } as any,
       { createEvent: jest.fn() } as any,
-      { learnFromCorrection: jest.fn() } as any,
       { bulkConvert: jest.fn() } as any,
       assignmentStub as any,
     );
@@ -206,7 +205,6 @@ describe('TransactionsService.update — filed-return lock', () => {
       { findOne: jest.fn(async () => null), create: jest.fn(x => x), save: jest.fn(async x => x) } as any,
       { set: jest.fn() } as any,
       { createEvent: jest.fn() } as any,
-      { learnFromCorrection: jest.fn() } as any,
       { bulkConvert: jest.fn() } as any,
       { resolve: jest.fn() } as any,
     );

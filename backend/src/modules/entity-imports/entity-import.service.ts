@@ -277,7 +277,6 @@ export class EntityImportService {
           transactionType: tx.transactionType,
         })),
         workspaceId,
-        userId,
       );
       for (const [index, tx] of uncategorized.entries()) {
         const categoryId =

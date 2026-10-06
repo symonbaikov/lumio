@@ -278,7 +278,6 @@ describe("CustomTablesService.convertToStatement", () => {
 				},
 			],
 			"workspace-1",
-			"user-1",
 		);
 		expect(transactionRepository.update).toHaveBeenCalledWith(
 			{ id: "tx-0" },

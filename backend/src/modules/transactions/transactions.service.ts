@@ -32,7 +32,6 @@ import { Wallet } from '../../entities/wallet.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 import { ensurePrivateCategory } from '../categories/private-category';
-import { ClassificationService } from '../classification/services/classification.service';
 import { ExchangeRatesService } from '../exchange-rates/exchange-rates.service';
 import type { DataDeletedEvent } from '../notifications/events/notification-events';
 import { TaxAssignmentService } from '../tax/tax-assignment.service';
@@ -61,7 +60,6 @@ export class TransactionsService {
     private readonly categoryRepository: Repository<Category>,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     private readonly auditService: AuditService,
-    private readonly classificationService: ClassificationService,
     private readonly exchangeRatesService: ExchangeRatesService,
     private readonly taxAssignmentService: TaxAssignmentService,
     private readonly eventEmitter?: EventEmitter2,
@@ -335,17 +333,8 @@ export class TransactionsService {
       isUndoable: true,
     });
 
-    if (
-      updateDto.categoryId !== undefined &&
-      updateDto.categoryId !== null &&
-      updateDto.categoryId !== previousCategoryId
-    ) {
-      try {
-        await this.classificationService.learnFromCorrection(saved, updateDto.categoryId, userId);
-      } catch (error) {
-        console.error('[TransactionsService] Failed to learn from category correction:', error);
-      }
-    }
+    // A correction teaches by itself: the row's own category is what the payee
+    // history reads next time, so there is nothing else to record.
 
     return saved;
   }
@@ -768,7 +757,9 @@ export class TransactionsService {
     }
     const splitGroupId = target.splitGroupId;
 
-    let before: Transaction[] = [];
+    // Plain copies for the audit diff, not entities: spreading drops the
+    // entity's own methods.
+    let before: Array<Partial<Transaction>> = [];
     let repointed = { duplicates: 0, receipts: 0, payables: 0 };
 
     const merged = await this.transactionRepository.manager.transaction(async manager => {
