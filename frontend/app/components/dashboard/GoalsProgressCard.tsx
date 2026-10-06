@@ -43,7 +43,7 @@ export function GoalsProgressCard({
       action={<CardLink href="/goals">{t.goalsViewAll}</CardLink>}
     >
       {goals.length === 0 ? (
-        <EmptyState illustration="activity" size="sm" compact description={t.goalsEmptyInMonth} />
+        <EmptyState illustration="goals" size="sm" compact description={t.goalsEmptyInMonth} />
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {goals.map(goal => (

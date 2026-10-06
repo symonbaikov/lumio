@@ -384,7 +384,7 @@ export function ReviewInboxView({ state }: Props) {
       </Box>
     ))
   ) : orderedItems.length === 0 ? (
-    <EmptyState illustration="notifications" title={t.empty.value} compact />
+    <EmptyState illustration="no-data" title={t.empty.value} compact />
   ) : groups ? (
     groups.map(group => {
       const start = orderedItems.indexOf(group.items[0]);

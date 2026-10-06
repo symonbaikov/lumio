@@ -144,7 +144,7 @@ export default function AdvicePage() {
       )}
 
       {!isPending && items.length === 0 && (
-        <EmptyState illustration="notifications" description={t.adviceEmpty} />
+        <EmptyState illustration="advice" description={t.adviceEmpty} />
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

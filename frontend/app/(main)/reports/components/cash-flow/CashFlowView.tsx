@@ -15,6 +15,7 @@ import { FromFilterDropdown } from '@/app/(main)/statements/components/filters/F
 import CustomDatePicker from '@/app/components/CustomDatePicker';
 import { DashboardCard } from '@/app/components/dashboard/ui';
 import { ChevronDown } from '@/app/components/icons';
+import { EmptyState } from '@/app/components/ui/EmptyState';
 import { LazyECharts } from '@/app/components/ui/lazy-echarts';
 import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient from '@/app/lib/api';
@@ -274,9 +275,11 @@ export function CashFlowView(): React.JSX.Element {
             {data.sankey.links.length > 0 && option ? (
               <LazyECharts option={option} style={{ height: 440, width: '100%' }} notMerge />
             ) : (
-              <p className="lumio-dashboard__empty">
-                {text('cfEmpty', 'No money moved in this period')}
-              </p>
+              <EmptyState
+                illustration="cash-bundle"
+                description={text('cfEmpty', 'No money moved in this period')}
+                compact
+              />
             )}
           </DashboardCard>
 
@@ -287,9 +290,11 @@ export function CashFlowView(): React.JSX.Element {
             {data.treemap.length > 0 ? (
               <CashFlowTreemap items={data.treemap} formatAmount={formatAmount} />
             ) : (
-              <p className="lumio-dashboard__empty">
-                {text('cfEmpty', 'No money moved in this period')}
-              </p>
+              <EmptyState
+                illustration="cash-bundle"
+                description={text('cfEmpty', 'No money moved in this period')}
+                compact
+              />
             )}
           </DashboardCard>
 

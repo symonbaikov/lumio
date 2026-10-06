@@ -142,7 +142,7 @@ export default function GoalsPage() {
       )}
 
       {!(isPending || error) && goals.length === 0 && (
-        <EmptyState illustration="activity" description={t.empty} />
+        <EmptyState illustration="goals" description={t.empty} />
       )}
 
       <Box

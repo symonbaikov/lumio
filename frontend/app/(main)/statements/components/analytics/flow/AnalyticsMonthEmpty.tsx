@@ -37,7 +37,7 @@ export function AnalyticsMonthEmpty({ month, isIncome, labels }: Props): React.J
         textAlign: 'center',
       }}
     >
-      <EmptyStateIllustration name="finance-control" size="md" />
+      <EmptyStateIllustration name="money-bag" size="md" />
       <p style={{ marginTop: 8, fontSize: 15, fontWeight: 600, color: 'var(--foreground)' }}>
         {title}
       </p>
