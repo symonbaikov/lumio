@@ -206,7 +206,7 @@ export default function CustomTablesPage() {
           onRowClick={row => router.push(`/custom-tables/${row.original.id}`)}
           emptyState={
             <EmptyState
-              illustration="statements"
+              illustration="tables"
               size="sm"
               title={labels.empty.title}
               description={labels.empty.description}

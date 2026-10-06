@@ -168,12 +168,17 @@ $lumio-logo-lockup-ratio: '1716 / 370';
     text-decoration: none;
   }
 
-  // Green in both themes, so there is no dark variant to swap in.
+  // The brand green is near-black against the dark sidebar, so the mark gets
+  // the same accent the illustrations use there.
   &-emblem {
     display: block;
     width: 24px;
     height: 24px;
     background: url('/images/logo-mark.svg') no-repeat center / contain;
+
+    @include dark {
+      background-image: url('/images/logo-mark-dark.svg');
+    }
   }
 
   &-actions {

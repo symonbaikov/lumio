@@ -221,7 +221,7 @@ export function TopCategoriesLeaderboard({
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ padding: '32px 0', textAlign: 'center' }}>
-                  <EmptyStateIllustration name="top-categories" size="md" />
+                  <EmptyStateIllustration name="money-bag" size="md" />
                   <span style={{ color: 'var(--muted-foreground)' }}>{emptyLabel}</span>
                 </td>
               </tr>
