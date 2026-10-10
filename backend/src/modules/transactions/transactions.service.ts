@@ -113,6 +113,7 @@ export class TransactionsService {
       .leftJoinAndSelect('transaction.category', 'category')
       .leftJoinAndSelect('transaction.branch', 'branch')
       .leftJoinAndSelect('transaction.wallet', 'wallet')
+      .leftJoinAndSelect('transaction.payee', 'payee')
       .leftJoinAndSelect('transaction.reimbursementOf', 'reimbursementOf');
 
     applyOwnerFilter(query, 'transaction', filters.owner ?? { kind: 'all' });
@@ -193,7 +194,7 @@ export class TransactionsService {
   async findOne(id: string, workspaceId: string): Promise<Transaction> {
     const transaction = await this.transactionRepository.findOne({
       where: { id, workspaceId },
-      relations: ['category', 'branch', 'wallet'],
+      relations: ['category', 'branch', 'wallet', 'payee'],
     });
 
     if (!transaction) {
@@ -498,6 +499,8 @@ export class TransactionsService {
       exchangeRate: source.exchangeRate,
       paymentPurpose: source.paymentPurpose,
       categoryId: source.categoryId,
+      categorySource: source.categorySource,
+      categoryReason: source.categoryReason,
       // The rate carries over, but never the assessed figures: those belong to
       // the pre-split amount, and copying them onto each part would multiply
       // the transaction's tax by the number of parts. `split()` re-assesses
@@ -667,7 +670,11 @@ export class TransactionsService {
         row.fingerprint = null;
 
         // Per-part override, else keep what the row already inherited.
-        row.categoryId = part.categoryId ?? row.categoryId;
+        if (part.categoryId && part.categoryId !== row.categoryId) {
+          row.categoryId = part.categoryId;
+          row.categorySource = TransactionCategorySource.MANUAL;
+          row.categoryReason = null;
+        }
         row.paymentPurpose = part.paymentPurpose ?? row.paymentPurpose;
         row.comments = part.comments ?? row.comments;
 
@@ -731,7 +738,7 @@ export class TransactionsService {
     return this.transactionRepository.find({
       // Same relations as findOne, so a caller gets one shape either way.
       where: { workspaceId, splitGroupId: transaction.splitGroupId },
-      relations: ['category', 'branch', 'wallet'],
+      relations: ['category', 'branch', 'wallet', 'payee'],
       order: { splitIndex: 'ASC' },
     });
   }

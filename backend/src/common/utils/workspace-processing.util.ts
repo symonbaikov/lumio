@@ -25,7 +25,8 @@ export type WorkspaceProcessingSettings = {
 export const DEFAULT_PROCESSING_SETTINGS: WorkspaceProcessingSettings = {
   categorizationThreshold: 0.7,
   duplicateResolution: 'skip',
-  aiCategorization: true,
+  // Off like YNAB: a new payee waits for the user's pick instead of a guess.
+  aiCategorization: false,
   aiMerchantNormalization: true,
   merchantLearning: true,
 };

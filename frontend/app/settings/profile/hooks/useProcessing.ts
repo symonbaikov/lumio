@@ -19,7 +19,7 @@ export type ProcessingSettings = {
 const DEFAULTS: ProcessingSettings = {
   categorizationThreshold: 0.7,
   duplicateResolution: 'skip',
-  aiCategorization: true,
+  aiCategorization: false,
   aiMerchantNormalization: true,
   merchantLearning: true,
 };

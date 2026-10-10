@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { DocumentClassifierService } from '@/modules/parsing/services/document-classifier.service';
 import { OcrService } from '@/modules/parsing/services/ocr.service';
 import { TransactionTypeDetectorService } from '@/modules/parsing/services/transaction-type-detector.service';
@@ -154,6 +156,67 @@ describe('UniversalExtractorService', () => {
     });
   });
 
+  describe('the vendor of an invoice', () => {
+    // pdf-parse output of real invoices, with the buyer's details replaced. The
+    // label and its value arrive glued ("Invoice number29556044 0015"), which is
+    // what used to be taken for the vendor.
+    const invoice = (name: string) =>
+      readFileSync(join(__dirname, '../fixtures/invoices', name), 'utf8');
+
+    it.each([
+      ['railway-invoice.txt', 'Railway Corporation'],
+      ['captions-invoice.txt', 'Captions (captions.ai)'],
+      ['anthropic-invoice.txt', 'Anthropic, PBC'],
+      ['anomaly-invoice.txt', 'Anomaly'],
+      ['anthropic-receipt.txt', 'Anthropic, PBC'],
+    ])('reads the issuer of %s, not its number', async (file, vendor) => {
+      const result = await service.extractFromText(invoice(file));
+
+      expect(result.vendor).toBe(vendor);
+    });
+
+    it('never takes the "Bill to" party, which is the user', async () => {
+      const text = ['Invoice', 'Invoice No. 4711', 'Bill to', 'Jane Doe', 'Total: $10.00'].join('\n');
+
+      const result = await service.extractFromText(text);
+
+      expect(result.vendor).toBeUndefined();
+    });
+
+    it.each([
+      ['From: Hetzner Online GmbH', 'Hetzner Online GmbH'],
+      ['Seller', 'Hetzner Online GmbH'],
+      ['Продавец: ТОО Ромашка', 'ТОО Ромашка'],
+    ])('follows the seller label in "%s"', async (label, vendor) => {
+      const lines = label.includes(':') ? [label] : [label, vendor];
+      const text = ['Rechnung', 'Kundennummer 0042', ...lines, 'Total: 10,00 EUR'].join('\n');
+
+      const result = await service.extractFromText(text);
+
+      expect(result.vendor).toBe(vendor);
+    });
+
+    it('asks the model when the heuristic found no name, and takes its vendor', async () => {
+      const aiExtractor = {
+        isAvailable: () => true,
+        extractFromText: jest.fn(async () => ({ vendor: 'Railway Corporation' })),
+      };
+      const withAi = new UniversalExtractorService(
+        new UniversalAmountParser(),
+        new TransactionTypeDetectorService(),
+        new DocumentClassifierService(),
+        new OcrService(),
+        aiExtractor as never,
+      );
+      const text = ['Invoice', 'Invoice No. 4711', 'Bill to', 'Jane Doe', 'Total: $14.63'].join('\n');
+
+      const result = await withAi.extractFromText(text);
+
+      expect(aiExtractor.extractFromText).toHaveBeenCalled();
+      expect(result.vendor).toBe('Railway Corporation');
+    });
+  });
+
   describe('mergeResults', () => {
     const primary = {
       documentType: 'receipt',
@@ -173,6 +236,18 @@ describe('UniversalExtractorService', () => {
         'г. Алматы, ул. Абая 10',
       );
       expect(merge(primary, {}).merchantAddress).toBe('ул. Абая 10');
+    });
+
+    it('keeps the heuristic vendor when it names someone, else takes the model one', () => {
+      const merge = (service as any).mergeResults.bind(service);
+
+      expect(merge({ ...primary, vendor: 'Railway Corporation' }, { vendor: 'Railway' }).vendor).toBe(
+        'Railway Corporation',
+      );
+      expect(merge({ ...primary, vendor: 'Invoice 4711' }, { vendor: 'Railway' }).vendor).toBe(
+        'Railway',
+      );
+      expect(merge({ ...primary, vendor: 'Invoice 4711' }, {}).vendor).toBe('Invoice 4711');
     });
   });
 });

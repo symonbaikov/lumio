@@ -316,15 +316,7 @@ export class GmailReceiptProcessor {
       // Suggest category
       if (parsedData && savedReceipt.status !== ReceiptStatus.FAILED) {
         try {
-          const suggestedCategory = await this.categoryService.suggestCategory(savedReceipt);
-
-          if (suggestedCategory) {
-            savedReceipt.parsedData = {
-              ...savedReceipt.parsedData,
-              category: suggestedCategory.name,
-              categoryId: suggestedCategory.id,
-            };
-          }
+          await this.categoryService.categorize(savedReceipt);
 
           job.progress = 95;
           await this.jobRepository.save(job);

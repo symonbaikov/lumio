@@ -12,6 +12,8 @@ import {
   TrendingDown,
   TrendingUp,
 } from '@/app/components/icons';
+import { TransactionPayeeField } from '@/app/components/payees/TransactionPayeeField';
+import { useOfferPayeeQueue } from '@/app/components/payees/useOfferPayeeQueue';
 import { Select } from '@/app/components/ui/select';
 import { useCurrencyDisplay } from '@/app/contexts/CurrencyDisplayContext';
 import { useIntlayer, useLocale } from '@/app/i18n';
@@ -61,6 +63,7 @@ export function TransactionDetailsTab({
   const updateOwner = useBulkUpdateOwner();
   const [updating, setUpdating] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const offerPayeeQueue = useOfferPayeeQueue();
 
   // The list refresh (and drawer close) is owned by the container — a split turns
   // one row into several, so the drawer must not keep showing the stale original.
@@ -106,6 +109,15 @@ export function TransactionDetailsTab({
     await (async () => {
       setUpdating(true);
       await onUpdateCategory(transaction.id, selectedCategoryId);
+      if (transaction.payee) {
+        const picked = categories.find(category => category.id === selectedCategoryId);
+        void offerPayeeQueue(
+          transaction.payee,
+          selectedCategoryId,
+          picked ? getCategoryDisplayName(picked, locale) : '',
+          [transaction.id],
+        );
+      }
       setSelectedCategoryId('');
     })()
       .catch(async error => {
@@ -201,6 +213,14 @@ export function TransactionDetailsTab({
             <div className="lumio-tx-detail__value" style={{ fontWeight: 700 }}>
               {transaction.counterpartyName}
             </div>
+            {!transaction.isPrivate && (
+              <TransactionPayeeField
+                key={transaction.id}
+                transactionId={transaction.id}
+                payee={transaction.payee ?? null}
+                counterpartyName={transaction.counterpartyName}
+              />
+            )}
             {transaction.counterpartyBin && (
               <div style={{ marginTop: 4, fontSize: 12, color: c.ink700 }}>
                 {t.bin.value}: {transaction.counterpartyBin}

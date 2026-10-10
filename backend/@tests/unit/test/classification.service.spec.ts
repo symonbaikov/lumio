@@ -1,7 +1,8 @@
 import type { Branch } from '@/entities/branch.entity';
 import type { CategorizationRule } from '@/entities/categorization-rule.entity';
 import { type Category, CategoryType } from '@/entities/category.entity';
-import type { PayeeOverride } from '@/entities/payee-override.entity';
+import type { Payee } from '@/entities/payee.entity';
+import type { PayeeAlias } from '@/entities/payee-alias.entity';
 import { type Transaction, TransactionType } from '@/entities/transaction.entity';
 import type { Wallet } from '@/entities/wallet.entity';
 import { AuditService } from '@/modules/audit/audit.service';
@@ -22,7 +23,8 @@ describe('ClassificationService', () => {
   let service: ClassificationService;
   const categoryRepo = createRepoMock<Category>();
   const transactionRepo = createRepoMock<Transaction>();
-  const payeeOverrideRepo = createRepoMock<PayeeOverride>();
+  const payeeRepo = createRepoMock<Payee>();
+  const payeeAliasRepo = createRepoMock<PayeeAlias>();
   const branchRepo = createRepoMock<Branch>();
   const walletRepo = createRepoMock<Wallet>();
   const categorizationRuleRepo = createRepoMock<CategorizationRule>();
@@ -37,7 +39,8 @@ describe('ClassificationService', () => {
     service = new ClassificationService(
       categoryRepo as any,
       transactionRepo as any,
-      payeeOverrideRepo as any,
+      payeeRepo as any,
+      payeeAliasRepo as any,
       branchRepo as any,
       walletRepo as any,
       categorizationRuleRepo as any,

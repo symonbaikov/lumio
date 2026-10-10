@@ -9,7 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { StatementStage } from './statement.entity';
-import { Transaction } from './transaction.entity';
+import { Transaction, type TransactionCategorySource } from './transaction.entity';
 import { User } from './user.entity';
 import { Workspace } from './workspace.entity';
 
@@ -163,6 +163,9 @@ export class Receipt {
     date?: string;
     category?: string;
     categoryId?: string;
+    /** Which step picked `categoryId`, carried onto the transaction the receipt books. */
+    categorySource?: TransactionCategorySource | null;
+    categoryReason?: string | null;
     tax?: number;
     taxRate?: number;
     subtotal?: number;

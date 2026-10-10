@@ -4,15 +4,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import type { PayeeChoice } from '@/app/components/payees/types';
+import { useOfferPayeeQueue } from '@/app/components/payees/useOfferPayeeQueue';
+import { useSetTransactionPayee } from '@/app/components/payees/usePayees';
 import { type Reviewer, useDefaultReviewer } from '@/app/components/review/useReviewer';
 import { useHouseholdMembers } from '@/app/components/transactions/hooks/useWorkspaceMembers';
 import type { Category } from '@/app/components/transactions/types';
 import { useWorkspaceId } from '@/app/hooks/useWorkspaceId';
-import { useIntlayer } from '@/app/i18n';
+import { useIntlayer, useLocale } from '@/app/i18n';
 import apiClient, { receiptsApi } from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
 import { apiQuery } from '@/app/lib/query-fn';
 import { queryKeys } from '@/app/lib/query-keys';
+import { getCategoryDisplayName } from '@/app/lib/statement-categories';
 import {
   cursorAfterRemoval,
   isReviewInboxKind,
@@ -57,6 +61,8 @@ export interface UseReviewInboxResult {
   resolveDuplicate: (id: string, decision: 'keep' | 'confirm') => Promise<void>;
   approveReceipt: (id: string) => Promise<void>;
   decideSubscription: (id: string, decision: 'confirm' | 'dismiss') => Promise<void>;
+  /** Moves a row to another payee; the next import of its descriptor follows. */
+  changePayee: (id: string, choice: PayeeChoice, name: string) => Promise<void>;
 }
 
 function fill(template: string, params: Record<string, string | number>): string {
@@ -69,6 +75,8 @@ export function useReviewInbox(): UseReviewInboxResult {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useIntlayer('reviewInbox');
+  const tPayees = useIntlayer('payees');
+  const { locale } = useLocale();
 
   const kindParam = searchParams.get('kind');
   const kind: ReviewInboxKind = isReviewInboxKind(kindParam) ? kindParam : 'transaction';
@@ -154,6 +162,32 @@ export function useReviewInbox(): UseReviewInboxResult {
     [items.length],
   );
 
+  const rememberedText = tPayees.remembered.value;
+  const categories = categoriesQuery.data;
+  const offerPayeeQueue = useOfferPayeeQueue();
+
+  /** Offers the category to the payee's other waiting rows, when one payee was approved. */
+  const offerToRestOfPayee = useCallback(
+    (approvedIds: string[], categoryId: string) => {
+      const payees = new Map<string, string>();
+      for (const item of items) {
+        if (item.kind === 'transaction' && item.payee && approvedIds.includes(item.id)) {
+          payees.set(item.payee.id, item.payee.name);
+        }
+      }
+      if (payees.size !== 1) return;
+      const [[id, name]] = [...payees];
+      const picked = categories?.find(entry => entry.id === categoryId);
+      void offerPayeeQueue(
+        { id, name },
+        categoryId,
+        picked ? getCategoryDisplayName(picked, locale) : '',
+        approvedIds,
+      );
+    },
+    [items, categories, locale, offerPayeeQueue],
+  );
+
   const approveMutation = useMutation({
     mutationFn: ({ ids, categoryId }: { ids: string[]; categoryId?: string }) =>
       apiClient.post<{ approved: number }>('/review-inbox/transactions/approve', {
@@ -163,6 +197,9 @@ export function useReviewInbox(): UseReviewInboxResult {
     onSuccess: async (response, variables) => {
       toast.success(fill(approvedText, { count: response.data.approved }));
       afterResolved(variables.ids);
+      if (variables.categoryId) {
+        offerToRestOfPayee(variables.ids, variables.categoryId);
+      }
       await invalidate();
     },
     onError: (error: unknown) => {
@@ -221,6 +258,25 @@ export function useReviewInbox(): UseReviewInboxResult {
     [simpleMutation],
   );
 
+  const setPayeeMutation = useSetTransactionPayee();
+  const changePayee = useCallback(
+    async (id: string, choice: PayeeChoice, name: string) => {
+      const raw = items.find(item => item.id === id);
+      await setPayeeMutation
+        .mutateAsync({ transactionId: id, choice })
+        .then(() =>
+          toast.success(
+            fill(rememberedText, {
+              raw: raw && 'counterpartyName' in raw ? raw.counterpartyName : '',
+              payee: name,
+            }),
+          ),
+        )
+        .catch((error: unknown) => toast.error(getApiErrorMessage(error, failedText)));
+    },
+    [items, setPayeeMutation, rememberedText, failedText],
+  );
+
   const toggle = useCallback(
     (id: string) => setSelected(previous => toggleSelection(previous, id)),
     [],
@@ -254,10 +310,11 @@ export function useReviewInbox(): UseReviewInboxResult {
     cursor,
     setCursor,
     move,
-    busy: approveMutation.isPending || simpleMutation.isPending,
+    busy: approveMutation.isPending || simpleMutation.isPending || setPayeeMutation.isPending,
     approve,
     resolveDuplicate,
     approveReceipt,
     decideSubscription,
+    changePayee,
   };
 }

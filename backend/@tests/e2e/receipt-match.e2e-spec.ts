@@ -177,4 +177,53 @@ describe('Receipt ↔ transaction (e2e)', () => {
       .send({ transactionId: 'not-a-uuid' })
       .expect(400);
   });
+
+  it("takes the receipt's category over the import's guess, never over a person's pick", async () => {
+    const insertBankRow = async (merchant: string, source: string) => {
+      const [row] = await dataSource.query(
+        `INSERT INTO transactions
+           (transaction_date, counterparty_name, payment_purpose, transaction_type, workspace_id,
+            amount, debit, currency, is_verified, category_id, category_source)
+         VALUES ('2026-08-01', $1, $5, 'expense', $2, 15, 15, 'KZT', false, $3, $4)
+         RETURNING id`,
+        [merchant, owner.workspaceId, categoryIds[0], source, merchant],
+      );
+      return row.id as string;
+    };
+    const guessed = await insertBankRow('RAILWAY 001', 'ai');
+    const picked = await insertBankRow('RAILWAY 002', 'manual');
+    const receiptFor = () =>
+      insertReceipt({
+        amount: 15,
+        currency: 'KZT',
+        date: '2026-08-01',
+        vendor: 'Railway Corporation',
+        transactionType: 'expense',
+        categoryId: categoryIds[1],
+        categorySource: 'history',
+        categoryReason: 'Railway Corporation',
+      });
+
+    for (const transactionId of [guessed, picked]) {
+      await as(request(server()).post(`/receipts/${await receiptFor()}/approve`))
+        .send({ transactionId })
+        .expect(201);
+    }
+
+    const rows = await dataSource.query(
+      'SELECT id, category_id, category_source, is_verified FROM transactions WHERE id = ANY($1)',
+      [[guessed, picked]],
+    );
+    const byId = Object.fromEntries(rows.map((row: { id: string }) => [row.id, row]));
+    expect(byId[guessed]).toMatchObject({
+      category_id: categoryIds[1],
+      category_source: 'history',
+      is_verified: true,
+    });
+    expect(byId[picked]).toMatchObject({
+      category_id: categoryIds[0],
+      category_source: 'manual',
+      is_verified: true,
+    });
+  });
 });

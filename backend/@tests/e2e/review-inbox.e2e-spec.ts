@@ -347,11 +347,33 @@ describe('Review inbox (e2e)', () => {
     expect(ids).toEqual(expect.arrayContaining([byRule, byHistory, transfer]));
   });
 
+  async function uncategorizedCategoryId(): Promise<string> {
+    const [existing] = await dataSource.query(
+      `SELECT id FROM categories
+        WHERE workspace_id = $1 AND type = 'expense' AND name = 'Uncategorized' AND parent_id IS NULL`,
+      [owner.workspaceId],
+    );
+    if (existing) {
+      return existing.id;
+    }
+    const [created] = await dataSource.query(
+      `INSERT INTO categories (name, type, workspace_id, user_id)
+       VALUES ('Uncategorized', 'expense', $1, $2) RETURNING id`,
+      [owner.workspaceId, owner.userId],
+    );
+    return created.id;
+  }
+
   it('confirms a whole statement at once, leaving rows without a category', async () => {
     const statementId = await insertBankStatement();
     const first = await insertBankRow(statementId, { categoryId: categoryIds[0], source: 'rule' });
     const second = await insertBankRow(statementId, { categoryId: categoryIds[0], source: 'ai' });
     const open = await insertBankRow(statementId);
+    // The importer's fallback is not a category anyone chose: it waits too.
+    const fallback = await insertBankRow(statementId, {
+      categoryId: await uncategorizedCategoryId(),
+      source: 'default',
+    });
 
     await as(other, request(server()).post(`/review-inbox/statements/${statementId}/approve`)).expect(
       404,
@@ -361,15 +383,16 @@ describe('Review inbox (e2e)', () => {
       request(server()).post(`/review-inbox/statements/${statementId}/approve`),
     ).expect(200);
 
-    expect(res.body).toEqual({ approved: 2, uncategorized: 1 });
+    expect(res.body).toEqual({ approved: 2, uncategorized: 2 });
     const verified = await dataSource.query(
       'SELECT id, is_verified FROM transactions WHERE id = ANY($1)',
-      [[first, second, open]],
+      [[first, second, open, fallback]],
     );
     expect(Object.fromEntries(verified.map((row: { id: string; is_verified: boolean }) => [row.id, row.is_verified]))).toEqual({
       [first]: true,
       [second]: true,
       [open]: false,
+      [fallback]: false,
     });
   });
 });

@@ -1,7 +1,8 @@
 import { Branch } from '@/entities/branch.entity';
 import { CategorizationRule } from '@/entities/categorization-rule.entity';
 import { Category, CategoryType } from '@/entities/category.entity';
-import { PayeeOverride } from '@/entities/payee-override.entity';
+import { Payee } from '@/entities/payee.entity';
+import { PayeeAlias } from '@/entities/payee-alias.entity';
 import {
   Transaction,
   TransactionCategorySource,
@@ -128,7 +129,8 @@ describe('category guessing', () => {
         ClassificationService,
         { provide: getRepositoryToken(Category), useValue: categories },
         { provide: getRepositoryToken(Transaction), useValue: fakePayeeHistory().repository },
-        { provide: getRepositoryToken(PayeeOverride), useValue: { findOne: async () => null } },
+        { provide: getRepositoryToken(Payee), useValue: { findOne: async () => null } },
+        { provide: getRepositoryToken(PayeeAlias), useValue: { findOne: async () => null } },
         { provide: getRepositoryToken(Branch), useValue: { find: async () => [] } },
         {
           provide: getRepositoryToken(Wallet),

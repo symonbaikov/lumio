@@ -17,6 +17,7 @@ import { Branch } from './branch.entity';
 import { Category } from './category.entity';
 import { CryptoWallet } from './crypto-wallet.entity';
 import { ImportSession } from './import-session.entity';
+import { Payee } from './payee.entity';
 import { Statement } from './statement.entity';
 import { Tag } from './tag.entity';
 import { TaxRate } from './tax-rate.entity';
@@ -297,6 +298,18 @@ export class Transaction {
   @Index()
   @Column({ name: 'payee_key', type: 'text', nullable: true })
   payeeKey: string | null;
+
+  /**
+   * Who this row was paid to or received from. Set on insert from the payee
+   * key's alias (`TransactionPayeeSubscriber`), or by the user picking another
+   * payee; NULL when the descriptor names nobody.
+   */
+  @ManyToOne(() => Payee, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'payee_id' })
+  payee: Payee | null;
+
+  @Column({ name: 'payee_id', type: 'uuid', nullable: true })
+  payeeId: string | null;
 
   /**
    * Derived on write so that every path that books a transaction — import,

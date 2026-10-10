@@ -53,6 +53,9 @@ export function redactPrivate<T extends Pick<Transaction, 'isPrivate' | 'ownerMe
   // The category it had before is the owner's business, and so is the link.
   target.privateCategoryId = null;
   target.privateCategory = null;
+  // The payee names the merchant as plainly as the descriptor does.
+  target.payeeId = null;
+  target.payee = null;
   return row;
 }
 

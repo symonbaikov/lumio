@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { appDefaultCurrency } from '../../../common/utils/currency.util';
+import { payeeKeyOf } from '../../../common/utils/payee-key.util';
 import {
   createReceiptAmountHelpers,
   DEFAULT_RECEIPT_SYMBOL_TO_CURRENCY,
@@ -70,6 +71,8 @@ const SUBTOTAL_PATTERNS = [
 function isPlausibleDate(date: Date): boolean {
   return !Number.isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100;
 }
+const hasPayeeName = (vendor: string | undefined): boolean =>
+  payeeKeyOf({ counterpartyName: vendor }) !== null;
 
 @Injectable()
 export class UniversalExtractorService {
@@ -97,8 +100,11 @@ export class UniversalExtractorService {
 
     const regexResult = await this.extractWithRegex(text, classification.documentType, context);
 
+    // A document without a usable vendor is worth asking about even when the
+    // amount and date were read confidently: the vendor is who the row is filed under.
     const aiResult =
-      this.aiExtractor?.isAvailable() && regexResult.confidence < 0.6
+      this.aiExtractor?.isAvailable() &&
+      (regexResult.confidence < 0.6 || !hasPayeeName(regexResult.vendor))
         ? await this.aiExtractor.extractFromText(text)
         : null;
 
@@ -298,6 +304,67 @@ export class UniversalExtractorService {
     return undefined;
   }
 
+  private static readonly SELLER_LABEL_PATTERN =
+    /^(?:from|seller|supplier|vendor|sold\s+by|issued\s+by|bill\s+from|verk(?:ä|a)ufer|rechnungssteller|lieferant|продавец|поставщик|исполнитель)(?=$|[\s:-])\s*[:-]?\s*(.*)$/i;
+
+  private static readonly BUYER_LABEL_PATTERN =
+    /^(?:bill(?:ed)?\s+to|ship\s+to|sold\s+to|customer|buyer|rechnungsempf(?:ä|a)nger|kunde|покупатель|заказчик|плательщик)(?=$|[\s:-])/i;
+
+  /**
+   * "Invoice number2955 6044", "Receipt No. 12", "Order #A-17": a label and its
+   * value, not a name. pdf-parse glues the two, so the value may start right
+   * after the label ("Invoice numberWQH2831A"); a digit somewhere is what tells
+   * it from a name that merely starts the same way.
+   */
+  private static readonly DOCUMENT_REFERENCE_PATTERN =
+    /^(?:invoice|receipt|order|bill|document|reference|ref|account|customer|rechnung|beleg|счет|счёт|чек|заказ)\s*(?:no\.?|nr\.?|number|num|id|#|№)(?=.*\d)/i;
+
+  /** The line as a vendor name, or undefined when it is anything else. */
+  private vendorNameOf(raw: string): string | undefined {
+    // Stripe-style headers glue the account handle on: "Anthropic, PBC@anthropic".
+    const line = raw
+      .trim()
+      .replace(/@[\p{L}\p{N}_-]+$/u, '')
+      .trim();
+
+    if (line.length <= 2 || line.length > 50) {
+      return undefined;
+    }
+
+    if (/^(page\s+\d+|receipt|invoice|чек|квитанция)$/i.test(line)) {
+      return undefined;
+    }
+
+    if (UniversalExtractorService.DOCUMENT_REFERENCE_PATTERN.test(line)) {
+      return undefined;
+    }
+
+    // Page counters ("1 / 4", "Page 2 of 3") and table column headers, which
+    // pdf-parse may glue together ("DESCRIPTIONPRICEDURATIONQTYAMOUNT").
+    if (/^(page\s+)?\d+\s*(\/|of|из)\s*\d+$/i.test(line)) {
+      return undefined;
+    }
+
+    if (UniversalExtractorService.COLUMN_HEADER_PATTERN.test(line)) {
+      return undefined;
+    }
+
+    if (/\b(total|итого|tax|vat|ндс|date|дата|amount)\b/i.test(line)) {
+      return undefined;
+    }
+
+    if (UniversalExtractorService.BANKING_LABEL_PATTERN.test(line)) {
+      return undefined;
+    }
+
+    // An email address or a phone number is contact detail, not the name.
+    if (/\S+@\S+\.\S+/.test(line) || /^[+\d\s()./-]+$/.test(line)) {
+      return undefined;
+    }
+
+    return line.slice(0, 100);
+  }
+
   private extractVendor(lines: string[], sender?: string, fullText?: string): string | undefined {
     // When a known bank is detected in the document, use it directly.
     // Bank statements rarely have a meaningful "vendor" beyond the bank itself.
@@ -306,42 +373,33 @@ export class UniversalExtractorService {
       return detectedBank;
     }
 
-    for (const line of lines.slice(0, 8)) {
-      if (line.length <= 2 || line.length > 50) {
+    // Who issued the document. An explicit label ("From:", "Seller") settles it;
+    // otherwise the first line that is a name, read only up to where the buyer's
+    // block starts: in an invoice the "Bill to" party is the user themselves.
+    const firstLines = lines.slice(0, 25);
+    const buyerAt = firstLines.findIndex(line =>
+      UniversalExtractorService.BUYER_LABEL_PATTERN.test(line),
+    );
+    const head = buyerAt === -1 ? firstLines : firstLines.slice(0, buyerAt);
+
+    for (const [index, line] of head.entries()) {
+      const labelled = UniversalExtractorService.SELLER_LABEL_PATTERN.exec(line);
+      if (!labelled) {
         continue;
       }
-
-      if (/^(page\s+\d+|receipt|invoice|чек|квитанция)$/i.test(line)) {
-        continue;
+      const named = [labelled[1], head[index + 1]]
+        .map(candidate => this.vendorNameOf(candidate ?? ''))
+        .find(Boolean);
+      if (named) {
+        return named;
       }
+    }
 
-      // Page counters ("1 / 4", "Page 2 of 3") and table column headers, which
-      // pdf-parse may glue together ("DESCRIPTIONPRICEDURATIONQTYAMOUNT").
-      if (/^(page\s+)?\d+\s*(\/|of|из)\s*\d+$/i.test(line)) {
-        continue;
+    for (const line of head) {
+      const named = this.vendorNameOf(line);
+      if (named) {
+        return named;
       }
-
-      if (UniversalExtractorService.COLUMN_HEADER_PATTERN.test(line)) {
-        continue;
-      }
-
-      if (/\b(total|итого|tax|vat|ндс|date|дата|amount)\b/i.test(line)) {
-        continue;
-      }
-
-      if (UniversalExtractorService.BANKING_LABEL_PATTERN.test(line)) {
-        continue;
-      }
-
-      if (/^\d+$/.test(line)) {
-        continue;
-      }
-
-      if (/^[\d.,\s]+$/.test(line)) {
-        continue;
-      }
-
-      return line.slice(0, 100);
     }
 
     if (!sender) {
@@ -403,7 +461,8 @@ export class UniversalExtractorService {
           : aiResult.transactionType || 'unknown',
       currency: primary.currency || aiResult.currency,
       date: primary.date || (aiResult.date ? new Date(aiResult.date) : undefined),
-      vendor: primary.vendor || aiResult.vendor,
+      // The heuristic wins unless what it read names nobody ("Invoice 4711").
+      vendor: hasPayeeName(primary.vendor) ? primary.vendor : aiResult.vendor || primary.vendor,
       // Unlike the other fields the model wins here: it reads a multi-line store
       // header far better than the single-line heuristic does.
       merchantAddress: aiResult.merchantAddress || primary.merchantAddress,
