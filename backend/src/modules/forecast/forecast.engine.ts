@@ -304,11 +304,13 @@ function safeToSpend(
  * How many months the balance lasts at the pace the projection falls over a
  * year — the line the chart draws, read over a year whatever the horizon, so
  * one tax bill in the next 30 days does not halve the runway. Null when the
- * projection does not fall.
+ * projection does not fall; zero when it falls from nothing, so an empty
+ * account never reads as a growing one.
  */
 function runwayMonths(openingBalance: number, closingBalance: number, days: number): number | null {
   const monthlyDecline = (openingBalance - closingBalance) / (days / DAYS_PER_MONTH);
-  if (!(monthlyDecline > 0) || openingBalance <= 0) return null;
+  if (!(monthlyDecline > 0)) return null;
+  if (openingBalance <= 0) return 0;
   return round(openingBalance / monthlyDecline);
 }
 

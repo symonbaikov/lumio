@@ -123,6 +123,28 @@ describe('computeForecast', () => {
     expect(growing.runwayMonths).toBeNull();
   });
 
+  it('reads no runway left, not a growing balance, when the money is already gone and still falling', () => {
+    const empty = computeForecast({
+      today,
+      horizonDays: 90,
+      openingBalance: 0,
+      events: [],
+      everydayMonthly: 20,
+    });
+    expect(empty.shortfallDate).toBe(today);
+    expect(empty.runwayMonths).toBe(0);
+
+    const overdrawnButRecovering = computeForecast({
+      today,
+      horizonDays: 90,
+      openingBalance: -100,
+      events: [],
+      irregularIncomeMonthly: 500,
+      everydayMonthly: 0,
+    });
+    expect(overdrawnButRecovering.runwayMonths).toBeNull();
+  });
+
   it('reads one runway whatever the horizon, and a shorter horizon is the start of the same line', () => {
     const paydays = Array.from({ length: 12 }, (_, month) =>
       event(addMonths('2026-10-15', month), 2000, { sourceId: 'salary' }),
