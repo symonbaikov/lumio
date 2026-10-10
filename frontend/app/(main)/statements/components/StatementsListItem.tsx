@@ -12,6 +12,7 @@ import { CategoryIconBadge } from '@/app/components/dashboard/CategoryIconBadge'
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CircleHelp,
   CreditCard,
@@ -226,6 +227,10 @@ type Props = {
   workspaceCurrency?: string | null;
   /** Rows of this statement still in Review, or 1 for a receipt not yet approved. */
   pendingReview?: number;
+  /** Rows the statement holds; with more than one, they open under the line. */
+  transactionCount?: number;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 };
 
 const EMPTY_CELL = '—';
@@ -255,6 +260,10 @@ const columnCellStyle = (columnId: StatementColumnId): React.CSSProperties => ({
       : columnId === 'action' || columnId === 'amount'
         ? 'flex-end'
         : undefined,
+  // The action cell stacks its button over the label sizer (see renderActionCell).
+  ...(columnId === 'action'
+    ? { flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }
+    : {}),
   ...statementColumnWidthStyle(columnId),
 });
 
@@ -371,6 +380,9 @@ export function StatementsListItem({
   currentExchangeRateLabels,
   workspaceCurrency,
   pendingReview = 0,
+  transactionCount = 0,
+  expanded = false,
+  onToggleExpand,
 }: Props) {
   const { resolvedTheme } = useTheme();
   const listText = useIntlayer('statementsListUi');
@@ -492,9 +504,8 @@ export function StatementsListItem({
     ? `${resolvedDuplicateGroupLabel} · ${duplicateRoleLabel} #${duplicatePosition || 1}${duplicateGroupSize ? `/${duplicateGroupSize}` : ''}`
     : null;
   const duplicateTooltipText = duplicateReason || listText.duplicateReasonSame.value;
-  const actionLabel = isPossibleDuplicate
-    ? duplicateActionLabel || listText.review.value
-    : viewLabel;
+  const reviewLabel = duplicateActionLabel || listText.review.value;
+  const actionLabel = isPossibleDuplicate ? reviewLabel : viewLabel;
   const duplicateRoleBadgeStyle: React.CSSProperties =
     resolvedDuplicateRole === 'primary'
       ? { fontWeight: 700, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.15)' }
@@ -502,13 +513,15 @@ export function StatementsListItem({
         ? {
             fontWeight: 500,
             border: '1px dashed rgba(255,255,255,0.18)',
-            background: 'rgba(255,255,255,0.06)',
+            // backgroundColor, not background: the badge sets backgroundColor
+            // too, and React warns when the group colour changes under a shorthand.
+            backgroundColor: 'rgba(255,255,255,0.06)',
             opacity: 0.9,
           }
         : {
             fontWeight: 500,
             border: '1px dashed rgba(0,0,0,0.15)',
-            background: 'rgba(255,255,255,0.7)',
+            backgroundColor: 'rgba(255,255,255,0.7)',
             opacity: 0.8,
           };
   const duplicateRoleButtonStyle: React.CSSProperties =
@@ -826,10 +839,32 @@ export function StatementsListItem({
       </div>
       <div style={{ fontSize: 11, fontWeight: 500, color: c.ink400, marginTop: 2, marginLeft: 24 }}>
         {dateLabel}
+        {renderRowsToggle()}
         <NotesBadge entityId={statement.id} />
       </div>
     </div>
   );
+
+  // "Transactions: 24 ▾" beside the date: a statement's rows open under its line.
+  const renderRowsToggle = (): React.JSX.Element | null =>
+    onToggleExpand && transactionCount > 1 ? (
+      <button
+        type="button"
+        className="lumio-stmt-list-item__rows-toggle"
+        aria-expanded={expanded}
+        onClick={event => {
+          event.stopPropagation();
+          onToggleExpand();
+        }}
+      >
+        {listText.transactionsCount.value.replace('{count}', String(transactionCount))}
+        <ChevronDown
+          size={12}
+          aria-hidden
+          style={{ transition: 'transform 0.2s', transform: expanded ? 'rotate(180deg)' : 'none' }}
+        />
+      </button>
+    ) : null;
 
   const renderAmountCell = (): React.JSX.Element => (
     <div
@@ -873,32 +908,42 @@ export function StatementsListItem({
   );
 
   const renderActionCell = (): React.JSX.Element => (
-    <button
-      data-testid="statement-view-icon"
-      type="button"
-      onClick={event => {
-        event.stopPropagation();
-        handleView();
-      }}
-      // The whole row already opens the statement, so a plain row gets a quiet
-      // arrow instead of a "View" pill; a duplicate keeps its "Review" label,
-      // which says something the row click does not.
-      className={`lumio-stmt-list-item__view-btn${isPossibleDuplicate ? '' : ' lumio-stmt-list-item__view-btn--arrow'}`}
-      style={
-        isPossibleDuplicate
-          ? {
-              borderColor: duplicateStyle.buttonBorder,
-              backgroundColor: duplicateStyle.buttonBg,
-              color: duplicateStyle.buttonColor,
-              ...duplicateRoleButtonStyle,
-            }
-          : {}
-      }
-      aria-label={actionLabel}
-      disabled={viewDisabled}
-    >
-      {isPossibleDuplicate ? actionLabel : <ChevronRight size={18} aria-hidden />}
-    </button>
+    <>
+      {/* Every row, Review or not, is as wide as the Review label in this
+          language, so the column lines up with the header and never clips it. */}
+      <span
+        aria-hidden
+        className="lumio-stmt-list-item__view-btn lumio-stmt-list-item__action-sizer"
+      >
+        {reviewLabel}
+      </span>
+      <button
+        data-testid="statement-view-icon"
+        type="button"
+        onClick={event => {
+          event.stopPropagation();
+          handleView();
+        }}
+        // The whole row already opens the statement, so a plain row gets a quiet
+        // arrow instead of a "View" pill; a duplicate keeps its "Review" label,
+        // which says something the row click does not.
+        className={`lumio-stmt-list-item__view-btn${isPossibleDuplicate ? '' : ' lumio-stmt-list-item__view-btn--arrow'}`}
+        style={
+          isPossibleDuplicate
+            ? {
+                borderColor: duplicateStyle.buttonBorder,
+                backgroundColor: duplicateStyle.buttonBg,
+                color: duplicateStyle.buttonColor,
+                ...duplicateRoleButtonStyle,
+              }
+            : {}
+        }
+        aria-label={actionLabel}
+        disabled={viewDisabled}
+      >
+        {isPossibleDuplicate ? actionLabel : <ChevronRight size={18} aria-hidden />}
+      </button>
+    </>
   );
 
   const renderColumnCell = (columnId: StatementColumnId): React.JSX.Element => {
@@ -1023,6 +1068,7 @@ export function StatementsListItem({
                 .filter(Boolean)
                 .join(' · ')}
             </span>
+            {renderRowsToggle()}
             <StatusBadge
               status={statement.status}
               isProcessing={isProcessing}

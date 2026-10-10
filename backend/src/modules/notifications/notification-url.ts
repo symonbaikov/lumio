@@ -1,22 +1,21 @@
-import type { NotificationItem } from '@/app/contexts/NotificationContext';
+import type { Notification } from '../../entities/notification.entity';
 
-type NotificationLink = Pick<NotificationItem, 'type' | 'entityType' | 'entityId' | 'meta'>;
+type NotificationLink = Pick<Notification, 'type' | 'entityType' | 'entityId' | 'meta'>;
 
 /**
- * Where a notification can be looked at or acted on.
+ * The page a tap on a push notification opens. Mirrors the in-app bell
+ * (frontend/app/components/notifications/notification-href.ts) — the two must
+ * change together, or the same notification opens two different pages.
  *
- * `?focus=` names the element the destination page scrolls to and rings in
- * green (targets carry `data-attention`, see useAttentionFocus) — the same
- * convention insight links use, see app/components/insights/insight-href.ts.
- *
- * Notifications written before a field was added to `meta` lack it, so every
- * id-dependent route falls back to the page alone. Returns null when there is
- * nowhere sensible to go; the item then only marks itself read.
- *
- * Push notifications open the same pages through a copy of these rules in
- * backend/src/modules/notifications/notification-url.ts — change both together.
+ * `?focus=` names the element the destination page scrolls to and highlights.
+ * The bell does nothing for a notification with nowhere to go; a push has to
+ * open something, so that case lands on the dashboard.
  */
-export function notificationHref(notification: NotificationLink): string | null {
+export function notificationUrl(notification: NotificationLink): string {
+  return routeFor(notification) ?? '/dashboard';
+}
+
+function routeFor(notification: NotificationLink): string | null {
   // The weekly review digest reuses `transaction.uncategorized`, but its
   // entityId is the workspace, not a statement.
   if (notification.entityType === 'review-inbox') {
@@ -54,19 +53,15 @@ const payableRoute =
         ? '/statements/receive'
         : '/statements/pay';
     const id = notification.entityId ?? readString(notification.meta, 'payableId');
-    // The list is paginated; filtering by the status the notification is about
-    // keeps the row on the first page far more often than the unfiltered list.
     const path = status === null ? page : `${page}?status=${status}`;
     return withFocus(path, id === null ? null : `payable:${id}`);
   };
 
-/** Budget cards are tagged by category (insights only know the category). */
 const budgetRoute = (notification: NotificationLink): string => {
   const categoryId = readString(notification.meta, 'categoryId');
   return withFocus('/budgets', categoryId === null ? null : `budget:${categoryId}`);
 };
 
-/** Upcoming charges list the soonest subscription first; that is the one to show. */
 const subscriptionRoute = (notification: NotificationLink): string =>
   withFocus(
     '/subscriptions',
@@ -95,8 +90,6 @@ const TYPE_ROUTES: Record<string, (notification: NotificationLink) => string | n
   'tax.threshold.reached': taxRoute,
   'member.invited': () => '/workspaces/members',
   'member.joined': () => '/workspaces/members',
-  // A deleted statement can still be restored from the trash; a deleted
-  // transaction has nowhere to be shown and falls through to the list.
   'data.deleted': n => (n.entityType === 'statement' ? '/statements/trash' : entityRoute(n)),
 };
 

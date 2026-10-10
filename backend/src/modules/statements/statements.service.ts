@@ -54,6 +54,7 @@ import type { CreateManualExpenseDto } from './dto/create-manual-expense.dto';
 import type { FilterStatementsDto } from './dto/filter-statements.dto';
 import type { UpdateStatementDto } from './dto/update-statement.dto';
 import { ReceiptStatementService } from './services/receipt-statement.service';
+import { buildStatementSearchClause } from './statement-search.util';
 
 type StatementFileAvailability = Awaited<ReturnType<FileStorageService['getFileAvailability']>>;
 type StatementWithFileAvailability = Statement & {
@@ -908,10 +909,9 @@ export class StatementsService {
       qb.take(limit);
     }
 
-    if (filters.search) {
-      qb.andWhere('statement.fileName ILIKE :search', {
-        search: `%${filters.search}%`,
-      });
+    const search = filters.search ? buildStatementSearchClause(filters.search) : null;
+    if (search) {
+      qb.andWhere(search.clause, search.params);
     }
 
     if (filters.type) {

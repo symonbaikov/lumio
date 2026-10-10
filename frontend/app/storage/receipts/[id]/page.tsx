@@ -24,7 +24,7 @@ import { useIntlayer } from '@/app/i18n';
 import apiClient, { apiBaseUrl, type ReceiptRecord, receiptsApi } from '@/app/lib/api';
 import { FALLBACK_CURRENCY } from '@/app/lib/currency';
 import { normalizeReceiptLineItems } from '@/app/lib/financial-document';
-import { getQueryClient } from '@/app/lib/query-client';
+import { invalidateDocumentLists } from '@/app/lib/invalidate-document-lists';
 import { formatStoredDate } from '@/app/lib/user-format-store';
 import { getWorkspaceHeaders } from '@/app/lib/workspace-headers';
 import { tokens } from '@/lib/theme-tokens';
@@ -391,6 +391,7 @@ export default function ReceiptDocumentPage() {
           parsedData: nextPayload,
         });
         lastSavedPayloadRef.current = serializedPayload;
+        invalidateDocumentLists();
         setReceipt(currentReceipt =>
           currentReceipt
             ? {
@@ -446,10 +447,7 @@ export default function ReceiptDocumentPage() {
       await receiptsApi.approveReceipt(receipt.id, options);
       toast.success(t.approved.value);
       // It leaves the Review queue; both lists are cached for 30s.
-      const queryClient = getQueryClient();
-      void queryClient.invalidateQueries({ queryKey: ['gmail-receipts'] });
-      void queryClient.invalidateQueries({ queryKey: ['statements'] });
-      void queryClient.invalidateQueries({ queryKey: ['review-inbox'] });
+      invalidateDocumentLists();
       router.push(searchParams.get('from') === 'review' ? '/review' : '/statements/submit');
     })()
       .catch(async () => {

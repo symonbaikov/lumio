@@ -3127,6 +3127,22 @@
     }
   }
 
+  // Invisible copy of the Review label in every action cell, header included:
+  // it keeps the button's width but no height, so the action column is as wide
+  // as the label in the current language on every row alike.
+  &__action-sizer {
+    display: block;
+    height: 0;
+    padding-block: 0;
+    border-block-width: 0;
+    overflow: hidden;
+    visibility: hidden;
+    white-space: nowrap;
+    // The header copy must not pick up the header's uppercase lettering.
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
   &:hover &__view-btn--arrow,
   &:focus-within &__view-btn--arrow {
     opacity: 1;
@@ -3263,6 +3279,129 @@
     .MuiTableRow-root:hover .lumio-stmt-edit-table__row-actions,
     .lumio-stmt-edit-table__row-actions:focus-within {
       opacity: 1;
+    }
+  }
+}
+
+// "Transactions: 24 ▾" beside the date of a multi-row statement. Sits above the
+// row's click overlay so it opens the rows instead of the statement.
+.lumio-stmt-list-item__rows-toggle {
+  position: relative;
+  z-index: 11;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: $lumio-radius-xs;
+  background: transparent;
+  font: inherit;
+  color: var(--primary);
+  cursor: pointer;
+  pointer-events: auto;
+
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+  }
+}
+
+// A statement's own rows, opened under its line in Documents: a quiet inset
+// list under the hairline, lined up with the merchant column.
+.lumio-stmt-tx-panel {
+  border-bottom: 1px solid $lumio-color-ink-150;
+  background: $lumio-color-ink-50;
+  padding: 4px 16px 8px 48px;
+
+  @include dark {
+    border-bottom-color: $lumio-color-ink-150-dk;
+    background: $lumio-color-ink-50-dk;
+  }
+
+  @media (max-width: 767px) {
+    padding: 4px 12px 8px;
+  }
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &__state {
+    padding: 12px 0;
+    font-size: 13px;
+    color: var(--muted-foreground);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 8px;
+    border: 0;
+    border-radius: $lumio-radius-md;
+    background: transparent;
+    font-size: 13px;
+    text-align: left;
+    color: var(--foreground);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--card-bg);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+  }
+
+  &__date {
+    flex: 0 0 56px;
+    color: var(--muted-foreground);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__name {
+    flex: 3 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  &__category {
+    display: flex;
+    flex: 2 1 0;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    color: var(--muted-foreground);
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @media (max-width: 767px) {
+      display: none;
+    }
+  }
+
+  &__amount {
+    flex: 0 0 auto;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+
+    &--income {
+      color: var(--color-success-soft-text);
     }
   }
 }

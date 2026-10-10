@@ -328,7 +328,7 @@ export function buildFinanceOpsModel(
       summary: labels.features.savedViewsTeamFilters.summary,
       pendingCount: savedViews.reduce((sum, view) => sum + view.count, 0),
       status: statusFor(savedViews.reduce((sum, view) => sum + view.count, 0)),
-      href: '/statements/transactions',
+      href: '/statements/submit',
       primaryAction: labels.features.savedViewsTeamFilters.primaryAction,
       evidence: fillTemplate(labels.features.savedViewsTeamFilters.evidence, {
         count: String(savedViews.length),

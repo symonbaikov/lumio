@@ -1,5 +1,6 @@
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { invalidateDocumentLists } from '@/app/lib/invalidate-document-lists';
 import { getQueryClient } from '@/app/lib/query-client';
 import type { Transaction } from '../editHelpers';
 
@@ -90,6 +91,7 @@ export async function saveTransactionAction(txId: string, ctx: SaveCtx): Promise
       const queryClient = getQueryClient();
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       void queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      invalidateDocumentLists();
     }
     ctx.setEditingRow(null);
     ctx.setSuccess(true);
@@ -110,6 +112,7 @@ export async function deleteTransactionAction(txId: string, ctx: DeleteCtx): Pro
   try {
     await apiClient.delete(`/transactions/${txId}`);
     ctx.setTransactions(prev => prev.filter(t => t.id !== txId));
+    invalidateDocumentLists();
     ctx.setSuccess(true);
     setTimeout(() => ctx.setSuccess(false), 3000);
   } catch (err: unknown) {
@@ -136,6 +139,7 @@ export async function bulkUpdateAction(loadData: () => Promise<void>, ctx: BulkC
       .map(id => ({ id, updates: ctx.editedData[id] }));
     await apiClient.post('/transactions/bulk-update', { items: updates });
     await loadData();
+    invalidateDocumentLists();
     ctx.setSelectedRows(new Set());
     ctx.setEditedData({});
     ctx.setSuccess(true);
@@ -169,6 +173,7 @@ export async function bulkDeleteAction(
     ctx.setSaving(true);
     await apiClient.post('/transactions/bulk-delete', { ids: Array.from(ctx.selectedRows) });
     ctx.setTransactions(prev => prev.filter(t => !ctx.selectedRows.has(t.id)));
+    invalidateDocumentLists();
     ctx.setSelectedRows(new Set());
     ctx.setSuccess(true);
     setTimeout(() => ctx.setSuccess(false), 3000);
@@ -206,6 +211,7 @@ export async function applyBulkCategoryAction(
     }));
     await apiClient.post('/transactions/bulk-update', { items });
     await loadData();
+    invalidateDocumentLists();
     ctx.setSelectedRows(new Set());
     ctx.setBulkCategoryDialogOpen(false);
     ctx.setBulkCategoryId('');

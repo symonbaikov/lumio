@@ -5,6 +5,7 @@ import type { TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../../src/app.module';
+import { Category, CategoryType, Note, Transaction, TransactionType } from '../../src/entities';
 import { accessTokenOf, deleteUserByEmail, e2eTestingModule } from './helpers/e2e-app';
 
 describe('StatementsController (e2e)', () => {
@@ -184,12 +185,71 @@ describe('StatementsController (e2e)', () => {
       expect(ids(uploaded)).not.toContain(manual.body.id);
     });
 
-    it('should filter by search text', () => {
-      return request(app.getHttpServer())
-        .get('/statements?search=test-statement')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .set('x-workspace-id', workspaceId)
-        .expect(200);
+    it('should search by file, merchant, description, category, amount and notes', async () => {
+      const category = await dataSource.getRepository(Category).save({
+        workspaceId,
+        name: 'Quokka Supplies',
+        type: CategoryType.EXPENSE,
+      });
+      const txRepo = dataSource.getRepository(Transaction);
+      const base = {
+        workspaceId,
+        statementId,
+        currency: 'EUR',
+        transactionDate: new Date('2026-06-15'),
+        transactionType: TransactionType.EXPENSE,
+      };
+      const [visible] = await txRepo.save([
+        txRepo.create({
+          ...base,
+          counterpartyName: 'Zephyr Coffee Roasters',
+          paymentPurpose: 'Beans for the office',
+          amount: 42.37,
+          debit: 42.37,
+          categoryId: category.id,
+        }),
+        txRepo.create({
+          ...base,
+          counterpartyName: 'Hidden Clinic',
+          paymentPurpose: 'Private visit',
+          amount: 999.99,
+          debit: 999.99,
+          isPrivate: true,
+        }),
+      ]);
+      await dataSource
+        .getRepository(Note)
+        .save({ workspaceId, transactionId: visible.id, body: 'reimburse via Vera' });
+
+      const found = async (search: string): Promise<boolean> => {
+        const res = await request(app.getHttpServer())
+          .get('/statements')
+          .query({ search })
+          .set('Authorization', `Bearer ${accessToken}`)
+          .set('x-workspace-id', workspaceId)
+          .expect(200);
+        return res.body.data.some((statement: { id: string }) => statement.id === statementId);
+      };
+
+      for (const hit of [
+        'test-statement',
+        'zephyr',
+        'for the office',
+        'quokka',
+        'vera',
+        '42',
+        '42.3',
+        '42,37',
+      ]) {
+        expect([hit, await found(hit)]).toEqual([hit, true]);
+      }
+      // A private transaction must not reveal itself through search.
+      for (const miss of ['hidden clinic', '999.99', '42.38', 'no-such-term']) {
+        expect([miss, await found(miss)]).toEqual([miss, false]);
+      }
+
+      await txRepo.delete({ statementId });
+      await dataSource.getRepository(Category).delete({ id: category.id });
     });
 
     it('should reject request without authentication', () => {

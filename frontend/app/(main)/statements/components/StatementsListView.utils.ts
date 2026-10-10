@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
 import { resolveBankLogo } from '@bank-logos';
-import { getIntlayer } from 'react-intlayer';
+import { getCachedIntlayer } from '@/app/i18n';
 import { DEFAULT_LOCALE, readLocaleFromCookie } from '@/app/lib/locale';
 import { resolveLabel } from '@/app/lib/side-panel-utils';
 import type { StatementCategoryNode } from '@/app/lib/statement-categories';
@@ -317,7 +317,8 @@ export const getBankDisplayName = (bankName: string): string => {
 // ---------------------------------------------------------------------------
 
 /** Module-level helpers cannot use hooks; read the dictionary for the cookie locale. */
-const listUiText = () => getIntlayer('statementsListUi', readLocaleFromCookie() ?? DEFAULT_LOCALE);
+const listUiText = () =>
+  getCachedIntlayer('statementsListUi', readLocaleFromCookie() ?? DEFAULT_LOCALE);
 
 export const toDuplicateGroupLabel = (index: number): string => {
   let current = index + 1;

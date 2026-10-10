@@ -99,7 +99,7 @@ export type UseExpenseFormReturn = {
   handleSelectCurrency: (currencyCode: string) => void;
   handleClose: () => void;
   handleBackClick: () => void;
-  handleFilesSelected: (selected: FileList | null, origin?: SelectedFilesOrigin) => void;
+  handleFilesSelected: (selected: FileList | File[] | null, origin?: SelectedFilesOrigin) => void;
   handleManualNext: () => void;
   handleSubmitScan: () => Promise<void>;
   handleSubmitManual: () => Promise<void>;
@@ -281,7 +281,7 @@ export function useExpenseForm({
   };
 
   const handleFilesSelected = (
-    selected: FileList | null,
+    selected: FileList | File[] | null,
     origin: SelectedFilesOrigin = 'gallery',
   ): void => {
     if (!selected) {

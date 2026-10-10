@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment, useState } from 'react';
 import { ArrowDown } from '@/app/components/icons';
 import { Checkbox } from '@/app/components/ui/checkbox';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
@@ -31,6 +32,7 @@ import {
   isStatementParsingInProgress,
   resolvePendingReview,
 } from './StatementsListView.utils';
+import { StatementTransactionsPanel } from './StatementTransactionsPanel';
 
 interface StatementForTable {
   id: string;
@@ -62,6 +64,7 @@ interface StatementForTable {
     icon?: string | null;
   } | null;
   tags?: Array<{ id?: string; name?: string; color?: string | null }>;
+  totalTransactions?: number | string | null;
   transactionSummary?: {
     description?: string | null;
     exchangeRate?: string | number | null;
@@ -205,6 +208,7 @@ function TableDesktopHeader({
   dateSortDirection,
   columns = DEFAULT_STATEMENT_COLUMNS,
   labels,
+  reviewLabel,
   onToggleSelectAll,
   onToggleSortDirection,
 }: {
@@ -213,6 +217,7 @@ function TableDesktopHeader({
   dateSortDirection: 'asc' | 'desc';
   columns?: StatementColumn[];
   labels: TableLabels;
+  reviewLabel: string;
   onToggleSelectAll: (checked: boolean) => void;
   onToggleSortDirection: () => void;
 }): React.JSX.Element {
@@ -279,7 +284,18 @@ function TableDesktopHeader({
               </span>
             ) : column.id === 'receipt' || column.id === 'action' ? (
               // The arrow column needs no visible title; screen readers keep it.
-              <span className="u-visually-hidden">{column.label || labels.receipt}</span>
+              <>
+                <span className="u-visually-hidden">{column.label || labels.receipt}</span>
+                {column.id === 'action' ? (
+                  // Gives the column the width the rows' Review label takes.
+                  <span
+                    aria-hidden
+                    className="lumio-stmt-list-item__view-btn lumio-stmt-list-item__action-sizer"
+                  >
+                    {reviewLabel}
+                  </span>
+                ) : null}
+              </>
             ) : (
               column.label
             )}
@@ -321,6 +337,14 @@ export function StatementsListTable({
   onPageChange,
 }: Props): React.JSX.Element {
   const listText = useIntlayer('statementsListUi');
+  // Statements whose rows are open under their line; each loads its rows on opening.
+  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const toggleExpanded = (id: string): void =>
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   if (loading && gmailSyncSkeletonKeys.length === 0) {
     return (
       <div className="lumio-stmt-list-view__table">
@@ -360,6 +384,7 @@ export function StatementsListTable({
             dateSortDirection={dateSortDirection}
             columns={columns}
             labels={labels}
+            reviewLabel={reviewDuplicateLabel}
             onToggleSelectAll={onToggleSelectAll}
             onToggleSortDirection={onToggleSortDirection}
           />
@@ -367,41 +392,51 @@ export function StatementsListTable({
           {paginatedStatements.map((statement, index) => {
             const rowData = resolveStatementRowData(statement, labels.scanning);
             const duplicateMeta = duplicateMetaById.get(statement.id);
+            const transactionCount = rowData.isReceipt
+              ? 0
+              : Number(statement.totalTransactions ?? 0);
+            const expanded = transactionCount > 1 && expandedIds.has(statement.id);
             return (
-              <StatementsListItem
-                key={statement.id}
-                dataTourId={index === 0 ? 'statement-row-primary' : undefined}
-                statement={statement as Parameters<typeof StatementsListItem>[0]['statement']}
-                viewLabel={viewLabel}
-                isReceipt={rowData.isReceipt}
-                isProcessing={rowData.isProcessingReceipt}
-                merchantLabel={rowData.merchantLabel}
-                amountLabel={rowData.amountLabel}
-                dateLabel={rowData.dateLabel}
-                isPossibleDuplicate={Boolean(duplicateMeta)}
-                duplicatePosition={duplicateMeta?.position}
-                duplicateGroupSize={duplicateMeta?.total}
-                duplicateRole={duplicateMeta?.role}
-                duplicateGroupLabel={duplicateMeta?.groupLabel}
-                duplicateGroupTone={duplicateMeta?.groupTone}
-                duplicateReason={duplicateMeta?.reason}
-                duplicateActionLabel={reviewDuplicateLabel}
-                pendingReview={resolvePendingReview(
-                  statement,
-                  rowData.isReceipt,
-                  statementReviewCounts,
-                )}
-                typeLabel={rowData.isReceipt ? listText.typeReceipt.value : statement.fileType}
-                isManualExpense={rowData.isManualExpense}
-                viewDisabled={rowData.isProcessingStatement}
-                onView={() => onView(statement)}
-                onIconClick={() => onIconClick(statement)}
-                onToggleSelect={() => onToggleStatement(statement.id)}
-                selected={selectedStatementIds.includes(statement.id)}
-                columns={columns}
-                currentExchangeRateLabels={currentExchangeRateLabels}
-                workspaceCurrency={workspaceCurrency}
-              />
+              <Fragment key={statement.id}>
+                <StatementsListItem
+                  key={statement.id}
+                  dataTourId={index === 0 ? 'statement-row-primary' : undefined}
+                  statement={statement as Parameters<typeof StatementsListItem>[0]['statement']}
+                  viewLabel={viewLabel}
+                  isReceipt={rowData.isReceipt}
+                  isProcessing={rowData.isProcessingReceipt}
+                  merchantLabel={rowData.merchantLabel}
+                  amountLabel={rowData.amountLabel}
+                  dateLabel={rowData.dateLabel}
+                  isPossibleDuplicate={Boolean(duplicateMeta)}
+                  duplicatePosition={duplicateMeta?.position}
+                  duplicateGroupSize={duplicateMeta?.total}
+                  duplicateRole={duplicateMeta?.role}
+                  duplicateGroupLabel={duplicateMeta?.groupLabel}
+                  duplicateGroupTone={duplicateMeta?.groupTone}
+                  duplicateReason={duplicateMeta?.reason}
+                  duplicateActionLabel={reviewDuplicateLabel}
+                  pendingReview={resolvePendingReview(
+                    statement,
+                    rowData.isReceipt,
+                    statementReviewCounts,
+                  )}
+                  typeLabel={rowData.isReceipt ? listText.typeReceipt.value : statement.fileType}
+                  isManualExpense={rowData.isManualExpense}
+                  viewDisabled={rowData.isProcessingStatement}
+                  onView={() => onView(statement)}
+                  onIconClick={() => onIconClick(statement)}
+                  onToggleSelect={() => onToggleStatement(statement.id)}
+                  selected={selectedStatementIds.includes(statement.id)}
+                  columns={columns}
+                  currentExchangeRateLabels={currentExchangeRateLabels}
+                  workspaceCurrency={workspaceCurrency}
+                  transactionCount={transactionCount}
+                  expanded={expanded}
+                  onToggleExpand={() => toggleExpanded(statement.id)}
+                />
+                {expanded ? <StatementTransactionsPanel statementId={statement.id} /> : null}
+              </Fragment>
             );
           })}
         </div>

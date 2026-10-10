@@ -163,9 +163,12 @@ export default function CreateExpenseDrawer({
   const scanGalleryInputRef = useRef<HTMLInputElement>(null);
   // Shown instead of the camera the first time, until this device has a choice.
   const [locationConsentOpen, setLocationConsentOpen] = useState(false);
+  // A file is being dragged over the window; lights up the drop zone.
+  const [dragActive, setDragActive] = useState(false);
   useEffect(() => {
     if (!open) {
       setLocationConsentOpen(false);
+      setDragActive(false);
     }
   }, [open]);
   const openCamera = (): void => {
@@ -236,6 +239,45 @@ export default function CreateExpenseDrawer({
     onSubmitScan,
     onSubmitManual,
   });
+  // In scan mode the whole window takes a dropped receipt: the drawer is modal, so a
+  // file that misses the dashed zone would otherwise be opened by the browser in a new tab.
+  useEffect(() => {
+    if (!open || mode !== 'scan' || isMobile) {
+      return;
+    }
+    const handleDragOver = (event: DragEvent): void => {
+      if (!event.dataTransfer?.types.includes('Files')) {
+        return;
+      }
+      event.preventDefault();
+      setDragActive(true);
+    };
+    const handleDragLeave = (event: DragEvent): void => {
+      // relatedTarget is null only when the pointer leaves the window.
+      if (event.relatedTarget === null) {
+        setDragActive(false);
+      }
+    };
+    const handleDrop = (event: DragEvent): void => {
+      event.preventDefault();
+      setDragActive(false);
+      // Same types the "Choose files" picker accepts.
+      const receipts = Array.from(event.dataTransfer?.files ?? []).filter(
+        file => file.type.startsWith('image/') || file.type === 'application/pdf',
+      );
+      if (receipts.length > 0) {
+        handleFilesSelected(receipts);
+      }
+    };
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+    return () => {
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, [open, mode, isMobile, handleFilesSelected]);
   // Field errors wait for the first "Create" press; an untouched form is not wrong yet.
   const [showFieldErrors, setShowFieldErrors] = useState(false);
   useEffect(() => {
@@ -459,8 +501,12 @@ export default function CreateExpenseDrawer({
                     justifyContent: 'center',
                     borderRadius: tokens.radius.lg,
                     border: '2px dashed',
-                    borderColor: 'color-mix(in srgb, var(--primary) 40%, transparent)',
-                    background: 'rgba(0,0,0,0.04)',
+                    borderColor: dragActive
+                      ? 'var(--primary)'
+                      : 'color-mix(in srgb, var(--primary) 40%, transparent)',
+                    background: dragActive
+                      ? 'color-mix(in srgb, var(--primary) 8%, transparent)'
+                      : 'rgba(0,0,0,0.04)',
                     padding: '48px 24px',
                     textAlign: 'center',
                   }}

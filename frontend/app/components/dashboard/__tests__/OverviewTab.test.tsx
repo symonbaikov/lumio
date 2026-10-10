@@ -151,11 +151,9 @@ describe('OverviewTab', () => {
 
     const links = screen.getAllByRole('link', { name: /view all/i });
     const recentTransactionsLink = links.find(link =>
-      link.getAttribute('href')?.startsWith('/statements/transactions'),
+      link.getAttribute('href')?.startsWith('/statements/submit'),
     );
-    expect(recentTransactionsLink?.getAttribute('href')).toBe(
-      '/statements/transactions?startDate=2026-02-01&endDate=2026-02-28',
-    );
+    expect(recentTransactionsLink?.getAttribute('href')).toBe('/statements/submit?month=2026-02');
   });
 
   it('renders budget and cash runway cards below the main row once their fetches resolve', async () => {

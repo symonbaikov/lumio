@@ -349,6 +349,8 @@ export default function StatementsListView(): React.JSX.Element {
         hasSelectedDuplicates={v.hasSelectedDuplicates}
         draftFilters={filterState.draftFilters}
         activeFilterCount={v.activeFilterCount}
+        search={v.search}
+        onSearchApply={v.applySearch}
         dateDropdownOpen={filterState.dateDropdownOpen}
         filtersDrawerOpen={filterState.filtersDrawerOpen}
         filtersDrawerScreen={filterState.filtersDrawerScreen}

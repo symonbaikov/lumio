@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import type { Repository } from 'typeorm';
+import { In, type Repository } from 'typeorm';
 import { Category } from '../../entities/category.entity';
 import { Payable, PayableDirection } from '../../entities/payable.entity';
-import { Statement } from '../../entities/statement.entity';
+import { Receipt, ReceiptSource } from '../../entities/receipt.entity';
+import { Statement, StatementStatus } from '../../entities/statement.entity';
 import { Transaction } from '../../entities/transaction.entity';
 
 export type SearchResultKind = 'transaction' | 'statement' | 'payable' | 'receivable' | 'category';
@@ -26,6 +27,39 @@ const PER_KIND_LIMIT = 5;
 /** Shorter needles match nearly everything and make the query pointless. */
 const MIN_QUERY_LENGTH = 2;
 
+/** Statuses whose transactions are ready to inspect in the statement editor. */
+const OPENS_IN_EDITOR = new Set<string>([
+  StatementStatus.COMPLETED,
+  StatementStatus.PARSED,
+  StatementStatus.VALIDATED,
+  StatementStatus.NEEDS_REVIEW,
+]);
+
+/**
+ * Where a document opens, by the same rule as a click in the Documents list:
+ * a scan opens its receipt, a parsed statement its editor, anything else storage.
+ */
+function documentHref(statement: Statement, scanReceipts: Map<string, Receipt>): string {
+  const receipt = scanReceipts.get(statement.id);
+  if (receipt) {
+    const base =
+      receipt.source === ReceiptSource.GMAIL ? '/storage/gmail-receipts' : '/storage/receipts';
+    return `${base}/${receipt.id}`;
+  }
+  if (OPENS_IN_EDITOR.has(statement.status)) {
+    return `/statements/${statement.id}/edit`;
+  }
+  return `/storage/${statement.id}`;
+}
+
+/** A scan uploads as a statement of its own, which the Documents list hides behind its receipt. */
+function isReceiptScanStatement(statement: Statement): boolean {
+  const details = statement.parsingDetails;
+  return (
+    details?.detectedBy === 'receipt-scan' || details?.importPreview?.source === 'receipt-scan'
+  );
+}
+
 @Injectable()
 export class SearchService {
   constructor(
@@ -37,6 +71,8 @@ export class SearchService {
     private readonly payableRepo: Repository<Payable>,
     @InjectRepository(Category)
     private readonly categoryRepo: Repository<Category>,
+    @InjectRepository(Receipt)
+    private readonly receiptRepo: Repository<Receipt>,
   ) {}
 
   async search(workspaceId: string, rawQuery: string): Promise<SearchResponse> {
@@ -60,7 +96,7 @@ export class SearchService {
   private async searchTransactions(workspaceId: string, needle: string): Promise<SearchResult[]> {
     const rows = await this.transactionRepo
       .createQueryBuilder('t')
-      .innerJoin('t.statement', 's')
+      .innerJoinAndSelect('t.statement', 's')
       .where('s.workspaceId = :workspaceId', { workspaceId })
       .andWhere('s.deletedAt IS NULL')
       .andWhere(
@@ -71,12 +107,17 @@ export class SearchService {
       .take(PER_KIND_LIMIT)
       .getMany();
 
+    const receipts = await this.scanReceipts(
+      workspaceId,
+      rows.map(row => row.statement),
+    );
     return rows.map(row => ({
       kind: 'transaction' as const,
       id: row.id,
       title: row.counterpartyName,
       subtitle: row.paymentPurpose || null,
-      href: `/statements/transactions?highlight=${row.id}`,
+      // A row lives in its document; there is no separate transactions list.
+      href: documentHref(row.statement, receipts),
     }));
   }
 
@@ -90,7 +131,7 @@ export class SearchService {
       .take(PER_KIND_LIMIT)
       .getMany();
 
-    return rows.map(row => this.toStatementResult(row));
+    return this.toStatementResults(workspaceId, rows);
   }
 
   /** Latest uploads, newest first — what the search panel shows before anything is typed. */
@@ -103,17 +144,37 @@ export class SearchService {
       .take(PER_KIND_LIMIT)
       .getMany();
 
-    return { query: '', results: rows.map(row => this.toStatementResult(row)) };
+    return { query: '', results: await this.toStatementResults(workspaceId, rows) };
   }
 
-  private toStatementResult(row: Statement): SearchResult {
-    return {
-      kind: 'statement',
+  private async toStatementResults(
+    workspaceId: string,
+    rows: Statement[],
+  ): Promise<SearchResult[]> {
+    const receipts = await this.scanReceipts(workspaceId, rows);
+    return rows.map(row => ({
+      kind: 'statement' as const,
       id: row.id,
       title: row.fileName,
       subtitle: row.bankName ?? null,
-      href: `/statements/${row.id}/view`,
-    };
+      href: documentHref(row, receipts),
+    }));
+  }
+
+  /** The receipts behind the scans among these statements, keyed by statement id. */
+  private async scanReceipts(
+    workspaceId: string,
+    statements: Statement[],
+  ): Promise<Map<string, Receipt>> {
+    const scanIds = statements.filter(isReceiptScanStatement).map(statement => statement.id);
+    if (scanIds.length === 0) {
+      return new Map();
+    }
+    const receipts = await this.receiptRepo.find({
+      where: { workspaceId, statementId: In(scanIds) },
+      select: { id: true, statementId: true, source: true },
+    });
+    return new Map(receipts.map(receipt => [receipt.statementId as string, receipt]));
   }
 
   private async searchPayables(workspaceId: string, needle: string): Promise<SearchResult[]> {

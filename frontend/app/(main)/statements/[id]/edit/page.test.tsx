@@ -157,6 +157,10 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
+vi.mock('@/app/components/notes/NotesPanel', () => ({
+  NotesPanel: () => <div data-testid="statement-notes" />,
+}));
+
 vi.mock('./ParsingWarningsPanel', () => ({
   ParsingWarningsPanel: ({
     onResolveWarning,
