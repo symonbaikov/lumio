@@ -428,6 +428,12 @@ export default function ReceiptDocumentPage() {
     if (!receipt) {
       return;
     }
+    // Booking it without a date would date the expense today. A bank row to
+    // attach to brings its own date.
+    if (!(formValue.date || options.transactionId)) {
+      toast.error(t.approveNeedsDate.value);
+      return;
+    }
 
     setSaving(true);
 

@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
-import type { Repository } from 'typeorm';
+import { IsNull, type Repository } from 'typeorm';
 import { workspaceMemberCanEdit } from '../../../common/authz/workspace-permissions';
 import { appError } from '../../../common/errors/app-error';
 import type { CaptureLocation } from '../../../common/utils/capture-location.util';
@@ -90,6 +90,34 @@ export class ReceiptStatementService {
     }
   }
 
+  /** A live document already made from this exact file; trashed ones may be uploaded again. */
+  private findFiledStatement(
+    statements: Repository<Statement>,
+    workspaceId: string,
+    fileHash: string,
+  ): Promise<Statement | null> {
+    return statements.findOne({ where: { workspaceId, fileHash, deletedAt: IsNull() } });
+  }
+
+  /**
+   * Checked again under the lock bank uploads take for the same file: two
+   * uploads of it at once both pass the first check while the scan is read.
+   */
+  private saveUnlessFiled(
+    statement: Statement,
+    workspaceId: string,
+    fileHash: string,
+  ): Promise<{ filed: Statement } | { created: Statement }> {
+    return this.statementRepository.manager.transaction(async manager => {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+        `statement-upload:${workspaceId}:${fileHash}`,
+      ]);
+      const statements = manager.getRepository(Statement);
+      const filed = await this.findFiledStatement(statements, workspaceId, fileHash);
+      return filed ? { filed } : { created: (await statements.save(statement)) as Statement };
+    });
+  }
+
   private normalizePositiveAmount(value: number | string | null | undefined): number | null {
     if (value === null || value === undefined || value === '') {
       return null;
@@ -147,6 +175,13 @@ export class ReceiptStatementService {
     const fileName = normalizeFilename(file.originalname);
     const fileType = getFileTypeFromMime(file.mimetype) as FileType;
     const fileHash = await calculateFileHash(file.path);
+    // The same file again is the same document: hand back the one already
+    // filed instead of booking its expense a second time.
+    const filed = await this.findFiledStatement(this.statementRepository, workspaceId, fileHash);
+    if (filed) {
+      await fs.promises.unlink(file.path).catch(() => undefined);
+      return filed;
+    }
     const fileData = await fs.promises.readFile(file.path);
     const receipt = await this.receiptsService.createFromScan({
       userId: user.id,
@@ -249,7 +284,12 @@ export class ReceiptStatementService {
       },
     });
 
-    const savedStatement = (await this.statementRepository.save(statement)) as Statement;
+    const saved = await this.saveUnlessFiled(statement, workspaceId, fileHash);
+    if ('filed' in saved) {
+      await this.receiptsService.delete(receipt.id, workspaceId, user.id);
+      return saved.filed;
+    }
+    const savedStatement = saved.created;
 
     await this.receiptsService.update(receipt.id, workspaceId, {
       statementId: savedStatement.id,
