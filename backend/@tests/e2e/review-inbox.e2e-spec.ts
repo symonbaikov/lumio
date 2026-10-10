@@ -325,6 +325,36 @@ describe('Review inbox (e2e)', () => {
     await dataSource.query('DELETE FROM transactions WHERE id = ANY($1)', [[scanRowId, bankRowId]]);
   });
 
+  it('asks about a scan once, as its row, and confirming the row closes the receipt', async () => {
+    const scanStatementId = await insertBankStatement();
+    const scanRowId = await insertBankRow(scanStatementId);
+    const [receipt] = await dataSource.query(
+      `INSERT INTO receipts
+         (user_id, workspace_id, source, subject, sender, received_at, parsed_data, status, statement_id)
+       VALUES ($1, $2, 'scan', 'scan.jpg', 'scan', now(), '{"amount": 4}'::jsonb, 'draft', $3)
+       RETURNING id`,
+      [owner.userId, owner.workspaceId, scanStatementId],
+    );
+
+    const receipts = await as(owner, request(server()).get('/review-inbox?kind=receipt')).expect(
+      200,
+    );
+    expect(receipts.body.items.map((item: { id: string }) => item.id)).not.toContain(receipt.id);
+    expect(receipts.body.counts.receipt).toBe(0);
+
+    await as(owner, request(server()).post('/review-inbox/transactions/approve'))
+      .send({ ids: [scanRowId], categoryId: categoryIds[0] })
+      .expect(200);
+
+    const [closed] = await dataSource.query(
+      'SELECT status, transaction_id FROM receipts WHERE id = $1',
+      [receipt.id],
+    );
+    expect(closed).toEqual({ status: 'approved', transaction_id: scanRowId });
+    await dataSource.query('DELETE FROM receipts WHERE workspace_id = $1', [owner.workspaceId]);
+    await dataSource.query('DELETE FROM transactions WHERE id = $1', [scanRowId]);
+  });
+
   it('asks about every unconfirmed row, whatever set its category', async () => {
     const statementId = await insertBankStatement();
     const byRule = await insertBankRow(statementId, { categoryId: categoryIds[0], source: 'rule' });

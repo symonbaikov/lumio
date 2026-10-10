@@ -124,9 +124,28 @@ describe('UniversalExtractorService', () => {
       const text = 'Receipt\nStore ABC\nDate: 26.11.2025\nTotal: $10.00';
       const result = await service.extractFromText(text);
 
-      expect(result.date?.getFullYear()).toBe(2025);
-      expect(result.date?.getMonth()).toBe(10);
-      expect(result.date?.getDate()).toBe(26);
+      expect(result.date?.toISOString()).toBe('2025-11-26T00:00:00.000Z');
+    });
+
+    it('reads the date of an invoice whose label is glued to it', async () => {
+      const text = ['Invoice', 'Date of issueJune 21, 2026', 'Date dueJuly 5, 2026', 'Total $24.99'];
+      const result = await service.extractFromText(text.join('\n'));
+
+      expect(result.date?.toISOString().slice(0, 10)).toBe('2026-06-21');
+      expect(result.fieldConfidence.date).toBe(0.8);
+    });
+
+    it('reads an ambiguous date day first when no currency is stated', async () => {
+      const result = await service.extractFromText('Invoice\nStore ABC\nDate: 08/07/2026\nTotal: 10.00');
+
+      expect(result.date?.toISOString().slice(0, 10)).toBe('2026-07-08');
+    });
+
+    it('reads an ambiguous date month first on a dollar receipt, with less confidence', async () => {
+      const result = await service.extractFromText('Receipt\nStore ABC\nDate: 07/08/2026\nTotal: $10.00');
+
+      expect(result.date?.toISOString().slice(0, 10)).toBe('2026-07-08');
+      expect(result.fieldConfidence.date).toBe(0.5);
     });
 
     it('ignores a date with an implausible year', async () => {

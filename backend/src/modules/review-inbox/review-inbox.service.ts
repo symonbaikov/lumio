@@ -161,7 +161,8 @@ export class ReviewInboxService {
   /**
    * Receipts not yet turned into a transaction. A flagged one is always listed;
    * the rest once something was parsed from them (an email with no amount is
-   * not a receipt yet), or when it is a scan the user uploaded.
+   * not a receipt yet), or when it is a scan the user uploaded. A scan that
+   * already booked its row is asked about as that row, not a second time here.
    */
   private pendingReceiptsQuery(workspaceId: string): SelectQueryBuilder<Receipt> {
     return this.receiptRepository
@@ -169,6 +170,12 @@ export class ReviewInboxService {
       .where('receipt.workspaceId = :workspaceId', { workspaceId })
       .andWhere('receipt.isDuplicate = false')
       .andWhere('receipt.transactionId IS NULL')
+      .andWhere(
+        `(receipt.statement_id IS NULL OR NOT EXISTS (
+            SELECT 1 FROM transactions scan_row
+             WHERE scan_row.statement_id = receipt.statement_id
+               AND scan_row.workspace_id = receipt.workspace_id))`,
+      )
       .andWhere(
         `(receipt.status = :flagged OR (receipt.status IN (:...ready) AND (
             NULLIF(TRIM(receipt.parsed_data->>'amount'), '') IS NOT NULL
@@ -392,7 +399,34 @@ export class ReviewInboxService {
       userId,
       ids.map(id => ({ id, updates })),
     );
+    await this.closeScanReceipts(workspaceId, updated);
     return { approved: updated.length };
+  }
+
+  /**
+   * A confirmed scan row settles its receipt too, the way approving the
+   * receipt settles the row; otherwise the receipt would still read as waiting.
+   */
+  private async closeScanReceipts(workspaceId: string, rows: Transaction[]): Promise<void> {
+    const rowByStatement = new Map(
+      rows.filter(row => row.statementId).map(row => [row.statementId as string, row.id]),
+    );
+    if (rowByStatement.size === 0) {
+      return;
+    }
+    const receipts = await this.receiptRepository.find({
+      select: { id: true, statementId: true },
+      where: { workspaceId, statementId: In([...rowByStatement.keys()]), transactionId: IsNull() },
+    });
+    for (const receipt of receipts) {
+      await this.receiptRepository.update(
+        { id: receipt.id, workspaceId },
+        {
+          status: ReceiptStatus.APPROVED,
+          transactionId: rowByStatement.get(receipt.statementId as string),
+        },
+      );
+    }
   }
 
   /**

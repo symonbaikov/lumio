@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { appDefaultCurrency } from '../../../common/utils/currency.util';
+import { findDocumentDate } from '../../../common/utils/document-date.util';
 import { payeeKeyOf } from '../../../common/utils/payee-key.util';
 import {
   createReceiptAmountHelpers,
@@ -47,11 +48,8 @@ const TOTAL_KEYWORD_REGEX =
 
 const NUMBER_PATTERN = '-?\\d{1,3}(?:[\\s.,]\\d{3})*(?:[.,]\\d{1,2})?|-?\\d+(?:[.,]\\d{1,2})?';
 
-// Anchored on non-digits so a longer run of OCR digits can't yield a date-looking substring.
-const DATE_PATTERNS = [
-  /(?<!\d)\d{2}[-/.]\d{2}[-/.]\d{4}(?!\d)/,
-  /(?<!\d)\d{4}[-/.]\d{2}[-/.]\d{2}(?!\d)/,
-];
+// Where "07/08/2026" means July 8: a document in dollars or with a US address.
+const US_DOCUMENT_PATTERN = /\b(?:united\s+states|usa)\b/i;
 
 const TAX_PATTERNS = [
   /tax[:\s]+(\d+[\s,.]?\d*)/i,
@@ -67,10 +65,6 @@ const SUBTOTAL_PATTERNS = [
   /промежуточный\s*итог[:\s]+(\d+[\s,.]?\d*)/i,
 ];
 
-/** Same window the universal date parser uses: anything outside it is noise, not a date. */
-function isPlausibleDate(date: Date): boolean {
-  return !Number.isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100;
-}
 const hasPayeeName = (vendor: string | undefined): boolean =>
   payeeKeyOf({ counterpartyName: vendor }) !== null;
 
@@ -179,8 +173,13 @@ export class UniversalExtractorService {
       .filter(Boolean);
 
     const amount = await this.extractAmountWithCurrency(lines, text);
-    const currency = amount?.currency || this.extractCurrency(text) || appDefaultCurrency();
-    const date = this.extractDate(text);
+    const statedCurrency = amount?.currency || this.extractCurrency(text);
+    const currency = statedCurrency || appDefaultCurrency();
+    const documentDate = findDocumentDate(text, {
+      // The currency the page states, not the fallback: that says nothing about the document.
+      monthFirst: statedCurrency === 'USD' || US_DOCUMENT_PATTERN.test(text),
+    });
+    const date = documentDate?.date;
     const vendor = this.extractVendor(lines, context.sender, text);
     const merchantAddress = extractMerchantAddress(lines);
     const tax = this.extractNumberByPatterns(text, TAX_PATTERNS);
@@ -203,7 +202,8 @@ export class UniversalExtractorService {
     const fieldConfidence = {
       totalAmount: amount ? 0.85 : 0,
       transactionType: transactionType.confidence,
-      date: date ? 0.8 : 0,
+      // Day and month that could be either way round are worth a second look.
+      date: documentDate ? (documentDate.ambiguous ? 0.5 : 0.8) : 0,
       vendor: vendor ? 0.75 : 0,
       currency: currency ? 0.85 : 0,
       tax: tax ? 0.75 : 0,
@@ -249,34 +249,6 @@ export class UniversalExtractorService {
 
   private extractCurrency(text: string): string | undefined {
     return detectCurrency(text, this.amountParser, DEFAULT_RECEIPT_SYMBOL_TO_CURRENCY);
-  }
-
-  private extractDate(text: string): Date | undefined {
-    for (const pattern of DATE_PATTERNS) {
-      const match = text.match(pattern);
-      if (!match?.[0]) {
-        continue;
-      }
-
-      const candidate = match[0];
-      if (/^\d{4}/.test(candidate)) {
-        const date = new Date(candidate.replace(/[/.]/g, '-'));
-        if (isPlausibleDate(date)) {
-          return date;
-        }
-        continue;
-      }
-
-      const [left, middle, right] = candidate.split(/[./-]/).map(part => Number(part));
-      if (left > 0 && left <= 31 && middle > 0 && middle <= 12) {
-        const date = new Date(right, middle - 1, left);
-        if (isPlausibleDate(date)) {
-          return date;
-        }
-      }
-    }
-
-    return undefined;
   }
 
   private static readonly BANK_PATTERNS: { regex: RegExp; name: string }[] = [

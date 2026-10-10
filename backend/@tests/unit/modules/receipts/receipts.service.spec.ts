@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -375,6 +376,22 @@ describe('ReceiptsService', () => {
       'receipt.approved',
       expect.objectContaining({ receiptId: expect.any(String) }),
     );
+  });
+
+  it('refuses to book a transaction for a receipt without a date', async () => {
+    receiptRepository.findOne.mockResolvedValue({
+      id: 'receipt-dateless',
+      workspaceId: 'workspace-1',
+      status: ReceiptStatus.DRAFT,
+      parsedData: { amount: 24.99, currency: 'USD', vendor: 'Captions' },
+      transactionId: null,
+    });
+
+    await expect(service.approve('receipt-dateless', 'workspace-1', 'user-1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(transactionRepository.save).not.toHaveBeenCalled();
+    expect(receiptRepository.save).not.toHaveBeenCalled();
   });
 
   it('approving an approved receipt again returns its transaction instead of booking a second', async () => {

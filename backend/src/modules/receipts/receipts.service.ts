@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
-import { ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type EntityManager, Repository } from 'typeorm';
@@ -815,6 +822,12 @@ export class ReceiptsService {
     workspaceCurrency: string,
     categoryId?: string,
   ): Partial<Transaction> {
+    // Without its own date the expense would be booked on the day it was
+    // approved. Attaching to a bank row needs none: the bank's date stands.
+    if (!receipt.parsedData?.date) {
+      throw new BadRequestException('Set the receipt date before approving it');
+    }
+
     const transactionType =
       receipt.parsedData?.transactionType === 'income'
         ? TransactionType.INCOME
@@ -825,7 +838,7 @@ export class ReceiptsService {
     return {
       statementId: null,
       workspaceId,
-      transactionDate: receipt.parsedData?.date ? new Date(receipt.parsedData.date) : new Date(),
+      transactionDate: new Date(receipt.parsedData.date),
       counterpartyName,
       paymentPurpose,
       // Set here because a scan's row is confirmed with update(), which skips

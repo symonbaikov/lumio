@@ -7,6 +7,7 @@ import ReceiptDocumentPage from './page';
 
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import toast from 'react-hot-toast';
 import { IntlayerProviderContent } from 'react-intlayer';
 
 function TestProviders({ children }: { children: React.ReactNode }) {
@@ -119,6 +120,7 @@ describe('ReceiptDocumentPage', () => {
     apiMocks.mockApiGet.mockReset();
     apiMocks.mockApiPatch.mockReset();
     apiMocks.mockApiPost.mockReset();
+    vi.mocked(toast.error).mockReset();
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -534,6 +536,48 @@ describe('ReceiptDocumentPage', () => {
 
     expect(apiMocks.mockApiPost).toHaveBeenCalledWith('receipt-1', {});
     expect(routerMocks.push).toHaveBeenCalledWith('/statements/submit');
+  });
+
+  it('asks for the date instead of approving a receipt without one', async () => {
+    apiMocks.mockApiGet.mockImplementation((url: string) => {
+      if (url === '/receipts/receipt-1') {
+        return Promise.resolve({
+          data: {
+            id: 'receipt-1',
+            subject: 'Invoice.pdf',
+            sender: 'camera-scan',
+            source: 'scan',
+            status: 'draft',
+            receivedAt: '2026-10-09T10:30:00.000Z',
+            metadata: { attachments: [] },
+            parsedData: { vendor: 'Captions', amount: 24.99, currency: 'USD', lineItems: [] },
+          },
+        });
+      }
+      return Promise.resolve({ data: [] });
+    });
+
+    await act(async () => {
+      root.render(
+        <TestProviders>
+          <ReceiptDocumentPage />
+        </TestProviders>,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const approveButton = Array.from(container.querySelectorAll('button')).find(button =>
+      button.textContent?.includes('Approve receipt'),
+    );
+    await act(async () => {
+      approveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(apiMocks.mockApiPost).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Add the receipt date before approving.');
   });
 
   it('returns to Review after approving a receipt opened from there', async () => {
