@@ -6,12 +6,16 @@ import { renderWithQuery } from '@/app/test/query-wrapper';
 
 const apiMocks = vi.hoisted(() => ({ get: vi.fn() }));
 const routerMocks = vi.hoisted(() => ({ push: vi.fn() }));
+const pathnameMock = vi.hoisted(() => ({ value: '/dashboard' }));
 const permissionMocks = vi.hoisted(() => ({
   hasPermission: vi.fn((_permission: string) => true),
 }));
 
 vi.mock('@/app/lib/api', () => ({ default: apiMocks }));
-vi.mock('next/navigation', () => ({ useRouter: () => routerMocks }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => routerMocks,
+  usePathname: () => pathnameMock.value,
+}));
 vi.mock('@/app/hooks/useWorkspaceId', () => ({ useWorkspaceId: () => 'ws-1' }));
 vi.mock('@/app/hooks/usePermissions', () => ({ usePermissions: () => permissionMocks }));
 vi.mock('next-themes', () => ({ useTheme: () => ({ resolvedTheme: 'light', setTheme: vi.fn() }) }));
@@ -53,6 +57,7 @@ beforeEach(() => {
     url === '/search' ? envelope(FOUND) : envelope([]),
   );
   routerMocks.push.mockReset();
+  pathnameMock.value = '/dashboard';
   permissionMocks.hasPermission.mockReset();
   permissionMocks.hasPermission.mockReturnValue(true);
   closeCommandPalette();
@@ -154,5 +159,20 @@ describe('CommandPalette', () => {
     permissionMocks.hasPermission.mockImplementation((perm: string) => perm !== 'statement.upload');
     await open();
     expect(screen.queryByText('Upload a document')).toBeNull();
+  });
+
+  it('runs a $mod shortcut from the field: Ctrl+comma opens settings', async () => {
+    const input = await open();
+    fireEvent.keyDown(input, { key: ',', code: 'Comma', ctrlKey: true });
+    await waitFor(() => expect(routerMocks.push).toHaveBeenCalledWith('/settings/profile'));
+  });
+
+  it('shows Open filters on the Documents list and nowhere else', async () => {
+    await open();
+    expect(screen.queryByText('Open filters')).toBeNull();
+    act(() => closeCommandPalette());
+    pathnameMock.value = '/statements/submit';
+    act(() => openCommandPalette());
+    expect(await screen.findByText('Open filters')).toBeTruthy();
   });
 });

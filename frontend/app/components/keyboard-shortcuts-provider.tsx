@@ -6,14 +6,17 @@ import { useMemo, useState } from 'react';
 import CommandPalette from '@/app/components/command-palette/CommandPalette';
 import { toggleCommandPalette } from '@/app/components/command-palette/command-palette-store';
 import { toggleSidebarCollapsed } from '@/app/components/navigation/sidebar-collapsed-store';
+import { openAppPanel } from '@/app/components/panels/app-panels-store';
 import { useKeyboardShortcuts } from '@/app/hooks/use-keyboard-shortcuts';
 import {
   NAV_BINDINGS,
+  NOTIFICATIONS_BINDING,
+  SETTINGS_BINDING,
   SHORTCUT_EXPORT,
   SHORTCUT_FOCUS_SEARCH,
   SHORTCUT_OPEN_FILTERS,
 } from '@/app/lib/keyboard-shortcuts';
-import { STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT } from '@/app/lib/statement-expense-drawer';
+import { openScanUpload } from '@/app/lib/statement-expense-drawer';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 
 export function KeyboardShortcutsProvider({
@@ -39,9 +42,16 @@ export function KeyboardShortcutsProvider({
       },
       'Shift+KeyA': event => {
         event.preventDefault();
-        window.dispatchEvent(
-          new CustomEvent(STATEMENTS_OPEN_EXPENSE_DRAWER_EVENT, { detail: { mode: 'scan' } }),
-        );
+        openScanUpload(href => router.push(href));
+      },
+      [NOTIFICATIONS_BINDING]: event => {
+        event.preventDefault();
+        openAppPanel('notifications');
+      },
+      [SETTINGS_BINDING]: event => {
+        // Also keeps the browser from acting on Ctrl/⌘ + comma.
+        event.preventDefault();
+        router.push('/settings/profile');
       },
       'Shift+KeyF': event => {
         event.preventDefault();
