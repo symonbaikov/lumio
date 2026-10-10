@@ -2,7 +2,7 @@
 
 import Dialog from '@mui/material/Dialog';
 import Typography from '@mui/material/Typography';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useCallback, useState } from 'react';
 import {
@@ -26,6 +26,7 @@ function PaletteBody({ onOpenHelp }: { onOpenHelp: () => void }): React.JSX.Elem
   const { nav, shell, userMenu } = useIntlayer('navigation');
   const notifications = useIntlayer('notificationDropdown');
   const router = useRouter();
+  const pathname = usePathname();
   const { resolvedTheme, setTheme } = useTheme();
   const [input, setInput] = useState('');
 
@@ -44,6 +45,7 @@ function PaletteBody({ onOpenHelp }: { onOpenHelp: () => void }): React.JSX.Elem
     },
     navItems: [...buildNavItems(nav), ...buildUserMenuNavItems(nav)],
     push: href => router.push(href),
+    pathname,
     toggleTheme: () => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark'),
     toggleExperimental: () => setExperimentalModeEnabled(!isExperimentalModeEnabled()),
     openHelp: onOpenHelp,

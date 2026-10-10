@@ -29,6 +29,10 @@ export const SHORTCUT_FOCUS_SEARCH = 'shortcuts:focus-search';
 export const SHORTCUT_SELECT_ALL = 'shortcuts:select-all';
 export const SHORTCUT_DELETE_SELECTED = 'shortcuts:delete-selected';
 
+// Bindings shared by the global handler and the palette's hint chips
+export const NOTIFICATIONS_BINDING = 'Shift+KeyN';
+export const SETTINGS_BINDING = '$mod+Comma';
+
 /**
  * Bindings name physical keys (`KeyG`, `Slash`) rather than characters. tinykeys
  * matches a character spec against `event.key`, which is the wrong thing twice
@@ -42,6 +46,7 @@ export const SHORTCUT_DELETE_SELECTED = 'shortcuts:delete-selected';
 export const NAV_BINDINGS: Record<string, string> = {
   [DEFAULT_APP_ROUTE]: 'KeyG KeyD',
   '/statements': 'KeyG KeyS',
+  '/review': 'KeyG KeyV',
   '/custom-tables': 'KeyG KeyT',
   '/reports': 'KeyG KeyR',
   '/workspaces': 'KeyG KeyW',
@@ -51,20 +56,29 @@ export const NAV_BINDINGS: Record<string, string> = {
   '/invoices': 'KeyG KeyI',
   '/net-worth': 'KeyG KeyN',
   '/crypto': 'KeyG KeyC',
+  '/tax-declaration': 'KeyG KeyX',
+  '/forecast': 'KeyG KeyF',
+  '/roi': 'KeyG KeyE',
+  '/subscriptions': 'KeyG KeyU',
+  '/ai-analysis': 'KeyG KeyY',
+  '/integrations': 'KeyG KeyK',
+  '/plugins': 'KeyG KeyP',
+  '/admin': 'KeyG KeyL',
 };
 
 export const GLOBAL_SHORTCUTS: ShortcutEntry[] = [
   { binding: '$mod+KeyK', labelKey: 'openPalette', category: 'action' },
   { binding: 'Shift+Slash', labelKey: 'showShortcuts', category: 'action' },
   { binding: 'Shift+KeyA', labelKey: 'openUpload', category: 'action' },
-  { binding: 'Shift+KeyF', labelKey: 'openFilters', category: 'action' },
-  { binding: 'Shift+KeyE', labelKey: 'export', category: 'action' },
-  { binding: 'Slash', labelKey: 'focusSearch', category: 'action' },
   { binding: 'BracketLeft', labelKey: 'toggleLeftNav', category: 'action' },
   { binding: 'Alt+Shift+KeyT', labelKey: 'toggleTheme', category: 'action' },
 ];
 
+/** Only the Documents list listens for these, so they live in its group. */
 export const STATEMENTS_SHORTCUTS: ShortcutEntry[] = [
+  { binding: 'Shift+KeyF', labelKey: 'openFilters', category: 'action' },
+  { binding: 'Slash', labelKey: 'focusSearch', category: 'action' },
+  { binding: 'Shift+KeyE', labelKey: 'export', category: 'action' },
   { binding: 'Shift+KeyX', labelKey: 'selectAll', category: 'action' },
   { binding: 'Shift+Delete', labelKey: 'deleteSelected', category: 'action' },
 ];

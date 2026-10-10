@@ -3,12 +3,17 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { ShortcutHint } from '@/app/components/command-palette/ShortcutHint';
-import { buildNavItems } from '@/app/components/navigation/helpers/navigation-config';
+import {
+  buildNavItems,
+  buildUserMenuNavItems,
+} from '@/app/components/navigation/helpers/navigation-config';
 import { ModalShell } from '@/app/components/ui/modal-shell';
 import { useIntlayer } from '@/app/i18n';
 import {
   GLOBAL_SHORTCUTS,
   NAV_BINDINGS,
+  NOTIFICATIONS_BINDING,
+  SETTINGS_BINDING,
   type ShortcutEntry,
   STATEMENTS_SHORTCUTS,
 } from '@/app/lib/keyboard-shortcuts';
@@ -41,7 +46,9 @@ function ShortcutRow({ entry }: { entry: ShortcutEntry }): React.JSX.Element {
 /** Navigation rows borrow the sidebar's own translated names. */
 function NavigationShortcuts(): React.JSX.Element {
   const { nav } = useIntlayer('navigation');
-  const items = buildNavItems(nav).filter(item => NAV_BINDINGS[item.path]);
+  const items = [...buildNavItems(nav), ...buildUserMenuNavItems(nav)].filter(
+    item => NAV_BINDINGS[item.path],
+  );
   return (
     <>
       {items.map(item => (
@@ -51,12 +58,26 @@ function NavigationShortcuts(): React.JSX.Element {
   );
 }
 
+/** Actions whose names already live in the dictionaries of the panels they open. */
+function BorrowedActionShortcuts(): React.JSX.Element {
+  const { userMenu } = useIntlayer('navigation');
+  const notifications = useIntlayer('notificationDropdown');
+  return (
+    <>
+      <ShortcutLine label={notifications.title} binding={NOTIFICATIONS_BINDING} />
+      <ShortcutLine label={userMenu.settings} binding={SETTINGS_BINDING} />
+    </>
+  );
+}
+
 function ShortcutGroup({
   title,
   entries,
+  children,
 }: {
   title: React.ReactNode;
   entries: ShortcutEntry[];
+  children?: React.ReactNode;
 }): React.JSX.Element {
   return (
     <Box sx={{ mb: 2 }}>
@@ -66,6 +87,7 @@ function ShortcutGroup({
       {entries.map(entry => (
         <ShortcutRow key={entry.binding} entry={entry} />
       ))}
+      {children}
     </Box>
   );
 }
@@ -85,7 +107,9 @@ export function KeyboardShortcutsModal({
           </Typography>
           <NavigationShortcuts />
         </Box>
-        <ShortcutGroup title={t.groups.actions} entries={GLOBAL_SHORTCUTS} />
+        <ShortcutGroup title={t.groups.actions} entries={GLOBAL_SHORTCUTS}>
+          <BorrowedActionShortcuts />
+        </ShortcutGroup>
         <ShortcutGroup title={t.groups.statements} entries={STATEMENTS_SHORTCUTS} />
       </Box>
     </ModalShell>
