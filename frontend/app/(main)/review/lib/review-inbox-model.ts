@@ -9,6 +9,8 @@ export type ReviewTransactionItem = {
   date: string;
   counterpartyName: string;
   paymentPurpose: string;
+  /** Who the row is filed under; null when its descriptor names nobody. */
+  payee: { id: string; name: string } | null;
   amount: number;
   currency: string;
   transactionType: string;
@@ -94,6 +96,7 @@ export function isReviewInboxKind(value: string | null | undefined): value is Re
 export function payeeOf(item: ReviewInboxItem): string {
   switch (item.kind) {
     case 'transaction':
+      return item.payee?.name.trim() || item.counterpartyName.trim() || '—';
     case 'duplicate':
       return item.counterpartyName.trim() || '—';
     case 'receipt':
@@ -115,7 +118,11 @@ export interface PayeeGroup<T extends ReviewInboxItem = ReviewInboxItem> {
 export function groupByPayee<T extends ReviewInboxItem>(items: T[]): PayeeGroup<T>[] {
   const groups = new Map<string, T[]>();
   for (const item of items) {
-    const key = payeeOf(item).toLowerCase();
+    // A payee is one group whatever descriptor each of its rows came in with.
+    const key =
+      item.kind === 'transaction' && item.payee
+        ? `payee:${item.payee.id}`
+        : payeeOf(item).toLowerCase();
     const bucket = groups.get(key);
     if (bucket) {
       bucket.push(item);

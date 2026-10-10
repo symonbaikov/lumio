@@ -34,7 +34,11 @@ import { ActorType, AuditAction, EntityType, Severity } from '../../entities/aud
 import { CategoryType } from '../../entities/category.entity';
 import { BankName, FileType, Statement, StatementStatus } from '../../entities/statement.entity';
 import { TaxRate } from '../../entities/tax-rate.entity';
-import { Transaction, TransactionType } from '../../entities/transaction.entity';
+import {
+  Transaction,
+  TransactionCategorySource,
+  TransactionType,
+} from '../../entities/transaction.entity';
 import { User } from '../../entities/user.entity';
 import { AuditService } from '../audit/audit.service';
 import type {
@@ -550,6 +554,8 @@ export class StatementsService {
         currency,
         transactionType: TransactionType.EXPENSE,
         categoryId: category.id,
+        // The person filling the form picked it, so the payee learns from it.
+        categorySource: TransactionCategorySource.MANUAL,
         taxRateId: taxAssignment.taxRateId ?? taxRate?.id ?? null,
         taxRuleId: taxAssignment.taxRuleId,
         taxSource: taxAssignment.taxSource,
@@ -686,6 +692,7 @@ export class StatementsService {
         'Не указано',
       categoryId:
         payload.transaction.categoryId || (originalTransaction?.categoryId as string) || null,
+      categorySource: payload.transaction.categoryId ? TransactionCategorySource.MANUAL : null,
       branchId: payload.transaction.branchId || (originalTransaction?.branchId as string) || null,
       walletId,
       // Same rule as the import path: the row starts on whoever owns the wallet.

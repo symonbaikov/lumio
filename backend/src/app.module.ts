@@ -46,7 +46,8 @@ import {
   OpenProtocolSettings,
   ParsingRule,
   Payable,
-  PayeeOverride,
+  Payee,
+  PayeeAlias,
   Receipt,
   ReceiptProcessingJob,
   SharedLink,
@@ -103,6 +104,7 @@ import { ObservabilityModule } from './modules/observability/observability.modul
 import { OpenProtocolIntegrationsModule } from './modules/open-protocol-integrations/open-protocol-integrations.module';
 import { ParsingModule } from './modules/parsing/parsing.module';
 import { PayablesModule } from './modules/payables/payables.module';
+import { PayeesModule } from './modules/payees/payees.module';
 import { PushModule } from './modules/push/push.module';
 import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { ReportsModule } from './modules/reports/reports.module';
@@ -180,7 +182,8 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
       Statement,
       Transaction,
       Category,
-      PayeeOverride,
+      Payee,
+      PayeeAlias,
       Branch,
       Wallet,
       TelegramReport,
@@ -234,6 +237,7 @@ import { WorkspacesModule } from './modules/workspaces/workspaces.module';
     DropboxModule,
     ParsingModule,
     ClassificationModule,
+    PayeesModule,
     ReceiptsModule,
     CategoriesModule,
     BranchesModule,

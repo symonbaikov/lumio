@@ -5,11 +5,11 @@ import {
 } from '@/common/utils/workspace-processing.util';
 
 describe('readProcessingSettings', () => {
-  it('reproduces the previously hardcoded behaviour when nothing is set', () => {
+  it('keeps the model out of categorisation unless the workspace turns it on', () => {
     expect(readProcessingSettings(null)).toEqual({
       categorizationThreshold: 0.7,
       duplicateResolution: 'skip',
-      aiCategorization: true,
+      aiCategorization: false,
       aiMerchantNormalization: true,
       merchantLearning: true,
     });
@@ -72,7 +72,7 @@ describe('mergeProcessingSettings', () => {
     expect(merged.processing).toEqual({
       categorizationThreshold: 0.5,
       duplicateResolution: 'mark_duplicate',
-      aiCategorization: true,
+      aiCategorization: false,
       aiMerchantNormalization: true,
       merchantLearning: true,
     });
@@ -82,7 +82,7 @@ describe('mergeProcessingSettings', () => {
     expect(mergeProcessingSettings(null, { categorizationThreshold: 0.9 }).processing).toEqual({
       categorizationThreshold: 0.9,
       duplicateResolution: 'skip',
-      aiCategorization: true,
+      aiCategorization: false,
       aiMerchantNormalization: true,
       merchantLearning: true,
     });

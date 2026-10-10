@@ -23,7 +23,7 @@ import { Invoice } from '../../entities/invoice.entity';
 import { Payable } from '../../entities/payable.entity';
 import { Statement } from '../../entities/statement.entity';
 import { Subscription } from '../../entities/subscription.entity';
-import { Transaction } from '../../entities/transaction.entity';
+import { Transaction, TransactionCategorySource } from '../../entities/transaction.entity';
 import { WorkspaceMember } from '../../entities/workspace-member.entity';
 import { AuditService } from '../audit/audit.service';
 import { ClassificationService } from '../classification/services/classification.service';
@@ -256,7 +256,11 @@ export class EntityImportService {
               : 'statement';
   }
 
-  /** Rows without a category get one from rules, learned patterns and the model. */
+  /**
+   * Rows without a category get one the same way an imported statement does:
+   * rules and what the user taught about the payee first, the model only for
+   * rows those leave uncategorised.
+   */
   private async categorize(userId: string, workspaceId: string, created: ImportCreatedRef[]) {
     const statementIds = created.filter(ref => ref.kind === 'statement').map(ref => ref.id);
     if (!(this.classificationService && statementIds.length)) {
@@ -269,21 +273,42 @@ export class EntityImportService {
       if (!uncategorized.length) {
         return;
       }
-      const results = await this.classificationService.classifyTransactionsBatch(
-        uncategorized.map((tx, index) => ({
-          index,
-          counterpartyName: tx.counterpartyName ?? '',
-          paymentPurpose: tx.paymentPurpose ?? '',
-          transactionType: tx.transactionType,
-        })),
-        workspaceId,
-      );
+      const classified = [];
+      for (const tx of uncategorized) {
+        classified.push(await this.classificationService.classifyTransaction(tx, userId));
+      }
+      const fellThrough = uncategorized
+        .map((tx, index) => ({ tx, index }))
+        .filter(
+          ({ index }) =>
+            !classified[index].categoryId ||
+            classified[index].categorySource === TransactionCategorySource.DEFAULT,
+        );
+      const aiResults = fellThrough.length
+        ? await this.classificationService.classifyTransactionsBatch(
+            fellThrough.map(({ tx, index }) => ({
+              index,
+              counterpartyName: tx.counterpartyName ?? '',
+              paymentPurpose: tx.paymentPurpose ?? '',
+              transactionType: tx.transactionType,
+            })),
+            workspaceId,
+          )
+        : new Map<number, { categoryId: string }>();
       for (const [index, tx] of uncategorized.entries()) {
-        const categoryId =
-          results.get(index)?.categoryId ??
-          (await this.classificationService.classifyTransaction(tx, userId)).categoryId;
-        if (categoryId) {
-          await repo.update({ id: tx.id }, { categoryId });
+        const ai = aiResults.get(index);
+        const result = ai
+          ? { categoryId: ai.categoryId, categorySource: TransactionCategorySource.AI }
+          : classified[index];
+        if (result.categoryId) {
+          await repo.update(
+            { id: tx.id, workspaceId },
+            {
+              categoryId: result.categoryId,
+              categorySource: result.categorySource ?? null,
+              categoryReason: ai ? null : (classified[index].categoryReason ?? null),
+            },
+          );
         }
       }
     } catch (error) {

@@ -61,7 +61,7 @@ const receiptDuplicateService = {
 };
 
 const receiptCategoryService = {
-  suggestCategory: jest.fn().mockResolvedValue(null),
+  categorize: jest.fn().mockResolvedValue(null),
 };
 
 const auditService = {

@@ -3,7 +3,6 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cache } from 'cache-manager';
 import type { Repository } from 'typeorm';
-import { onlyCounted } from '../../../common/utils/counted-transactions.util';
 import { payeeKeyOf } from '../../../common/utils/payee-key.util';
 import { OWNER_SHARED } from '../../../common/utils/transaction-owner.util';
 import {
@@ -15,7 +14,8 @@ import { ActorType, AuditAction, EntityType } from '../../../entities/audit-even
 import { Branch } from '../../../entities/branch.entity';
 import { CategorizationRule } from '../../../entities/categorization-rule.entity';
 import { Category, CategorySource, CategoryType } from '../../../entities/category.entity';
-import { PayeeOverride } from '../../../entities/payee-override.entity';
+import { Payee } from '../../../entities/payee.entity';
+import { PayeeAlias } from '../../../entities/payee-alias.entity';
 import {
   Transaction,
   TransactionCategorySource,
@@ -31,6 +31,7 @@ import {
   UNCATEGORIZED_CATEGORY_NAME,
 } from '../../categories/uncategorized-category';
 import { decidePayeeCategory } from '../engine/payee-category.matcher';
+import { onlyPayeeEvidence } from '../engine/payee-evidence';
 import {
   AiCategoryClassifier,
   type AiCategoryMatch,
@@ -49,7 +50,7 @@ type BatchTransactionClassificationInput = {
 };
 
 /** A category plus the step that found it and the payload the UI shows as "why". */
-type AutoCategoryMatch = {
+export type AutoCategoryMatch = {
   categoryId: string;
   source: TransactionCategorySource;
   reason: string | null;
@@ -72,8 +73,10 @@ export class ClassificationService {
     private categoryRepository: Repository<Category>,
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
-    @InjectRepository(PayeeOverride)
-    private payeeOverrideRepository: Repository<PayeeOverride>,
+    @InjectRepository(Payee)
+    private payeeRepository: Repository<Payee>,
+    @InjectRepository(PayeeAlias)
+    private payeeAliasRepository: Repository<PayeeAlias>,
     @InjectRepository(Branch)
     private branchRepository: Repository<Branch>,
     @InjectRepository(Wallet)
@@ -218,6 +221,75 @@ export class ClassificationService {
     return classification;
   }
 
+  /**
+   * The category for one payee outside a statement import: a scanned receipt,
+   * an emailed invoice. The same steps a bank row goes through: a rule the user
+   * wrote, then what this payee was filed as before, then the model when the
+   * workspace turned it on. `null` means "leave it for the user", never the
+   * Uncategorized fallback.
+   */
+  async suggestForPayee(input: {
+    workspaceId: string;
+    userId: string;
+    counterpartyName: string;
+    paymentPurpose?: string | null;
+    transactionType: TransactionType;
+    amount?: number | null;
+  }): Promise<AutoCategoryMatch | null> {
+    const transaction = {
+      workspaceId: input.workspaceId,
+      counterpartyName: input.counterpartyName,
+      paymentPurpose: input.paymentPurpose ?? input.counterpartyName,
+      transactionType: input.transactionType,
+      amount: input.amount ?? null,
+      debit: input.transactionType === TransactionType.EXPENSE ? (input.amount ?? null) : null,
+      credit: input.transactionType === TransactionType.INCOME ? (input.amount ?? null) : null,
+    } as Transaction;
+
+    const rules = (await this.getClassificationRules(input.userId, input.workspaceId)) ?? [];
+    const rule = rules.find(candidate => this.matchesRule(transaction, candidate.conditions));
+    if (rule?.result.categoryId) {
+      return {
+        categoryId: rule.result.categoryId,
+        source: TransactionCategorySource.RULE,
+        reason: rule.name,
+      };
+    }
+
+    const payeeMatch = await this.matchByPayeeHistory(transaction, input.workspaceId);
+    if (payeeMatch) {
+      return payeeMatch;
+    }
+
+    const ai = await this.classifyTransactionsBatch(
+      [
+        {
+          index: 0,
+          counterpartyName: input.counterpartyName,
+          paymentPurpose: transaction.paymentPurpose,
+          transactionType: input.transactionType,
+        },
+      ],
+      input.workspaceId,
+    );
+    const aiMatch = ai.get(0);
+    return aiMatch
+      ? {
+          categoryId: aiMatch.categoryId,
+          source: TransactionCategorySource.AI,
+          reason:
+            aiMatch.enrichment?.confidence !== undefined
+              ? `confidence ${aiMatch.enrichment.confidence.toFixed(2)}`
+              : null,
+        }
+      : null;
+  }
+
+  /** Whether the workspace lets the model categorise; off unless turned on. */
+  async isAiCategorizationEnabled(workspaceId: string): Promise<boolean> {
+    return (await this.getProcessingSettings(workspaceId)).aiCategorization;
+  }
+
   matchesRule(transaction: Transaction, conditions: ClassificationCondition[]): boolean {
     return conditions.every(condition => {
       const fieldValue = this.getFieldValue(transaction, condition.field);
@@ -316,33 +388,50 @@ export class ClassificationService {
   }
 
   /**
-   * What this payee was filed as before. Only rows a person confirmed are read:
-   * an auto-assigned category must never become the evidence for the next
-   * auto-assignment, or one wrong guess reinforces itself forever.
+   * What this row's payee was filed as before. The payee is the one the row
+   * already has, or, for a row not booked yet, the one its descriptor is an
+   * alias of. A descriptor never seen before has no payee and no history.
    */
   private async matchByPayeeHistory(
     transaction: Transaction,
     workspaceId: string,
+  ): Promise<AutoCategoryMatch | undefined> {
+    let payeeId = transaction.payeeId ?? null;
+    if (!payeeId) {
+      const payeeKey = payeeKeyOf(transaction);
+      const alias = payeeKey
+        ? await this.payeeAliasRepository.findOne({ where: { workspaceId, payeeKey } })
+        : null;
+      payeeId = alias?.payeeId ?? null;
+    }
+    return payeeId ? this.categoryForPayee(workspaceId, payeeId) : undefined;
+  }
+
+  /**
+   * The category a payee defaults to: its pin when the user said "always",
+   * nothing when they said "never", otherwise its history by the YNAB rule.
+   * Only rows a person decided are read (`onlyPayeeEvidence`), so an
+   * auto-assigned category never becomes the evidence for the next one.
+   */
+  async categoryForPayee(
+    workspaceId: string,
+    payeeId: string,
   ): Promise<AutoCategoryMatch | undefined> {
     const settings = await this.getProcessingSettings(workspaceId);
     if (!settings.merchantLearning) {
       return undefined;
     }
 
-    const payeeKey = payeeKeyOf(transaction);
-    if (!payeeKey) {
+    const payee = await this.payeeRepository.findOne({ where: { id: payeeId, workspaceId } });
+    if (!payee) {
       return undefined;
     }
 
-    const override = await this.payeeOverrideRepository.findOne({
-      where: { workspaceId, payeeKey },
-    });
-
-    const newestFirst = await this.payeeHistoryQuery(workspaceId, payeeKey).getMany();
+    const newestFirst = await this.payeeHistoryQuery(workspaceId, payeeId).getMany();
     const decision = decidePayeeCategory({
       // The matcher replays history forward; the query hands back the newest first.
       history: [...newestFirst].reverse().map(row => ({ categoryId: row.categoryId as string })),
-      override: override ? { mode: override.mode, categoryId: override.categoryId } : undefined,
+      override: { mode: payee.mode, categoryId: payee.categoryId },
     });
 
     if (!decision) {
@@ -355,18 +444,17 @@ export class ClassificationService {
         decision.basis === 'payee-pinned'
           ? TransactionCategorySource.LEARNED
           : TransactionCategorySource.HISTORY,
-      reason: override?.displayName ?? transaction.counterpartyName ?? payeeKey,
+      reason: payee.name,
     };
   }
 
-  private payeeHistoryQuery(workspaceId: string, payeeKey: string) {
+  private payeeHistoryQuery(workspaceId: string, payeeId: string) {
     const query = this.transactionRepository
       .createQueryBuilder('transaction')
       .select(['transaction.id', 'transaction.categoryId'])
       .where('transaction.workspaceId = :workspaceId', { workspaceId })
-      .andWhere('transaction.payeeKey = :payeeKey', { payeeKey })
-      .andWhere('transaction.categoryId IS NOT NULL');
-    return onlyCounted(query, 'transaction')
+      .andWhere('transaction.payeeId = :payeeId', { payeeId });
+    return onlyPayeeEvidence(query, 'transaction')
       .orderBy('transaction.transactionDate', 'DESC')
       .addOrderBy('transaction.createdAt', 'DESC')
       .take(PAYEE_HISTORY_DEPTH);

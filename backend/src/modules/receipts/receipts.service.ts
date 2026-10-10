@@ -8,6 +8,7 @@ import { type EntityManager, Repository } from 'typeorm';
 import type { CaptureLocation } from '../../common/utils/capture-location.util';
 import { currencyCodeOrDefault } from '../../common/utils/currency.util';
 import { normalizePagination } from '../../common/utils/pagination.util';
+import { payeeKeyOf } from '../../common/utils/payee-key.util';
 import {
   Category,
   Receipt,
@@ -23,7 +24,9 @@ import { ActorType, AuditAction, EntityType } from '../../entities/audit-event.e
 import { TransactionCategorySource } from '../../entities/transaction.entity';
 import { AuditService } from '../audit/audit.service';
 import type { CreateAuditEventDto } from '../audit/interfaces/audit-event.interface';
+import { hasDecidedCategory } from '../classification/engine/category-decision';
 import { ReceiptApprovedEvent } from '../notifications/events/notification-events';
+import { resolvePayeeId } from '../payees/payee-resolution';
 import { TransactionAttachmentsService } from '../transactions/services/transaction-attachments.service';
 import { WorkspaceCurrencyService } from '../workspaces/workspace-currency.service';
 import { ReceiptQueryDto } from './dto/receipt-query.dto';
@@ -207,10 +210,19 @@ export class ReceiptsService {
     }
 
     if (dto.parsedData) {
+      // Where a category came from is the server's to say, never the client's.
+      const { categorySource: _source, categoryReason: _reason, ...edits } = dto.parsedData;
       receipt.parsedData = {
         ...(receipt.parsedData ?? {}),
-        ...dto.parsedData,
+        ...edits,
       };
+      // A category a person picked on the receipt is theirs, and teaches the payee.
+      if (userId && dto.parsedData.categoryId !== undefined) {
+        receipt.parsedData.categorySource = dto.parsedData.categoryId
+          ? TransactionCategorySource.MANUAL
+          : null;
+        receipt.parsedData.categoryReason = null;
+      }
     }
 
     if (dto.statementId !== undefined) {
@@ -274,7 +286,11 @@ export class ReceiptsService {
     if (statement.parsingDetails?.detectedBy === 'receipt-scan') {
       await this.transactionRepository.update(
         { statementId: statement.id, workspaceId },
-        { categoryId: category.id },
+        {
+          categoryId: category.id,
+          categorySource: receipt.parsedData?.categorySource ?? null,
+          categoryReason: receipt.parsedData?.categoryReason ?? null,
+        },
       );
     }
   }
@@ -375,15 +391,17 @@ export class ReceiptsService {
             { isDuplicate: true, duplicateOfId: target.id },
           );
         }
-        // Approving the receipt confirms the bank row it documents.
+        // Approving the receipt confirms the bank row it documents. As with a
+        // matched entry in YNAB, the receipt's category wins over whatever the
+        // import filled in, but never over one a person or their rule chose.
         await transactions.update(
-          { id: target.id },
-          !target.categoryId && receipt.parsedData?.categoryId
+          { id: target.id, workspaceId },
+          receipt.parsedData?.categoryId && !hasDecidedCategory(target)
             ? {
                 isVerified: true,
                 categoryId: receipt.parsedData.categoryId,
-                categorySource: TransactionCategorySource.HISTORY,
-                categoryReason: receipt.parsedData.vendor ?? 'receipt',
+                categorySource: receipt.parsedData.categorySource ?? null,
+                categoryReason: receipt.parsedData.categoryReason ?? null,
               }
             : { isVerified: true },
         );
@@ -403,10 +421,13 @@ export class ReceiptsService {
       // A scan booked its transaction at upload; approving confirms it with the
       // receipt as it stands now instead of booking the expense again.
       if (scanTransaction) {
+        const fields = buildTransaction(receipt);
         await transactions.update(
           { id: scanTransaction.id, workspaceId },
           {
-            ...scanTransactionUpdate(buildTransaction(receipt), Boolean(receipt.parsedData?.date)),
+            ...scanTransactionUpdate(fields, Boolean(receipt.parsedData?.date)),
+            // update() skips the subscriber: the vendor may have been corrected since the upload.
+            payeeId: await resolvePayeeId(manager, workspaceId, fields),
             isVerified: true,
           },
         );
@@ -799,15 +820,27 @@ export class ReceiptsService {
         ? TransactionType.INCOME
         : TransactionType.EXPENSE;
 
+    const counterpartyName = receipt.parsedData?.vendor || receipt.subject || 'Unknown';
+    const paymentPurpose = receipt.parsedData?.vendor || receipt.subject || '';
     return {
       statementId: null,
       workspaceId,
       transactionDate: receipt.parsedData?.date ? new Date(receipt.parsedData.date) : new Date(),
-      counterpartyName: receipt.parsedData?.vendor || receipt.subject || 'Unknown',
-      paymentPurpose: receipt.parsedData?.vendor || receipt.subject || '',
+      counterpartyName,
+      paymentPurpose,
+      // Set here because a scan's row is confirmed with update(), which skips
+      // the entity hook: the vendor may have been corrected since the upload.
+      payeeKey: payeeKeyOf({ counterpartyName, paymentPurpose }),
       amount: receipt.parsedData?.amount ?? null,
       currency: currencyCodeOrDefault(receipt.parsedData?.currency, workspaceCurrency),
-      categoryId: categoryId ?? (receipt.parsedData?.categoryId || null),
+      // A category passed in is the one the person picked while approving.
+      ...(categoryId
+        ? { categoryId, categorySource: TransactionCategorySource.MANUAL, categoryReason: null }
+        : {
+            categoryId: receipt.parsedData?.categoryId || null,
+            categorySource: receipt.parsedData?.categorySource ?? null,
+            categoryReason: receipt.parsedData?.categoryReason ?? null,
+          }),
       transactionType,
     };
   }

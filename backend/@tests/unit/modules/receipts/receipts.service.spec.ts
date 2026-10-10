@@ -270,16 +270,37 @@ describe('ReceiptsService', () => {
       parsingDetails: { detectedBy: 'receipt-scan' },
     });
 
-    await service.update('receipt-1', 'workspace-1', { parsedData: { categoryId: 'cat-1' } });
+    await service.update(
+      'receipt-1',
+      'workspace-1',
+      { parsedData: { categoryId: 'cat-1' } },
+      'user-1',
+    );
 
     expect(statementRepository.update).toHaveBeenCalledWith(
       { id: 'statement-1', workspaceId: 'workspace-1' },
       { categoryId: 'cat-1' },
     );
+    // The person picked it, so it is recorded as theirs and teaches the payee.
     expect(transactionRepository.update).toHaveBeenCalledWith(
       { statementId: 'statement-1', workspaceId: 'workspace-1' },
-      { categoryId: 'cat-1' },
+      { categoryId: 'cat-1', categorySource: 'manual', categoryReason: null },
     );
+  });
+
+  it('never takes the category source from the client', async () => {
+    receiptRepository.findOne.mockResolvedValue({
+      id: 'receipt-1',
+      workspaceId: 'workspace-1',
+      statementId: null,
+      parsedData: { vendor: 'Lidl' },
+    });
+
+    const saved = await service.update('receipt-1', 'workspace-1', {
+      parsedData: { vendor: 'Lidl GmbH', categorySource: 'rule', categoryReason: 'forged' },
+    });
+
+    expect(saved?.parsedData).toEqual({ vendor: 'Lidl GmbH' });
   });
 
   it('leaves transactions of a parsed bank statement alone', async () => {

@@ -9,12 +9,17 @@ import {
   toggleSelection,
 } from './review-inbox-model';
 
-const tx = (id: string, counterpartyName: string): ReviewTransactionItem => ({
+const tx = (
+  id: string,
+  counterpartyName: string,
+  payee: ReviewTransactionItem['payee'] = null,
+): ReviewTransactionItem => ({
   kind: 'transaction',
   id,
   date: '2026-06-01',
   counterpartyName,
   paymentPurpose: '',
+  payee,
   amount: 10,
   currency: 'EUR',
   transactionType: 'expense',
@@ -31,6 +36,19 @@ describe('review inbox model', () => {
     const groups = groupByPayee([tx('a', '7-Eleven'), tx('b', 'Lidl'), tx('c', '7-eleven')]);
     expect(groups.map(g => [g.payee, g.items.map(i => i.id)])).toEqual([
       ['7-Eleven', ['a', 'c']],
+      ['Lidl', ['b']],
+    ]);
+  });
+
+  it('groups by payee across the descriptors it came in with, under its name', () => {
+    const rewe = { id: 'payee-rewe', name: 'REWE' };
+    const groups = groupByPayee([
+      tx('a', 'REWE SAGT DANKE 6334', rewe),
+      tx('b', 'Lidl'),
+      tx('c', 'REWE MARKT GMBH', rewe),
+    ]);
+    expect(groups.map(g => [g.payee, g.items.map(i => i.id)])).toEqual([
+      ['REWE', ['a', 'c']],
       ['Lidl', ['b']],
     ]);
   });

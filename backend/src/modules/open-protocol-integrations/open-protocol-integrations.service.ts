@@ -653,14 +653,7 @@ export class OpenProtocolIntegrationsService {
     }
 
     if (parsedData && receipt.status !== ReceiptStatus.FAILED) {
-      const category = await this.receiptCategoryService.suggestCategory(receipt);
-      if (category) {
-        receipt.parsedData = {
-          ...receipt.parsedData,
-          category: category.name,
-          categoryId: category.id,
-        };
-      }
+      await this.receiptCategoryService.categorize(receipt);
     }
 
     const saved = await this.receiptRepository.save(receipt);

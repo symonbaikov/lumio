@@ -124,14 +124,7 @@ export class ReceiptProcessorService {
         receipt.status = ReceiptStatus.NEEDS_REVIEW;
       }
 
-      const suggestedCategory = await this.categoryService.suggestCategory(receipt);
-      if (suggestedCategory) {
-        receipt.parsedData = {
-          ...receipt.parsedData,
-          category: suggestedCategory.name,
-          categoryId: suggestedCategory.id,
-        };
-      }
+      await this.categoryService.categorize(receipt);
 
       // The bank row this receipt documents, if one is already imported.
       await this.matchService?.suggest(receipt);

@@ -4,7 +4,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Branch } from '../../../../../src/entities/branch.entity';
 import { CategorizationRule } from '../../../../../src/entities/categorization-rule.entity';
 import { Category } from '../../../../../src/entities/category.entity';
-import { PayeeOverride } from '../../../../../src/entities/payee-override.entity';
+import { Payee } from '../../../../../src/entities/payee.entity';
+import { PayeeAlias } from '../../../../../src/entities/payee-alias.entity';
 import {
   Transaction,
   TransactionCategorySource,
@@ -50,7 +51,11 @@ describe('ClassificationService provenance and switches', () => {
       return builder;
     }),
   };
-  const overrideRepository = { findOne: jest.fn(async () => null) };
+  // Every descriptor in these tests is the one payee, "Magnum".
+  const aliasRepository = { findOne: jest.fn(async () => ({ payeeId: 'payee-1' })) };
+  const payeeRepository = {
+    findOne: jest.fn(async () => ({ id: 'payee-1', name: 'Magnum', mode: 'auto', categoryId: null })),
+  };
   const workspaceRepository = { findOne: jest.fn() };
   const ruleRepository = { find: jest.fn(async () => []) };
   const categoryRepository = {
@@ -86,7 +91,8 @@ describe('ClassificationService provenance and switches', () => {
         ClassificationService,
         { provide: getRepositoryToken(Category), useValue: categoryRepository },
         { provide: getRepositoryToken(Transaction), useValue: transactionRepository },
-        { provide: getRepositoryToken(PayeeOverride), useValue: overrideRepository },
+        { provide: getRepositoryToken(Payee), useValue: payeeRepository },
+        { provide: getRepositoryToken(PayeeAlias), useValue: aliasRepository },
         { provide: getRepositoryToken(Branch), useValue: { find: jest.fn(async () => []) } },
         {
           provide: getRepositoryToken(Wallet),
@@ -114,7 +120,6 @@ describe('ClassificationService provenance and switches', () => {
     ruleRepository.find.mockResolvedValue([]);
     payeeHistory.rows = [];
     payeeHistory.seen = [];
-    overrideRepository.findOne.mockResolvedValue(null);
     settings({});
   });
 

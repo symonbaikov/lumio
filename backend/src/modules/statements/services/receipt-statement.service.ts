@@ -291,6 +291,8 @@ export class ReceiptStatementService {
         currency,
         transactionType,
         categoryId,
+        categorySource: category ? (parsed.categorySource ?? null) : null,
+        categoryReason: category ? (parsed.categoryReason ?? null) : null,
         taxRateId: taxAssignment.taxRateId ?? taxRate?.id ?? null,
         taxRuleId: taxAssignment.taxRuleId,
         taxSource: taxAssignment.taxSource,

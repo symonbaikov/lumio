@@ -4,6 +4,8 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
+import Popover from '@mui/material/Popover';
 import Skeleton from '@mui/material/Skeleton';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
@@ -19,7 +21,8 @@ import {
   buildFilterOptionLabels,
 } from '@/app/(main)/statements/components/StatementsListView.utils';
 import { StatementsToolbarButton } from '@/app/(main)/statements/components/StatementsToolbarButton';
-import { ChevronDown } from '@/app/components/icons';
+import { ChevronDown, Pencil } from '@/app/components/icons';
+import { PayeePicker } from '@/app/components/payees/PayeePicker';
 import {
   formatAmount,
   formatDate,
@@ -53,12 +56,18 @@ type Props = { state: UseReviewInboxResult };
 // eslint-disable-next-line max-lines-per-function, complexity
 export function ReviewInboxView({ state }: Props) {
   const t = useIntlayer('reviewInbox');
+  const tPayees = useIntlayer('payees');
   const tOwner = useIntlayer('transactionOwner');
   const drawer = useIntlayer('transactionsDrawer');
   const { locale } = useLocale();
   const isMobile = useIsMobile();
   const [grouped, setGrouped] = useState(false);
   const [categoryId, setCategoryId] = useState('');
+  // The row whose payee is being changed, and where its picker opens.
+  const [payeeEdit, setPayeeEdit] = useState<{
+    item: Extract<ReviewInboxItem, { kind: 'transaction' }>;
+    anchor: HTMLElement;
+  } | null>(null);
   const categorySelectRef = useRef<HTMLDivElement | null>(null);
   // The statements Date dropdown, so both pages filter by date the same way.
   const statementsText = useIntlayer('statementsPage');
@@ -167,39 +176,62 @@ export function ReviewInboxView({ state }: Props) {
     !busy,
   );
 
-  const renderTransaction = (item: Extract<ReviewInboxItem, { kind: 'transaction' }>) => (
-    <>
-      <DocumentTitle
-        href={
-          item.receiptId
-            ? `/storage/receipts/${item.receiptId}?from=review`
-            : item.statementId
-              ? `/statements/${item.statementId}/edit`
-              : null
-        }
-        label={item.counterpartyName}
-      />
-      <Typography variant="caption" color="text.secondary" noWrap title={item.paymentPurpose}>
-        {formatDate(item.date, locale)} · {item.paymentPurpose}
-      </Typography>
-      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
-        {item.categoryName ? (
-          <Chip size="small" label={item.categoryName} />
-        ) : (
-          <Chip size="small" variant="outlined" label={t.uncategorized.value} />
-        )}
-        {item.categorySource && (
-          <Chip
-            size="small"
-            variant="outlined"
-            label={`${sourceLabels[item.categorySource] ?? item.categorySource}${
-              item.categoryReason ? ` · ${item.categoryReason}` : ''
-            }`}
+  const renderTransaction = (item: Extract<ReviewInboxItem, { kind: 'transaction' }>) => {
+    // The payee by the name the user knows; the bank's own wording underneath.
+    const title = item.payee?.name ?? item.counterpartyName;
+    const detail =
+      item.payee && item.payee.name !== item.counterpartyName
+        ? item.counterpartyName
+        : item.paymentPurpose;
+    return (
+      <>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+          <DocumentTitle
+            href={
+              item.receiptId
+                ? `/storage/receipts/${item.receiptId}?from=review`
+                : item.statementId
+                  ? `/statements/${item.statementId}/edit`
+                  : null
+            }
+            label={title}
           />
-        )}
-      </Box>
-    </>
-  );
+          <IconButton
+            size="small"
+            aria-label={tPayees.changePayee.value}
+            title={tPayees.changePayee.value}
+            disabled={busy}
+            onClick={event => {
+              event.stopPropagation();
+              setPayeeEdit({ item, anchor: event.currentTarget });
+            }}
+            sx={{ p: 0.25, opacity: 0.6, '&:hover': { opacity: 1 } }}
+          >
+            <Pencil size={14} />
+          </IconButton>
+        </Box>
+        <Typography variant="caption" color="text.secondary" noWrap title={detail}>
+          {formatDate(item.date, locale)} · {detail}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+          {item.categoryName ? (
+            <Chip size="small" label={item.categoryName} />
+          ) : (
+            <Chip size="small" variant="outlined" label={t.uncategorized.value} />
+          )}
+          {item.categorySource && (
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`${sourceLabels[item.categorySource] ?? item.categorySource}${
+                item.categoryReason ? ` · ${item.categoryReason}` : ''
+              }`}
+            />
+          )}
+        </Box>
+      </>
+    );
+  };
 
   const renderRow = (item: ReviewInboxItem, index: number) => {
     const isCursor = index === cursor;
@@ -350,7 +382,14 @@ export function ReviewInboxView({ state }: Props) {
         <Box sx={{ flex: 1, minWidth: 0 }}>{body}</Box>
         <Typography
           variant="body2"
-          sx={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+          sx={{
+            fontSize: 19,
+            lineHeight: 1,
+            fontWeight: 900,
+            letterSpacing: '-0.025em',
+            fontVariantNumeric: 'tabular-nums',
+            whiteSpace: 'nowrap',
+          }}
         >
           {amount}
         </Typography>
@@ -560,6 +599,27 @@ export function ReviewInboxView({ state }: Props) {
         </div>
         {listBody}
       </div>
+      <Popover
+        open={Boolean(payeeEdit)}
+        anchorEl={payeeEdit?.anchor ?? null}
+        onClose={() => setPayeeEdit(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        disableAutoFocus
+      >
+        {payeeEdit ? (
+          <Box sx={{ p: 2 }}>
+            <PayeePicker
+              current={payeeEdit.item.payee}
+              disabled={busy}
+              onPick={(choice, name) => {
+                const { item } = payeeEdit;
+                setPayeeEdit(null);
+                void state.changePayee(item.id, choice, name);
+              }}
+            />
+          </Box>
+        ) : null}
+      </Popover>
     </div>
   );
 }

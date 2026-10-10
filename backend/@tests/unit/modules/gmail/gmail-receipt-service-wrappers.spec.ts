@@ -2,13 +2,6 @@ import { Category, Receipt } from '@/entities';
 import { GmailReceiptCategoryService } from '@/modules/gmail/services/gmail-receipt-category.service';
 import { GmailReceiptDuplicateService } from '@/modules/gmail/services/gmail-receipt-duplicate.service';
 
-type ReceiptCategoryServiceLike = {
-  suggestCategory: (
-    receipt: Receipt,
-    queryMode?: 'direct' | 'via-statement',
-  ) => Promise<Category | null>;
-};
-
 type ReceiptDuplicateServiceLike = {
   findPotentialDuplicates: (receipt: Receipt) => Promise<Receipt[]>;
   markAsDuplicate: (receiptId: string, originalId: string, workspaceId: string) => Promise<void>;
@@ -16,19 +9,22 @@ type ReceiptDuplicateServiceLike = {
 };
 
 describe('Gmail receipt service wrappers', () => {
-  it('delegates category suggestion to ReceiptCategoryService using via-statement mode', async () => {
+  it('delegates category suggestion and categorising to ReceiptCategoryService', async () => {
     const receipt = { id: 'receipt-1' } as Receipt;
     const category = { id: 'category-1', name: 'Food' } as Category;
     const receiptCategoryService = {
-      suggestCategory: jest.fn().mockResolvedValue(category),
+      suggest: jest.fn().mockResolvedValue({ category, source: 'history', reason: null }),
+      categorize: jest.fn().mockResolvedValue(category),
     };
 
     const service = new GmailReceiptCategoryService(
-      receiptCategoryService as unknown as ReceiptCategoryServiceLike,
+      receiptCategoryService as never,
     );
 
     await expect(service.suggestCategory(receipt)).resolves.toBe(category);
-    expect(receiptCategoryService.suggestCategory).toHaveBeenCalledWith(receipt, 'via-statement');
+    await expect(service.categorize(receipt)).resolves.toBe(category);
+    expect(receiptCategoryService.suggest).toHaveBeenCalledWith(receipt);
+    expect(receiptCategoryService.categorize).toHaveBeenCalledWith(receipt);
   });
 
   it('delegates duplicate lookup to ReceiptDuplicateService', async () => {

@@ -73,7 +73,7 @@ describe('ReceiptProcessorService', () => {
         },
         {
           provide: ReceiptCategoryService,
-          useValue: { suggestCategory: jest.fn().mockResolvedValue(null) },
+          useValue: { categorize: jest.fn().mockResolvedValue(null) },
         },
         { provide: ReceiptLocationService, useValue: locationService },
       ],

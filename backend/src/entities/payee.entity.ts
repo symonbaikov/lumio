@@ -6,15 +6,14 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
-  Unique,
   UpdateDateColumn,
 } from 'typeorm';
 import { Category } from './category.entity';
 import { Workspace } from './workspace.entity';
 
-/** What the user told us to do with one payee, the three choices YNAB offers. */
-export enum PayeeOverrideMode {
-  /** Follow the payee's own history (the default; no row is stored for it). */
+/** How a payee's category is decided, the three choices YNAB offers. */
+export enum PayeeMode {
+  /** Follow the payee's own history ("two of the last three"). */
   AUTO = 'auto',
   /** Always this category, whatever the history says. */
   ALWAYS = 'always',
@@ -23,13 +22,13 @@ export enum PayeeOverrideMode {
 }
 
 /**
- * A standing instruction for one payee, keyed by the normalised payee key
- * (`descriptor-normalizer.ts`), not by the raw descriptor: the raw string
- * carries a different terminal number every time.
+ * Who a transaction was paid to or received from, as the user knows them:
+ * "Railway Corporation", not "RAILWAY*USAGE 4711 SAN FRANCISCO". Every raw
+ * descriptor that means this payee points here through a `PayeeAlias`, so
+ * renaming or merging payees never touches the descriptors themselves.
  */
-@Entity('payee_overrides')
-@Unique('UQ_payee_overrides_workspace_key', ['workspaceId', 'payeeKey'])
-export class PayeeOverride {
+@Entity('payees')
+export class Payee {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -41,22 +40,19 @@ export class PayeeOverride {
   @Index()
   workspaceId: string;
 
-  @Column({ name: 'payee_key', type: 'text' })
-  payeeKey: string;
+  /** What the user sees; starts as the descriptor the payee was first seen as. */
+  @Column({ type: 'text' })
+  name: string;
 
-  /** The descriptor this key was first seen as, so the UI has something to show. */
-  @Column({ name: 'display_name', type: 'text', nullable: true })
-  displayName: string | null;
+  @Column({ type: 'enum', enum: PayeeMode, enumName: 'payees_mode_enum', default: PayeeMode.AUTO })
+  mode: PayeeMode;
 
-  @Column({ type: 'enum', enum: PayeeOverrideMode, default: PayeeOverrideMode.AUTO })
-  mode: PayeeOverrideMode;
-
-  // SET NULL rather than CASCADE: deleting a category should drop the pin, not
-  // the user's "never categorise this payee" decision.
+  // SET NULL rather than CASCADE: deleting a category drops the pin, not the payee.
   @ManyToOne(() => Category, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'category_id' })
   category: Category | null;
 
+  /** The pinned category, read only when `mode` is `always`. */
   @Column({ name: 'category_id', type: 'uuid', nullable: true })
   categoryId: string | null;
 

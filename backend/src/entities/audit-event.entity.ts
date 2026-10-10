@@ -52,6 +52,7 @@ export enum EntityType {
   WEBHOOK = 'webhook',
   BACKUP = 'backup',
   USER = 'user',
+  PAYEE = 'payee',
 }
 
 export enum AuditAction {

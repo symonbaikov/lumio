@@ -11,6 +11,7 @@ import { Receipt, ReceiptSource, ReceiptStatus } from '../../entities/receipt.en
 import { Statement } from '../../entities/statement.entity';
 import { Subscription, SubscriptionStatus } from '../../entities/subscription.entity';
 import { Transaction } from '../../entities/transaction.entity';
+import { isUncategorizedName } from '../categories/uncategorized-category';
 import { CrossStatementDeduplicationService } from '../transactions/services/cross-statement-deduplication.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import {
@@ -37,6 +38,8 @@ export type ReviewInboxItem =
       date: string;
       counterpartyName: string;
       paymentPurpose: string;
+      /** Who the row is filed under; null when its descriptor names nobody. */
+      payee: { id: string; name: string } | null;
       amount: number;
       currency: string;
       transactionType: string;
@@ -121,6 +124,7 @@ export class ReviewInboxService {
       .createQueryBuilder('t')
       .leftJoin('t.statement', 's')
       .leftJoinAndSelect('t.category', 'category')
+      .leftJoinAndSelect('t.payee', 'payee')
       .where('t.workspaceId = :workspaceId', { workspaceId })
       .andWhere('t.isDuplicate = false')
       .andWhere('t.isVerified = false')
@@ -289,6 +293,7 @@ export class ReviewInboxService {
         date: toDateString(row.transactionDate),
         counterpartyName: row.counterpartyName,
         paymentPurpose: row.paymentPurpose,
+        payee: row.payee ? { id: row.payee.id, name: row.payee.name } : null,
         amount: absAmount(row),
         currency: row.currency,
         transactionType: row.transactionType,
@@ -391,8 +396,9 @@ export class ReviewInboxService {
   }
 
   /**
-   * Confirms every row of one statement that has a category; rows without one
-   * stay in the inbox, since confirming them would book spending nowhere.
+   * Confirms every row of one statement that has a real category; rows without
+   * one, or still in the Uncategorized fallback, stay in the inbox, since
+   * confirming them would book spending nowhere.
    */
   async approveStatement(
     workspaceId: string,
@@ -408,9 +414,12 @@ export class ReviewInboxService {
     }
     const rows = await this.transactionRepository.find({
       where: { workspaceId, statementId, isVerified: false, isDuplicate: false },
-      select: ['id', 'categoryId'],
+      relations: { category: true },
+      select: { id: true, categoryId: true, category: { id: true, name: true } },
     });
-    const ready = rows.filter(row => row.categoryId).map(row => row.id);
+    const ready = rows
+      .filter(row => row.categoryId && !isUncategorizedName(row.category?.name))
+      .map(row => row.id);
     const { approved } =
       ready.length > 0
         ? await this.approveTransactions(workspaceId, userId, ready)

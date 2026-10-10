@@ -443,9 +443,10 @@ describe('StatementsService', () => {
 
       expect(qb.skip).toHaveBeenCalledWith(10);
       expect(qb.take).toHaveBeenCalledWith(10);
-      expect(qb.andWhere).toHaveBeenCalledWith('statement.fileName ILIKE :search', {
-        search: '%abc%',
-      });
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('statement.fileName ILIKE :search'),
+        { search: '%abc%' },
+      );
     });
 
     it('applies extended filters without pagination when page is omitted', async () => {

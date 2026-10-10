@@ -1,7 +1,8 @@
 import { Workspace } from '@/entities/workspace.entity';
 import { Branch } from '@/entities/branch.entity';
 import { CategorizationRule } from '@/entities/categorization-rule.entity';
-import { PayeeOverride } from '@/entities/payee-override.entity';
+import { Payee } from '@/entities/payee.entity';
+import { PayeeAlias } from '@/entities/payee-alias.entity';
 import { Category, CategorySource, CategoryType } from '@/entities/category.entity';
 import { Transaction, TransactionType } from '@/entities/transaction.entity';
 import { Wallet } from '@/entities/wallet.entity';
@@ -69,7 +70,11 @@ describe('ClassificationService', () => {
           useValue: fakePayeeHistory().repository,
         },
         {
-          provide: getRepositoryToken(PayeeOverride),
+          provide: getRepositoryToken(Payee),
+          useValue: { findOne: jest.fn(async () => null) },
+        },
+        {
+          provide: getRepositoryToken(PayeeAlias),
           useValue: { findOne: jest.fn(async () => null) },
         },
         {
@@ -377,6 +382,11 @@ describe('ClassificationService', () => {
     });
 
     it('maps AI matches and persists workspace-scoped learning', async () => {
+      // The model is off unless the workspace turned it on.
+      (service as any).workspaceRepository.findOne.mockResolvedValue({
+        id: 'ws-1',
+        settings: { processing: { aiCategorization: true } },
+      });
       (service as any).aiCategoryClassifier = {
         isAvailable: jest.fn().mockReturnValue(true),
         classifyBatch: jest
