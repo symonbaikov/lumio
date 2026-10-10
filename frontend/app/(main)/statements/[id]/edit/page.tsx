@@ -39,6 +39,7 @@ import {
   Trash2,
   TriangleAlert,
 } from '@/app/components/icons';
+import { NotesPanel } from '@/app/components/notes/NotesPanel';
 import { DetailActionButton } from '@/app/components/ui/detail-action-button';
 import { Spinner } from '@/app/components/ui/spinner';
 import { useAuth } from '@/app/hooks/useAuth';
@@ -1048,6 +1049,20 @@ export default function EditStatementPage(): React.JSX.Element {
         onDelete={handleDelete}
         onFieldChange={({ id, field, value }) => handleFieldChange(id, field, value)}
       />
+
+      {statement && (
+        <div
+          style={{
+            marginTop: 24,
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            background: 'var(--card-bg)',
+            padding: 20,
+          }}
+        >
+          <NotesPanel entityType="statement" entityId={statement.id} />
+        </div>
+      )}
 
       {/* Bulk Category Dialog */}
       <Dialog

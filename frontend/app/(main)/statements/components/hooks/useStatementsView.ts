@@ -101,12 +101,34 @@ function resolveRouteFilterLabel(
   return routeReceiptStatus ? 'Status filter' : null;
 }
 
+const SEARCH_AMOUNT_PATTERN = /^\d[\d ]*(?:[.,](\d{1,2}))?$/;
+
+/**
+ * Same reading as the server's search: "12" finds 12.49, "12.5" finds 12.57,
+ * "12.50" only 12.50, and "1 200,50" is 1200.50.
+ */
+function matchesSearchAmount(amount: number | string | null | undefined, q: string): boolean {
+  const match = SEARCH_AMOUNT_PATTERN.exec(q);
+  const value = Math.abs(Number(amount));
+  if (!match || amount === null || amount === undefined || !Number.isFinite(value)) {
+    return false;
+  }
+  const scale = match[1]?.length ?? 0;
+  const [whole, cents] = value.toFixed(2).split('.');
+  const truncated = scale > 0 ? `${whole}.${cents.slice(0, scale)}` : whole;
+  return Number(truncated) === Number(q.replace(/ /g, '').replace(',', '.'));
+}
+
+// Receipts come from their own paged endpoint, so the search reaches them here,
+// on the fields a receipt row has.
 function matchesSearch(s: Statement, q: string): boolean {
   return (
     s.fileName.toLowerCase().includes(q) ||
     (s.subject ?? '').toLowerCase().includes(q) ||
     (s.sender ?? '').toLowerCase().includes(q) ||
-    (s.parsedData?.vendor ?? '').toLowerCase().includes(q)
+    (s.parsedData?.vendor ?? '').toLowerCase().includes(q) ||
+    (s.category?.name ?? '').toLowerCase().includes(q) ||
+    matchesSearchAmount(s.totalDebit, q)
   );
 }
 
@@ -150,6 +172,8 @@ export function useStatementsView({
   page: number;
   setPage: (p: number) => void;
   search: string;
+  /** Sets the search and goes back to the first page. */
+  applySearch: (value: string) => void;
   dateSortDirection: 'asc' | 'desc';
   setDateSortDirection: (d: 'asc' | 'desc') => void;
   expenseDrawerOpen: boolean;
@@ -243,9 +267,9 @@ export function useStatementsView({
   const t = useIntlayer('statementsPage');
 
   const [page, setPage] = useState(1);
-  // The page has no search box any more; the list is narrowed by the filter
-  // chips and the route alone, and the query key keeps its shape.
-  const search = '';
+  // Statements are searched on the server (the term is part of the query key);
+  // receipts are searched on the client in buildDocumentStatements.
+  const [search, setSearch] = useState('');
   const [dateSortDirection, setDateSortDirection] = useState<'desc' | 'asc'>('desc');
   const [expenseDrawerOpen, setExpenseDrawerOpen] = useState(false);
   const [expenseDrawerMode, setExpenseDrawerMode] = useState<StatementExpenseMode>('scan');
@@ -332,7 +356,7 @@ export function useStatementsView({
     void loadManualExpenseOptions();
   });
   const initFiltersFromStorage = useEffectEvent(() => {
-    filterState.initFromStorage();
+    filterState.initFromStorage(searchParams.get('month'));
   });
 
   // Load manual expense options when user is available
@@ -604,6 +628,10 @@ export function useStatementsView({
     page,
     setPage,
     search,
+    applySearch: (value: string) => {
+      setSearch(value);
+      setPage(1);
+    },
     dateSortDirection,
     setDateSortDirection,
     expenseDrawerOpen,

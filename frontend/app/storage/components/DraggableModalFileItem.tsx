@@ -4,6 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { Box, Typography } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import React from 'react';
+import { resolveStatementViewAction } from '@/app/(main)/statements/components/StatementsListView.utils';
 import { DocumentTypeIcon } from '@/app/components/DocumentTypeIcon';
 import { GripVertical } from '@/app/components/icons';
 import type { StorageFile } from '../storageHelpers';
@@ -44,7 +45,7 @@ export const DraggableModalFileItem = React.memo(
             component="button"
             ref={setNodeRef}
             type="button"
-            onClick={() => router.push(`/statements/${file.id}/view`)}
+            onClick={() => router.push(resolveStatementViewAction(file).href)}
             title={canEditFile(file) ? rowHintLabel : undefined}
             sx={{
               display: 'flex',

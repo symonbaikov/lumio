@@ -381,7 +381,11 @@ export function useStatementSelection({
 
       setSelectedStatementIds(prev => prev.filter(id => !deletedIds.includes(id)));
       setSelectedActionsOpen(false);
-      await onRefreshStatements({ search, showErrorToast: false });
+      // Scanned and emailed documents come from the receipts list, not /statements.
+      await Promise.all([
+        onRefreshStatements({ search, showErrorToast: false }),
+        onRefreshGmail({ silent: true, showErrorToast: false }),
+      ]);
 
       toast.success(
         failedIds.length > 0

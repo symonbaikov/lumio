@@ -159,15 +159,17 @@ export const resetDisallowedStatementFilters = (
   return next;
 };
 
-// Widths shared by the list header and its rows. Only the receipt icon, the
-// amount and the action keep a fixed width; the rest split what is left by
-// weight and truncate, so any set of columns fits the screen without a
-// sideways scroll.
+// Widths shared by the list header and its rows. Only the receipt icon and the
+// amount keep a fixed width; the action is as wide as its Review label in the
+// current language (every action cell carries an invisible copy of it, so the
+// header and the rows agree); the rest split what is left by weight and
+// truncate, so any set of columns fits the screen without a sideways scroll.
 const FIXED_COLUMN_WIDTHS: Partial<Record<StatementColumnId, number>> = {
   receipt: 40,
   amount: 140,
-  action: 80,
 };
+
+const ACTION_COLUMN_MIN_WIDTH = 80;
 
 const FLEX_COLUMN_WEIGHTS: Partial<Record<StatementColumnId, number>> = {
   merchant: 3,
@@ -183,6 +185,9 @@ export const statementColumnWidthStyle = (
   const fixed = FIXED_COLUMN_WIDTHS[columnId];
   if (fixed) {
     return { flex: `0 0 ${fixed}px`, width: fixed, minWidth: fixed };
+  }
+  if (columnId === 'action') {
+    return { flex: '0 0 auto', minWidth: ACTION_COLUMN_MIN_WIDTH };
   }
   return {
     flex: `${FLEX_COLUMN_WEIGHTS[columnId] ?? 1} 1 0`,

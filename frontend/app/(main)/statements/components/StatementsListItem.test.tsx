@@ -755,6 +755,57 @@ describe('StatementsListItem', () => {
     expect(duplicateAccent?.style.width).toBe('4px');
   });
 
+  it('re-colours a suspected duplicate badge without mixing background and backgroundColor', () => {
+    // The group colour moves when an upload regroups the duplicates; React warns
+    // when a longhand changes on an element whose style also holds the shorthand.
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const root = createRoot(container);
+    const statement: Statement = {
+      id: 'duplicate-2',
+      source: 'statement',
+      fileName: 'Invoice.pdf',
+      status: 'completed',
+      totalDebit: 14.63,
+      totalCredit: 0,
+      createdAt: '2026-10-09T00:00:00Z',
+      statementDateFrom: '2026-10-09',
+      statementDateTo: '2026-10-09',
+      bankName: 'other',
+      fileType: 'pdf',
+      currency: 'USD',
+    };
+    const renderTone = (tone: 'sky' | 'stone') =>
+      act(() => {
+        root.render(
+          <StatementsListItem
+            statement={statement}
+            viewLabel="View"
+            isReceipt={false}
+            isProcessing={false}
+            merchantLabel="Railway"
+            amountLabel="14.63 USD"
+            dateLabel="10/09/2026"
+            isPossibleDuplicate
+            duplicateRole="suspected"
+            duplicateGroupTone={tone}
+            onView={() => undefined}
+            onIconClick={() => undefined}
+            onToggleSelect={() => undefined}
+            typeLabel="PDF"
+          />,
+        );
+      });
+
+    renderTone('sky');
+    renderTone('stone');
+
+    const conflicts = errors.mock.calls.filter(call =>
+      String(call[0]).includes('conflicting property'),
+    );
+    errors.mockRestore();
+    expect(conflicts).toEqual([]);
+  });
+
   it('honors desktop column visibility and keeps hidden action rows clickable', () => {
     const root = createRoot(container);
     const onView = vi.fn();
@@ -1107,5 +1158,64 @@ describe('StatementsListItem', () => {
       link?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     });
     expect(onView).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a multi-row statement under its line instead of opening the statement', () => {
+    const root = createRoot(container);
+    const onView = vi.fn();
+    const onToggleExpand = vi.fn();
+    const statement: Statement = {
+      id: 'statement-rows',
+      source: 'statement',
+      fileName: 'september.pdf',
+      status: 'completed',
+      totalDebit: 300,
+      totalCredit: 0,
+      createdAt: '2026-09-30T00:00:00Z',
+      bankName: 'kaspi',
+      fileType: 'pdf',
+    };
+    const render = (count: number, expanded: boolean): void =>
+      act(() => {
+        root.render(
+          <StatementsListItem
+            statement={statement}
+            viewLabel="View"
+            isReceipt={false}
+            isProcessing={false}
+            merchantLabel="Kaspi"
+            amountLabel="300 KZT"
+            dateLabel="09/30/2026"
+            onView={onView}
+            onIconClick={() => undefined}
+            transactionCount={count}
+            expanded={expanded}
+            onToggleExpand={onToggleExpand}
+          />,
+        );
+      });
+
+    render(1, false);
+    expect(container.querySelector('.lumio-stmt-list-item__rows-toggle')).toBeNull();
+
+    render(3, false);
+    const toggle = container.querySelector(
+      '[data-testid="statement-item-desktop-statement-rows"] .lumio-stmt-list-item__rows-toggle',
+    ) as HTMLButtonElement | null;
+    expect(toggle?.textContent).toContain('3');
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+
+    act(() => {
+      toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(onToggleExpand).toHaveBeenCalledTimes(1);
+    expect(onView).not.toHaveBeenCalled();
+
+    render(3, true);
+    expect(
+      container
+        .querySelector('.lumio-stmt-list-item__rows-toggle')
+        ?.getAttribute('aria-expanded'),
+    ).toBe('true');
   });
 });

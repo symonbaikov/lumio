@@ -1,6 +1,7 @@
 import { toast } from 'react-hot-toast';
 import apiClient from '@/app/lib/api';
 import { getApiErrorMessage } from '@/app/lib/api-error';
+import { invalidateDocumentLists } from '@/app/lib/invalidate-document-lists';
 import type {
   BranchOption,
   CategoryOption,
@@ -290,6 +291,7 @@ export async function updateStatementCategoryAction({
           }
         : prev,
     );
+    invalidateDocumentLists();
     toast.success(messages.categoryUpdated);
   } catch (err: unknown) {
     setError(getApiErrorMessage(err, '') || messages.categoryUpdateFailed);
@@ -319,6 +321,7 @@ export async function metadataAutoSave({
     const response = await apiClient.patch(`/statements/${statementId}`, payload);
     const updatedStatement = response.data?.data || response.data;
     setStatement(updatedStatement as Statement);
+    invalidateDocumentLists();
   } catch (err) {
     console.error('Metadata autosave failed:', err);
   }

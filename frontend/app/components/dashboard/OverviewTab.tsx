@@ -5,7 +5,6 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { BudgetSummaryWidget } from '@/app/(main)/dashboard/components/BudgetSummaryWidget';
 import { CashRunwayWidget } from '@/app/(main)/dashboard/components/CashRunwayWidget';
-import { formatDateOnly } from '@/app/(main)/dashboard/helpers/dashboard-helpers';
 import { FileUp } from '@/app/components/icons';
 import { EmptyStateIllustration } from '@/app/components/ui/EmptyStateIllustration';
 import type { DashboardData } from '@/app/hooks/useDashboard';
@@ -53,9 +52,7 @@ function monthKey(displayMonth: Date): string {
 }
 
 function monthRangeHref(displayMonth: Date): string {
-  const start = new Date(displayMonth.getFullYear(), displayMonth.getMonth(), 1);
-  const end = new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 0);
-  return `/statements/transactions?startDate=${formatDateOnly(start)}&endDate=${formatDateOnly(end)}`;
+  return `/statements/submit?month=${monthKey(displayMonth)}`;
 }
 
 function signed(value: number, formatAmount: (value: number) => string): string {

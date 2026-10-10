@@ -8,9 +8,10 @@ import type {
 } from '@/app/(main)/statements/components/columns/statement-columns';
 import { DateFilterDropdown } from '@/app/(main)/statements/components/filters/DateFilterDropdown';
 import { FiltersDrawer } from '@/app/(main)/statements/components/filters/FiltersDrawer';
+import { StatementsSearchPopover } from '@/app/(main)/statements/components/filters/StatementsSearchPopover';
 import type { StatementFilters } from '@/app/(main)/statements/components/filters/statement-filters';
 import { ChevronDown, SlidersHorizontal } from '@/app/components/icons';
-import { SHORTCUT_OPEN_FILTERS } from '@/app/lib/keyboard-shortcuts';
+import { SHORTCUT_EXPORT, SHORTCUT_OPEN_FILTERS } from '@/app/lib/keyboard-shortcuts';
 import { tokens } from '@/lib/theme-tokens';
 import { StatementsBulkActions } from './StatementsBulkActions';
 import { StatementsQueueTabs } from './StatementsQueueTabs';
@@ -94,6 +95,8 @@ interface Props {
   hasSelectedDuplicates: boolean;
   draftFilters: StatementFilters;
   activeFilterCount: number;
+  search: string;
+  onSearchApply: (value: string) => void;
   dateDropdownOpen: boolean;
   filtersDrawerOpen: boolean;
   filtersDrawerScreen: string;
@@ -172,6 +175,8 @@ export function StatementsListHeader({
   hasSelectedDuplicates,
   draftFilters,
   activeFilterCount,
+  search,
+  onSearchApply,
   dateDropdownOpen,
   filtersDrawerOpen,
   filtersDrawerScreen,
@@ -225,17 +230,30 @@ export function StatementsListHeader({
     };
   }, [onFiltersDrawerOpen]);
 
+  // Export works on the selection, so with nothing selected the key does nothing.
+  useEffect(() => {
+    window.addEventListener(SHORTCUT_EXPORT, onExport);
+    return () => {
+      window.removeEventListener(SHORTCUT_EXPORT, onExport);
+    };
+  }, [onExport]);
+
   return (
     <div
       className="lumio-stmt-list-view__header"
       style={{ marginBottom: 24, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}
     >
       {/* The tab strip scrolls inside its own column, so the actions stay in the corner.
-          Date and Filters ride here; every other filter lives inside the Filters drawer. */}
+          Search, Date and Filters ride here; every other filter lives inside the Filters drawer. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <StatementsQueueTabs />
         </div>
+        <StatementsSearchPopover
+          value={search}
+          onApply={onSearchApply}
+          applyLabel={filterOptionLabels.apply}
+        />
         <DateFilterDropdown
           open={dateDropdownOpen}
           onOpenChange={onDateDropdownChange}
