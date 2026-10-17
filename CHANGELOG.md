@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0](https://github.com/symonbaikov/lumio/compare/v1.0.0...v1.1.0) (2026-10-17)
+
+
+### Features
+
+* **dashboard:** Trends pass and month-close Finance ops / Data quality tabs ([7b47a4b](https://github.com/symonbaikov/lumio/commit/7b47a4b78d0ebceac333a387af836d9546bd0d91))
+* **goals:** cover presets ([b2c5784](https://github.com/symonbaikov/lumio/commit/b2c57844fb6463182f6b4b142690602e7b809110))
+* **payables:** book unbooked payments and quiet Pay/Receive lists ([09cb74b](https://github.com/symonbaikov/lumio/commit/09cb74b3bbc33fa5090d10810ba1c02c417e994e))
+* **versions:** nightly and manual snapshots of a workspace ([51d9eb4](https://github.com/symonbaikov/lumio/commit/51d9eb42277fb20046d2bbf8ecfa798a7b2a35c5))
+* **versions:** open a version read only, save it as a copy ([9b20ff1](https://github.com/symonbaikov/lumio/commit/9b20ff1e172eadac012394d979a535f932a7fa03))
+* **versions:** Settings → Versions — the app as it was on a past day ([b5f34f4](https://github.com/symonbaikov/lumio/commit/b5f34f4fa4fec67de68cae587ce43f61c6defc69))
+* **versions:** the Versions tab and the read-only app ([6f1aa38](https://github.com/symonbaikov/lumio/commit/6f1aa3843b821de9c65ad7763482c7b6db256f4f))
+* **workspaces:** read-only version workspaces, skipped by every background job ([14d8074](https://github.com/symonbaikov/lumio/commit/14d8074b7b9bd8a2b285f4d8520270df890ef22a))
+* **workspaces:** read-only version workspaces, skipped by every background job ([855e71c](https://github.com/symonbaikov/lumio/commit/855e71ccba71f52f277f908f069b5cb0cd1c1326))
+
+
+### Bug Fixes
+
+* **backups:** a restored invoice keeps its PDF; round trip proven on Postgres ([84abe6d](https://github.com/symonbaikov/lumio/commit/84abe6d74c663eeccb015e9aa3c8d54f611a50be))
+* **backups:** a restored invoice keeps its PDF; round trip proven on Postgres ([c3cd78e](https://github.com/symonbaikov/lumio/commit/c3cd78e7d4276a889cf1878abf6293a387c31ef2))
+* **budgets:** show the start date and the spending it leaves out ([ecbcbf2](https://github.com/symonbaikov/lumio/commit/ecbcbf27a24dc0ad1f14828150022f658bce0d38))
+* **budgets:** show the start date and the spending it leaves out ([7c29523](https://github.com/symonbaikov/lumio/commit/7c2952348e60ad2db8b325c7f953bcc0cbf3b580))
+* **currency:** budgets, goals and insights convert currencies ([47f5b28](https://github.com/symonbaikov/lumio/commit/47f5b2816b38fca47850be93c2b302add8112794))
+* **dashboard:** a hand-entered transaction in Recent transactions is not a link ([8878258](https://github.com/symonbaikov/lumio/commit/88782584e1e40d10e688811c551c7f734e0217a0))
+* **dashboard:** a hand-entered transaction in Recent transactions is not a link ([6cb9c08](https://github.com/symonbaikov/lumio/commit/6cb9c085877678b94872ba5a778f5f6ff8ef9481))
+* dates and category names in the reader's language, Approved filter follows the column ([9e990e7](https://github.com/symonbaikov/lumio/commit/9e990e75dd60842f51a1371c539eeb483ad54ddb))
+* **dates:** format dates in the interface language, not the sign-up locale ([f6f02d1](https://github.com/symonbaikov/lumio/commit/f6f02d14fac0c01cf81196b3c830a3c3b752b41d))
+* **documents, budgets:** real Approved column, category names in the reader's language ([e25da8a](https://github.com/symonbaikov/lumio/commit/e25da8a69a64f76c8f0f61d68a0a955470e0edae))
+* **documents, budgets:** real Approved column, category names in the reader's language ([6f543b2](https://github.com/symonbaikov/lumio/commit/6f543b20c113b34ed19a3d43b4aa02ec3333d904))
+* **documents:** the Approved filter follows the Approved column ([63be370](https://github.com/symonbaikov/lumio/commit/63be3704dca8762898035c8494eeeb4eb16e14e3))
+* **figures:** edits in Documents reach every figure ([6c6602b](https://github.com/symonbaikov/lumio/commit/6c6602b8e804c6cc6841c79a6ddf0edc17516442))
+* **figures:** one counted-flows rule for every income and spending figure ([b713b11](https://github.com/symonbaikov/lumio/commit/b713b1117720d0761237c071ac38cdb629e88124))
+* **i18n:** show system category names in the reader's language everywhere ([6d6ba1c](https://github.com/symonbaikov/lumio/commit/6d6ba1c945e1908917347146a2a07bf7b6268c9c))
+* **receipts:** edits to a draft scan reach the row Review shows ([5d4715d](https://github.com/symonbaikov/lumio/commit/5d4715d2bb96f0d5c34f8d0fb2fcc7667cdfcf4b))
+* **receipts:** edits to a draft scan reach the row Review shows ([d28045c](https://github.com/symonbaikov/lumio/commit/d28045cc508232d005ba1265dd7b97f755598312))
+* **review:** month-close steps count what Review lists ([9de2483](https://github.com/symonbaikov/lumio/commit/9de2483f33b59471631d2d23f9fa83b4716b482b))
+* **ui:** dropdown menus fit their field, workspaces list scrolls, subscription dashes ([89ba1bc](https://github.com/symonbaikov/lumio/commit/89ba1bccda901fdcfa3e343e6faff86bcb908a01))
+
 ## [Unreleased]
 
 ### Added
