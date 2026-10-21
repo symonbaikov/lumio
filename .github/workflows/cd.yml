@@ -176,7 +176,7 @@ jobs:
       # are resolved at build time, so both the API URL and the target are baked.
       - name: Build and push by digest
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.image.context }}
           platforms: linux/${{ matrix.platform.arch }}
